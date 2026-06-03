@@ -3,6 +3,8 @@ import { useAuth } from "@/lib/auth";
 import { useEffect } from "react";
 import { useRouter } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
+import { LocationTracker } from "@/components/LocationTracker";
+
 import { Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -29,7 +31,9 @@ function AuthenticatedLayout() {
   }
   return (
     <AppShell>
+      <LocationTracker />
       <Outlet />
     </AppShell>
   );
+
 }
