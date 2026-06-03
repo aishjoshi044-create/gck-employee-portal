@@ -30,6 +30,7 @@ function AuthPage() {
   const [newPin, setNewPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
   const [busy, setBusy] = useState(false);
+  const [remember, setRemember] = useState(true);
   const [mode, setMode] = useState<"login" | "set-pin" | "bootstrap">("login");
   const bootstrap = useServerFn(bootstrapAdmin);
 
@@ -64,6 +65,9 @@ function AuthPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setBusy(false);
     if (error) { toast.error(t("invalid_credentials")); return; }
+    if (typeof window !== "undefined") {
+      localStorage.setItem("gck-remember", remember ? "1" : "0");
+    }
     await refresh();
   };
 
