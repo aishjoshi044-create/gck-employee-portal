@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Users, UserCheck, UserX, CheckCircle2, Clock, XCircle, Cake } from "lucide-react";
 import { format } from "date-fns";
-import { LiveMap } from "@/components/admin/LiveMap";
+import { LiveMapClient as LiveMap } from "@/components/admin/LiveMapClient";
 
 export const Route = createFileRoute("/_authenticated/admin/")({
   component: AdminDashboard,
