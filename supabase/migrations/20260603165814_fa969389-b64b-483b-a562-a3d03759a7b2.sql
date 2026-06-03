@@ -1,0 +1,1 @@
+ALTER TABLE public.employee_locations REPLICA IDENTITY FULL;
