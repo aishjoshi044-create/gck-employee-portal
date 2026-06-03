@@ -20,8 +20,16 @@ function LeavesPage() {
   const { data } = useQuery({
     queryKey: ["admin-leaves"],
     queryFn: async () => {
-      const { data } = await supabase.from("leave_requests").select("*, profiles!leave_requests_user_id_fkey(full_name)").order("created_at", { ascending: false });
-      return data ?? [];
+      const { data: leaves, error } = await supabase
+        .from("leave_requests")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) { toast.error(error.message); return []; }
+      if (!leaves?.length) return [];
+      const userIds = [...new Set(leaves.map((l: any) => l.user_id))];
+      const { data: profs } = await supabase.from("profiles").select("id, full_name").in("id", userIds);
+      const pMap = new Map((profs ?? []).map((p: any) => [p.id, p]));
+      return leaves.map((l: any) => ({ ...l, profiles: pMap.get(l.user_id) }));
     },
   });
 
