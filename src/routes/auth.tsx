@@ -111,19 +111,13 @@ function AuthPage() {
         <div className="flex justify-end mb-2"><LangToggle /></div>
 
         <div className="bg-card rounded-3xl shadow-xl border p-6 sm:p-8">
-          <div className="flex flex-col items-center text-center mb-6">
-            <img src={logo.url} alt="GCK" width={88} height={88} className="size-20" />
-            <h1 className="mt-3 text-xl font-extrabold">{t("app_name")}</h1>
-            <p className="text-sm text-muted-foreground">{t("staff_portal")}</p>
-            {as && (
-              <div className="mt-3 inline-flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full bg-primary-soft text-primary">
-                {as === "admin" ? "Administrator Sign In" : "Employee Sign In"}
-              </div>
-            )}
-            <p className="mt-3 text-sm text-muted-foreground max-w-xs">
-              Kindly enter your credentials below to continue.
-            </p>
-          </div>
+          {as && (
+            <div className="mb-5 text-center text-base font-bold">
+              {as === "admin" ? "Administrator Sign In" : "Employee Sign In"}
+            </div>
+          )}
+
+
 
 
           {mode === "login" && (
