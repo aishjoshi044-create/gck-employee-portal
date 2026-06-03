@@ -38,18 +38,21 @@ function AuthPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!/^[a-z0-9_.-]{2,30}$/.test(username.trim().toLowerCase())) {
+    const id = username.trim();
+    const isEmail = id.includes("@");
+    const usePin = /^\d{4}$/.test(pin);
+    if (!isEmail && !/^[a-z0-9_.-]{2,30}$/.test(id.toLowerCase())) {
       toast.error(t("invalid_credentials"));
       return;
     }
-    if (!/^\d{4}$/.test(pin)) {
+    if (!isEmail && !usePin) {
       toast.error(t("enter_pin"));
       return;
     }
     setBusy(true);
     const { error } = await supabase.auth.signInWithPassword({
-      email: usernameToEmail(username),
-      password: pinToPassword(pin),
+      email: isEmail ? id.toLowerCase() : usernameToEmail(id),
+      password: isEmail ? pin : pinToPassword(pin),
     });
     setBusy(false);
     if (error) {
