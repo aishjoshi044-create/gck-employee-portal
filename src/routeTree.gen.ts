@@ -9,38 +9,253 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedMeIndexRouteImport } from './routes/_authenticated/me/index'
+import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
+import { Route as AuthenticatedMeProfileRouteImport } from './routes/_authenticated/me/profile'
+import { Route as AuthenticatedMeLeaveRouteImport } from './routes/_authenticated/me/leave'
+import { Route as AuthenticatedMeAttendanceRouteImport } from './routes/_authenticated/me/attendance'
+import { Route as AuthenticatedAdminUpdatesRouteImport } from './routes/_authenticated/admin/updates'
+import { Route as AuthenticatedAdminTasksRouteImport } from './routes/_authenticated/admin/tasks'
+import { Route as AuthenticatedAdminReportsRouteImport } from './routes/_authenticated/admin/reports'
+import { Route as AuthenticatedAdminLeavesRouteImport } from './routes/_authenticated/admin/leaves'
+import { Route as AuthenticatedAdminEmployeesRouteImport } from './routes/_authenticated/admin/employees'
+import { Route as AuthenticatedAdminAttendanceRouteImport } from './routes/_authenticated/admin/attendance'
+import { Route as AuthenticatedAdminAnnouncementsRouteImport } from './routes/_authenticated/admin/announcements'
+import { Route as AuthenticatedMeTasksIndexRouteImport } from './routes/_authenticated/me/tasks/index'
+import { Route as AuthenticatedMeTasksIdRouteImport } from './routes/_authenticated/me/tasks/$id'
 
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedMeIndexRoute = AuthenticatedMeIndexRouteImport.update({
+  id: '/me/',
+  path: '/me/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
+  id: '/admin/',
+  path: '/admin/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedMeProfileRoute = AuthenticatedMeProfileRouteImport.update({
+  id: '/me/profile',
+  path: '/me/profile',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedMeLeaveRoute = AuthenticatedMeLeaveRouteImport.update({
+  id: '/me/leave',
+  path: '/me/leave',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedMeAttendanceRoute =
+  AuthenticatedMeAttendanceRouteImport.update({
+    id: '/me/attendance',
+    path: '/me/attendance',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminUpdatesRoute =
+  AuthenticatedAdminUpdatesRouteImport.update({
+    id: '/admin/updates',
+    path: '/admin/updates',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminTasksRoute = AuthenticatedAdminTasksRouteImport.update({
+  id: '/admin/tasks',
+  path: '/admin/tasks',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedAdminReportsRoute =
+  AuthenticatedAdminReportsRouteImport.update({
+    id: '/admin/reports',
+    path: '/admin/reports',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminLeavesRoute =
+  AuthenticatedAdminLeavesRouteImport.update({
+    id: '/admin/leaves',
+    path: '/admin/leaves',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminEmployeesRoute =
+  AuthenticatedAdminEmployeesRouteImport.update({
+    id: '/admin/employees',
+    path: '/admin/employees',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminAttendanceRoute =
+  AuthenticatedAdminAttendanceRouteImport.update({
+    id: '/admin/attendance',
+    path: '/admin/attendance',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminAnnouncementsRoute =
+  AuthenticatedAdminAnnouncementsRouteImport.update({
+    id: '/admin/announcements',
+    path: '/admin/announcements',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedMeTasksIndexRoute =
+  AuthenticatedMeTasksIndexRouteImport.update({
+    id: '/me/tasks/',
+    path: '/me/tasks/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedMeTasksIdRoute = AuthenticatedMeTasksIdRouteImport.update({
+  id: '/me/tasks/$id',
+  path: '/me/tasks/$id',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/admin/announcements': typeof AuthenticatedAdminAnnouncementsRoute
+  '/admin/attendance': typeof AuthenticatedAdminAttendanceRoute
+  '/admin/employees': typeof AuthenticatedAdminEmployeesRoute
+  '/admin/leaves': typeof AuthenticatedAdminLeavesRoute
+  '/admin/reports': typeof AuthenticatedAdminReportsRoute
+  '/admin/tasks': typeof AuthenticatedAdminTasksRoute
+  '/admin/updates': typeof AuthenticatedAdminUpdatesRoute
+  '/me/attendance': typeof AuthenticatedMeAttendanceRoute
+  '/me/leave': typeof AuthenticatedMeLeaveRoute
+  '/me/profile': typeof AuthenticatedMeProfileRoute
+  '/admin/': typeof AuthenticatedAdminIndexRoute
+  '/me/': typeof AuthenticatedMeIndexRoute
+  '/me/tasks/$id': typeof AuthenticatedMeTasksIdRoute
+  '/me/tasks/': typeof AuthenticatedMeTasksIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/admin/announcements': typeof AuthenticatedAdminAnnouncementsRoute
+  '/admin/attendance': typeof AuthenticatedAdminAttendanceRoute
+  '/admin/employees': typeof AuthenticatedAdminEmployeesRoute
+  '/admin/leaves': typeof AuthenticatedAdminLeavesRoute
+  '/admin/reports': typeof AuthenticatedAdminReportsRoute
+  '/admin/tasks': typeof AuthenticatedAdminTasksRoute
+  '/admin/updates': typeof AuthenticatedAdminUpdatesRoute
+  '/me/attendance': typeof AuthenticatedMeAttendanceRoute
+  '/me/leave': typeof AuthenticatedMeLeaveRoute
+  '/me/profile': typeof AuthenticatedMeProfileRoute
+  '/admin': typeof AuthenticatedAdminIndexRoute
+  '/me': typeof AuthenticatedMeIndexRoute
+  '/me/tasks/$id': typeof AuthenticatedMeTasksIdRoute
+  '/me/tasks': typeof AuthenticatedMeTasksIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/_authenticated/admin/announcements': typeof AuthenticatedAdminAnnouncementsRoute
+  '/_authenticated/admin/attendance': typeof AuthenticatedAdminAttendanceRoute
+  '/_authenticated/admin/employees': typeof AuthenticatedAdminEmployeesRoute
+  '/_authenticated/admin/leaves': typeof AuthenticatedAdminLeavesRoute
+  '/_authenticated/admin/reports': typeof AuthenticatedAdminReportsRoute
+  '/_authenticated/admin/tasks': typeof AuthenticatedAdminTasksRoute
+  '/_authenticated/admin/updates': typeof AuthenticatedAdminUpdatesRoute
+  '/_authenticated/me/attendance': typeof AuthenticatedMeAttendanceRoute
+  '/_authenticated/me/leave': typeof AuthenticatedMeLeaveRoute
+  '/_authenticated/me/profile': typeof AuthenticatedMeProfileRoute
+  '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
+  '/_authenticated/me/': typeof AuthenticatedMeIndexRoute
+  '/_authenticated/me/tasks/$id': typeof AuthenticatedMeTasksIdRoute
+  '/_authenticated/me/tasks/': typeof AuthenticatedMeTasksIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/admin/announcements'
+    | '/admin/attendance'
+    | '/admin/employees'
+    | '/admin/leaves'
+    | '/admin/reports'
+    | '/admin/tasks'
+    | '/admin/updates'
+    | '/me/attendance'
+    | '/me/leave'
+    | '/me/profile'
+    | '/admin/'
+    | '/me/'
+    | '/me/tasks/$id'
+    | '/me/tasks/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/auth'
+    | '/admin/announcements'
+    | '/admin/attendance'
+    | '/admin/employees'
+    | '/admin/leaves'
+    | '/admin/reports'
+    | '/admin/tasks'
+    | '/admin/updates'
+    | '/me/attendance'
+    | '/me/leave'
+    | '/me/profile'
+    | '/admin'
+    | '/me'
+    | '/me/tasks/$id'
+    | '/me/tasks'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/auth'
+    | '/_authenticated/admin/announcements'
+    | '/_authenticated/admin/attendance'
+    | '/_authenticated/admin/employees'
+    | '/_authenticated/admin/leaves'
+    | '/_authenticated/admin/reports'
+    | '/_authenticated/admin/tasks'
+    | '/_authenticated/admin/updates'
+    | '/_authenticated/me/attendance'
+    | '/_authenticated/me/leave'
+    | '/_authenticated/me/profile'
+    | '/_authenticated/admin/'
+    | '/_authenticated/me/'
+    | '/_authenticated/me/tasks/$id'
+    | '/_authenticated/me/tasks/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AuthRoute: typeof AuthRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,22 +263,149 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/me/': {
+      id: '/_authenticated/me/'
+      path: '/me'
+      fullPath: '/me/'
+      preLoaderRoute: typeof AuthenticatedMeIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/': {
+      id: '/_authenticated/admin/'
+      path: '/admin'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/me/profile': {
+      id: '/_authenticated/me/profile'
+      path: '/me/profile'
+      fullPath: '/me/profile'
+      preLoaderRoute: typeof AuthenticatedMeProfileRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/me/leave': {
+      id: '/_authenticated/me/leave'
+      path: '/me/leave'
+      fullPath: '/me/leave'
+      preLoaderRoute: typeof AuthenticatedMeLeaveRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/me/attendance': {
+      id: '/_authenticated/me/attendance'
+      path: '/me/attendance'
+      fullPath: '/me/attendance'
+      preLoaderRoute: typeof AuthenticatedMeAttendanceRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/updates': {
+      id: '/_authenticated/admin/updates'
+      path: '/admin/updates'
+      fullPath: '/admin/updates'
+      preLoaderRoute: typeof AuthenticatedAdminUpdatesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/tasks': {
+      id: '/_authenticated/admin/tasks'
+      path: '/admin/tasks'
+      fullPath: '/admin/tasks'
+      preLoaderRoute: typeof AuthenticatedAdminTasksRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/reports': {
+      id: '/_authenticated/admin/reports'
+      path: '/admin/reports'
+      fullPath: '/admin/reports'
+      preLoaderRoute: typeof AuthenticatedAdminReportsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/leaves': {
+      id: '/_authenticated/admin/leaves'
+      path: '/admin/leaves'
+      fullPath: '/admin/leaves'
+      preLoaderRoute: typeof AuthenticatedAdminLeavesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/employees': {
+      id: '/_authenticated/admin/employees'
+      path: '/admin/employees'
+      fullPath: '/admin/employees'
+      preLoaderRoute: typeof AuthenticatedAdminEmployeesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/attendance': {
+      id: '/_authenticated/admin/attendance'
+      path: '/admin/attendance'
+      fullPath: '/admin/attendance'
+      preLoaderRoute: typeof AuthenticatedAdminAttendanceRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/announcements': {
+      id: '/_authenticated/admin/announcements'
+      path: '/admin/announcements'
+      fullPath: '/admin/announcements'
+      preLoaderRoute: typeof AuthenticatedAdminAnnouncementsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/me/tasks/': {
+      id: '/_authenticated/me/tasks/'
+      path: '/me/tasks'
+      fullPath: '/me/tasks/'
+      preLoaderRoute: typeof AuthenticatedMeTasksIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/me/tasks/$id': {
+      id: '/_authenticated/me/tasks/$id'
+      path: '/me/tasks/$id'
+      fullPath: '/me/tasks/$id'
+      preLoaderRoute: typeof AuthenticatedMeTasksIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAdminAnnouncementsRoute: typeof AuthenticatedAdminAnnouncementsRoute
+  AuthenticatedAdminAttendanceRoute: typeof AuthenticatedAdminAttendanceRoute
+  AuthenticatedAdminEmployeesRoute: typeof AuthenticatedAdminEmployeesRoute
+  AuthenticatedAdminLeavesRoute: typeof AuthenticatedAdminLeavesRoute
+  AuthenticatedAdminReportsRoute: typeof AuthenticatedAdminReportsRoute
+  AuthenticatedAdminTasksRoute: typeof AuthenticatedAdminTasksRoute
+  AuthenticatedAdminUpdatesRoute: typeof AuthenticatedAdminUpdatesRoute
+  AuthenticatedMeAttendanceRoute: typeof AuthenticatedMeAttendanceRoute
+  AuthenticatedMeLeaveRoute: typeof AuthenticatedMeLeaveRoute
+  AuthenticatedMeProfileRoute: typeof AuthenticatedMeProfileRoute
+  AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
+  AuthenticatedMeIndexRoute: typeof AuthenticatedMeIndexRoute
+  AuthenticatedMeTasksIdRoute: typeof AuthenticatedMeTasksIdRoute
+  AuthenticatedMeTasksIndexRoute: typeof AuthenticatedMeTasksIndexRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAdminAnnouncementsRoute: AuthenticatedAdminAnnouncementsRoute,
+  AuthenticatedAdminAttendanceRoute: AuthenticatedAdminAttendanceRoute,
+  AuthenticatedAdminEmployeesRoute: AuthenticatedAdminEmployeesRoute,
+  AuthenticatedAdminLeavesRoute: AuthenticatedAdminLeavesRoute,
+  AuthenticatedAdminReportsRoute: AuthenticatedAdminReportsRoute,
+  AuthenticatedAdminTasksRoute: AuthenticatedAdminTasksRoute,
+  AuthenticatedAdminUpdatesRoute: AuthenticatedAdminUpdatesRoute,
+  AuthenticatedMeAttendanceRoute: AuthenticatedMeAttendanceRoute,
+  AuthenticatedMeLeaveRoute: AuthenticatedMeLeaveRoute,
+  AuthenticatedMeProfileRoute: AuthenticatedMeProfileRoute,
+  AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
+  AuthenticatedMeIndexRoute: AuthenticatedMeIndexRoute,
+  AuthenticatedMeTasksIdRoute: AuthenticatedMeTasksIdRoute,
+  AuthenticatedMeTasksIndexRoute: AuthenticatedMeTasksIndexRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AuthRoute: AuthRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
