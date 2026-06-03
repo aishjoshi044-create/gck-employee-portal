@@ -34,16 +34,12 @@ function IndexPage() {
 
           <div className="text-center mb-6">
             <p className="text-lg sm:text-xl font-semibold">
-              {lang === "hi" ? "कृपया अपनी भूमिका चुनें" : "Please select your role to continue"}
-            </p>
-            <p className="text-sm text-muted-foreground mt-1">
-              {lang === "hi"
-                ? "अगली स्क्रीन पर आपसे आपके लॉगिन विवरण माँगे जाएँगे"
-                : "You will be asked for your login credentials on the next screen"}
+              {lang === "hi" ? "कृपया अपनी भूमिका चुनें" : "Please select your role"}
             </p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
             <Link
               to="/auth"
               search={{ as: "employee" }}
