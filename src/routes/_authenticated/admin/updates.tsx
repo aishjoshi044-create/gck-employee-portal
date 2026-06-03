@@ -19,12 +19,21 @@ function UpdatesPage() {
   const { data: updates } = useQuery({
     queryKey: ["admin-updates"],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data: ups } = await supabase
         .from("task_updates")
-        .select("*, tasks(title), profiles!task_updates_user_id_fkey(full_name)")
+        .select("*")
         .order("created_at", { ascending: false })
         .limit(50);
-      return data ?? [];
+      if (!ups?.length) return [];
+      const taskIds = [...new Set(ups.map((u: any) => u.task_id))];
+      const userIds = [...new Set(ups.map((u: any) => u.user_id))];
+      const [{ data: tasks }, { data: profs }] = await Promise.all([
+        supabase.from("tasks").select("id, title").in("id", taskIds),
+        supabase.from("profiles").select("id, full_name").in("id", userIds),
+      ]);
+      const tMap = new Map((tasks ?? []).map((t: any) => [t.id, t]));
+      const pMap = new Map((profs ?? []).map((p: any) => [p.id, p]));
+      return ups.map((u: any) => ({ ...u, tasks: tMap.get(u.task_id), profiles: pMap.get(u.user_id) }));
     },
   });
 
