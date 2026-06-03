@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import { Loader2, LogIn, ShieldCheck } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { bootstrapAdmin } from "@/lib/admin.functions";
-import logo from "@/assets/logo.png";
+import logo from "@/assets/gck-logo.jpeg.asset.json";
 
 export const Route = createFileRoute("/auth")({
   component: AuthPage,
@@ -99,7 +99,7 @@ function AuthPage() {
 
         <div className="bg-card rounded-3xl shadow-xl border p-6 sm:p-8">
           <div className="flex flex-col items-center text-center mb-6">
-            <img src={logo} alt="GCK" width={88} height={88} className="size-20" />
+            <img src={logo.url} alt="GCK" width={88} height={88} className="size-20" />
             <h1 className="mt-3 text-xl font-extrabold">{t("app_name")}</h1>
             <p className="text-sm text-muted-foreground">{t("staff_portal")}</p>
           </div>
