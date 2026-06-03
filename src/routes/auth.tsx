@@ -117,9 +117,15 @@ function AuthPage() {
               </div>
               <div>
                 <Label htmlFor="p" className="text-base font-semibold">{t("pin")}</Label>
-                <Input id="p" type="password" inputMode="numeric" maxLength={4} pattern="\d{4}"
-                  value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                  placeholder="••••" className="tap-lg mt-1.5 text-center text-2xl tracking-[0.6em]" />
+                {username.includes("@") ? (
+                  <Input id="p" type="password" value={pin}
+                    onChange={(e) => setPin(e.target.value)}
+                    placeholder="••••••••" className="tap-lg mt-1.5" />
+                ) : (
+                  <Input id="p" type="password" inputMode="numeric" maxLength={4} pattern="\d{4}"
+                    value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                    placeholder="••••" className="tap-lg mt-1.5 text-center text-2xl tracking-[0.6em]" />
+                )}
               </div>
               <Button type="submit" disabled={busy} className="w-full tap-xl gap-2">
                 {busy ? <Loader2 className="size-5 animate-spin" /> : <LogIn className="size-5" />}
