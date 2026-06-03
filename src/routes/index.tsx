@@ -32,9 +32,16 @@ function IndexPage() {
             <p className="text-sm text-muted-foreground">{t("staff_portal")}</p>
           </div>
 
-          <p className="text-center text-base font-semibold mb-4">
-            {lang === "hi" ? "आप कौन हैं?" : "Who are you?"}
-          </p>
+          <div className="text-center mb-6">
+            <p className="text-lg sm:text-xl font-semibold">
+              {lang === "hi" ? "कृपया अपनी भूमिका चुनें" : "Please select your role to continue"}
+            </p>
+            <p className="text-sm text-muted-foreground mt-1">
+              {lang === "hi"
+                ? "अगली स्क्रीन पर आपसे आपके लॉगिन विवरण माँगे जाएँगे"
+                : "You will be asked for your login credentials on the next screen"}
+            </p>
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Link
@@ -46,10 +53,10 @@ function IndexPage() {
                 <UserRound className="size-12" />
               </div>
               <div className="text-xl font-extrabold">
-                {lang === "hi" ? "कर्मचारी" : "Employee"}
+                {lang === "hi" ? "मैं एक कर्मचारी हूँ" : "I am an Employee"}
               </div>
               <div className="text-xs text-muted-foreground mt-1">
-                {lang === "hi" ? "हाज़िरी, काम, छुट्टी" : "Attendance, tasks, leave"}
+                {lang === "hi" ? "हाज़िरी, कार्य एवं छुट्टी" : "Attendance, tasks & leave"}
               </div>
             </Link>
 
@@ -62,13 +69,14 @@ function IndexPage() {
                 <ShieldCheck className="size-12" />
               </div>
               <div className="text-xl font-extrabold">
-                {lang === "hi" ? "प्रबंधक" : "Admin"}
+                {lang === "hi" ? "मैं प्रबंधक हूँ" : "I am an Administrator"}
               </div>
               <div className="text-xs text-muted-foreground mt-1">
-                {lang === "hi" ? "टीम और रिपोर्ट" : "Team & reports"}
+                {lang === "hi" ? "टीम प्रबंधन एवं रिपोर्ट" : "Team management & reports"}
               </div>
             </Link>
           </div>
+
 
           <a
             href="https://www.gck.org.in/"
