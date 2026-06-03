@@ -12,7 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useState } from "react";
 import { toast } from "sonner";
 import { Plus, Search, KeyRound, Power, Printer, Loader2 } from "lucide-react";
-import logo from "@/assets/logo.png";
+import logo from "@/assets/gck-logo.jpeg.asset.json";
 
 export const Route = createFileRoute("/_authenticated/admin/employees")({
   component: EmployeesPage,
@@ -128,7 +128,7 @@ function CredentialCard({ data, onClose }: { data: { username: string; pin: stri
       <DialogContent className="max-w-sm">
         <DialogHeader><DialogTitle>Login Credentials</DialogTitle></DialogHeader>
         <div id="credcard" className="border-2 border-primary rounded-2xl p-5 bg-card text-center print:border-black">
-          <img src={logo} alt="" className="size-14 mx-auto" />
+          <img src={logo.url} alt="" className="size-14 mx-auto" />
           <div className="font-bold text-lg mt-2">Gram Chetna Kendra</div>
           <div className="text-xs text-muted-foreground">Staff Login Card</div>
           <hr className="my-3" />

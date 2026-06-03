@@ -6,7 +6,7 @@ import { useTheme } from "@/lib/theme";
 import { LangToggle } from "@/components/LangToggle";
 import { Button } from "@/components/ui/button";
 import { LogOut, Moon, Sun, Home, ClipboardList, CalendarCheck, User, CalendarDays, Megaphone, Users, BarChart3, FileText, MapPin, Inbox, Bell } from "lucide-react";
-import logo from "@/assets/logo.png";
+import logo from "@/assets/gck-logo.jpeg.asset.json";
 
 interface NavItem { to: string; labelKey: Parameters<ReturnType<typeof useI18n>["t"]>[0]; icon: any; }
 
@@ -48,7 +48,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <header className="sticky top-0 z-30 bg-card border-b shadow-sm">
         <div className="mx-auto max-w-6xl px-3 sm:px-4 py-2.5 flex items-center gap-2 sm:gap-3">
           <Link to={role === "admin" ? "/admin" : "/me"} className="flex items-center gap-2 min-w-0">
-            <img src={logo} alt="GCK" className="size-9 sm:size-10 shrink-0" width={40} height={40} />
+            <img src={logo.url} alt="GCK" className="size-9 sm:size-10 shrink-0" width={40} height={40} />
             <div className="min-w-0 hidden sm:block">
               <div className="text-sm font-bold leading-tight truncate">{t("app_name")}</div>
               <div className="text-[11px] text-muted-foreground leading-tight">{t("staff_portal")}</div>
