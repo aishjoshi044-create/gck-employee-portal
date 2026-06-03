@@ -125,27 +125,52 @@ function AuthPage() {
           {mode === "login" && (
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
-                <Label htmlFor="u" className="text-base font-semibold">{t("username")}</Label>
-                <Input id="u" autoComplete="username" inputMode="text" value={username}
+                <Label htmlFor="u" className="text-base font-semibold">
+                  {isAdminMode ? "Email" : t("username")}
+                </Label>
+                <Input
+                  id="u"
+                  autoComplete={isAdminMode ? "email" : "username"}
+                  type={isAdminMode ? "email" : "text"}
+                  value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder={t("enter_username")} className="tap-lg mt-1.5" />
+                  placeholder={isAdminMode ? "admin@gck.org" : t("enter_username")}
+                  className="tap-lg mt-1.5"
+                />
               </div>
               <div>
-                <Label htmlFor="p" className="text-base font-semibold">{t("pin")}</Label>
-                {username.includes("@") ? (
-                  <Input id="p" type="password" value={pin}
+                <Label htmlFor="p" className="text-base font-semibold">
+                  {isAdminMode ? "Password" : t("pin")}
+                </Label>
+                {isAdminMode ? (
+                  <Input
+                    id="p"
+                    type="password"
+                    autoComplete="current-password"
+                    value={pin}
                     onChange={(e) => setPin(e.target.value)}
-                    placeholder="••••••••" className="tap-lg mt-1.5" />
+                    placeholder="••••••••"
+                    className="tap-lg mt-1.5"
+                  />
                 ) : (
-                  <Input id="p" type="password" inputMode="numeric" maxLength={4} pattern="\d{4}"
-                    value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                    placeholder="••••" className="tap-lg mt-1.5 text-center text-2xl tracking-[0.6em]" />
+                  <Input
+                    id="p"
+                    type="password"
+                    inputMode="numeric"
+                    maxLength={4}
+                    pattern="\d{4}"
+                    value={pin}
+                    onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                    placeholder="••••"
+                    className="tap-lg mt-1.5 text-center text-2xl tracking-[0.6em]"
+                  />
                 )}
               </div>
               <Button type="submit" disabled={busy} className="w-full tap-xl gap-2">
                 {busy ? <Loader2 className="size-5 animate-spin" /> : <LogIn className="size-5" />}
                 {t("login")}
               </Button>
+
               <button type="button" onClick={() => { setUsername(""); setPin(""); setMode("bootstrap"); }}
                 className="text-xs text-muted-foreground hover:text-foreground w-full text-center pt-2">
                 First-time setup
