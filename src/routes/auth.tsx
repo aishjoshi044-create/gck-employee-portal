@@ -170,6 +170,15 @@ function AuthPage() {
                   />
                 )}
               </div>
+              <label className="flex items-center gap-2 text-sm font-medium select-none cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={remember}
+                  onChange={(e) => setRemember(e.target.checked)}
+                  className="size-4 accent-primary"
+                />
+                Remember me on this device
+              </label>
               <Button type="submit" disabled={busy} className="w-full tap-xl gap-2">
                 {busy ? <Loader2 className="size-5 animate-spin" /> : <LogIn className="size-5" />}
                 {t("login")}
