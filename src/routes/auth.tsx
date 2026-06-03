@@ -40,31 +40,33 @@ function AuthPage() {
     else if (profile?.pin_changed) router.navigate({ to: "/" });
   }, [user, profile, router]);
 
+  const isAdminMode = as === "admin";
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     const id = username.trim();
-    const isEmail = id.includes("@");
-    const usePin = /^\d{4}$/.test(pin);
-    if (!isEmail && !/^[a-z0-9_.-]{2,30}$/.test(id.toLowerCase())) {
-      toast.error(t("invalid_credentials"));
-      return;
-    }
-    if (!isEmail && !usePin) {
-      toast.error(t("enter_pin"));
-      return;
-    }
     setBusy(true);
-    const { error } = await supabase.auth.signInWithPassword({
-      email: isEmail ? id.toLowerCase() : usernameToEmail(id),
-      password: isEmail ? pin : pinToPassword(pin),
-    });
-    setBusy(false);
-    if (error) {
-      toast.error(t("invalid_credentials"));
-      return;
+    let email: string;
+    let password: string;
+    if (isAdminMode) {
+      // Admin: full email + password
+      if (!/^\S+@\S+\.\S+$/.test(id)) { setBusy(false); toast.error(t("invalid_credentials")); return; }
+      if (pin.length < 6) { setBusy(false); toast.error(t("invalid_credentials")); return; }
+      email = id.toLowerCase();
+      password = pin;
+    } else {
+      // Employee: username + 4-digit PIN
+      if (!/^[a-z0-9_.-]{2,30}$/.test(id.toLowerCase())) { setBusy(false); toast.error(t("invalid_credentials")); return; }
+      if (!/^\d{4}$/.test(pin)) { setBusy(false); toast.error(t("enter_pin")); return; }
+      email = usernameToEmail(id);
+      password = pinToPassword(pin);
     }
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    setBusy(false);
+    if (error) { toast.error(t("invalid_credentials")); return; }
     await refresh();
   };
+
 
   const handleSetPin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,27 +125,52 @@ function AuthPage() {
           {mode === "login" && (
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
-                <Label htmlFor="u" className="text-base font-semibold">{t("username")}</Label>
-                <Input id="u" autoComplete="username" inputMode="text" value={username}
+                <Label htmlFor="u" className="text-base font-semibold">
+                  {isAdminMode ? "Email" : t("username")}
+                </Label>
+                <Input
+                  id="u"
+                  autoComplete={isAdminMode ? "email" : "username"}
+                  type={isAdminMode ? "email" : "text"}
+                  value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder={t("enter_username")} className="tap-lg mt-1.5" />
+                  placeholder={isAdminMode ? "admin@gck.org" : t("enter_username")}
+                  className="tap-lg mt-1.5"
+                />
               </div>
               <div>
-                <Label htmlFor="p" className="text-base font-semibold">{t("pin")}</Label>
-                {username.includes("@") ? (
-                  <Input id="p" type="password" value={pin}
+                <Label htmlFor="p" className="text-base font-semibold">
+                  {isAdminMode ? "Password" : t("pin")}
+                </Label>
+                {isAdminMode ? (
+                  <Input
+                    id="p"
+                    type="password"
+                    autoComplete="current-password"
+                    value={pin}
                     onChange={(e) => setPin(e.target.value)}
-                    placeholder="••••••••" className="tap-lg mt-1.5" />
+                    placeholder="••••••••"
+                    className="tap-lg mt-1.5"
+                  />
                 ) : (
-                  <Input id="p" type="password" inputMode="numeric" maxLength={4} pattern="\d{4}"
-                    value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                    placeholder="••••" className="tap-lg mt-1.5 text-center text-2xl tracking-[0.6em]" />
+                  <Input
+                    id="p"
+                    type="password"
+                    inputMode="numeric"
+                    maxLength={4}
+                    pattern="\d{4}"
+                    value={pin}
+                    onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                    placeholder="••••"
+                    className="tap-lg mt-1.5 text-center text-2xl tracking-[0.6em]"
+                  />
                 )}
               </div>
               <Button type="submit" disabled={busy} className="w-full tap-xl gap-2">
                 {busy ? <Loader2 className="size-5 animate-spin" /> : <LogIn className="size-5" />}
                 {t("login")}
               </Button>
+
               <button type="button" onClick={() => { setUsername(""); setPin(""); setMode("bootstrap"); }}
                 className="text-xs text-muted-foreground hover:text-foreground w-full text-center pt-2">
                 First-time setup
