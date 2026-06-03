@@ -35,7 +35,7 @@ function IndexPage() {
       )}
 
       <div className="px-4 py-6 flex flex-col items-center max-w-md mx-auto">
-        <img src={logo.url} alt="GCK" width={72} height={72} className="size-16 rounded-2xl" />
+        <img src={logo.url} alt="GCK" width={72} height={72} className="size-16" />
         <h1 className="mt-3 text-lg font-extrabold text-center">Gram Chetna Kendra</h1>
         <p className="text-base font-semibold mt-4 text-center">
           {lang === "hi" ? "कृपया अपनी भूमिका चुनें" : "Please select your role"}

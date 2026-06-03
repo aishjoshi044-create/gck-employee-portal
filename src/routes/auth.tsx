@@ -30,6 +30,7 @@ function AuthPage() {
   const [newPin, setNewPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
   const [busy, setBusy] = useState(false);
+  const [remember, setRemember] = useState(true);
   const [mode, setMode] = useState<"login" | "set-pin" | "bootstrap">("login");
   const bootstrap = useServerFn(bootstrapAdmin);
 
@@ -64,6 +65,9 @@ function AuthPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setBusy(false);
     if (error) { toast.error(t("invalid_credentials")); return; }
+    if (typeof window !== "undefined") {
+      localStorage.setItem("gck-remember", remember ? "1" : "0");
+    }
     await refresh();
   };
 
@@ -166,6 +170,15 @@ function AuthPage() {
                   />
                 )}
               </div>
+              <label className="flex items-center gap-2 text-sm font-medium select-none cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={remember}
+                  onChange={(e) => setRemember(e.target.checked)}
+                  className="size-4 accent-primary"
+                />
+                Remember me on this device
+              </label>
               <Button type="submit" disabled={busy} className="w-full tap-xl gap-2">
                 {busy ? <Loader2 className="size-5 animate-spin" /> : <LogIn className="size-5" />}
                 {t("login")}
