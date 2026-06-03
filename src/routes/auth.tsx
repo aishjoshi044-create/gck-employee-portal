@@ -15,12 +15,16 @@ import logo from "@/assets/gck-logo.jpeg.asset.json";
 
 export const Route = createFileRoute("/auth")({
   component: AuthPage,
+  validateSearch: (s: Record<string, unknown>) => ({
+    as: s.as === "admin" || s.as === "employee" ? (s.as as "admin" | "employee") : undefined,
+  }),
 });
 
 function AuthPage() {
   const { t } = useI18n();
   const { user, profile, refresh } = useAuth();
   const router = useRouter();
+  const { as } = Route.useSearch();
   const [username, setUsername] = useState("");
   const [pin, setPin] = useState("");
   const [newPin, setNewPin] = useState("");
@@ -105,6 +109,11 @@ function AuthPage() {
             <img src={logo.url} alt="GCK" width={88} height={88} className="size-20" />
             <h1 className="mt-3 text-xl font-extrabold">{t("app_name")}</h1>
             <p className="text-sm text-muted-foreground">{t("staff_portal")}</p>
+            {as && (
+              <div className="mt-2 inline-flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full bg-primary-soft text-primary">
+                {as === "admin" ? "Admin Login" : "Employee Login"}
+              </div>
+            )}
           </div>
 
           {mode === "login" && (
