@@ -113,21 +113,40 @@ function SelfieCheckIn({ onDone }: { onDone: () => void }) {
   const [cameraOn, setCameraOn] = useState(false);
 
   const startCamera = async () => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      toast.error("Camera not supported on this device/browser");
+      return;
+    }
+    if (!window.isSecureContext) {
+      toast.error("Camera requires HTTPS");
+      return;
+    }
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "user" } }, audio: false });
+      } catch {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
       }
+      streamRef.current = stream;
       setCameraOn(true);
+      setTimeout(async () => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.setAttribute("playsinline", "true");
+          try { await videoRef.current.play(); } catch {}
+        }
+      }, 50);
       navigator.geolocation?.getCurrentPosition(
         (p) => setCoords({ lat: p.coords.latitude, lng: p.coords.longitude }),
         () => setCoords(null),
         { enableHighAccuracy: true, timeout: 10000 }
       );
-    } catch {
-      toast.error("Camera permission denied");
+    } catch (err: any) {
+      const msg = err?.name === "NotAllowedError" ? "Camera permission denied. Please allow camera access in your browser."
+        : err?.name === "NotFoundError" ? "No camera found on this device."
+        : err?.message ?? "Could not start camera";
+      toast.error(msg);
     }
   };
 
