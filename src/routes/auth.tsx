@@ -40,31 +40,33 @@ function AuthPage() {
     else if (profile?.pin_changed) router.navigate({ to: "/" });
   }, [user, profile, router]);
 
+  const isAdminMode = as === "admin";
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     const id = username.trim();
-    const isEmail = id.includes("@");
-    const usePin = /^\d{4}$/.test(pin);
-    if (!isEmail && !/^[a-z0-9_.-]{2,30}$/.test(id.toLowerCase())) {
-      toast.error(t("invalid_credentials"));
-      return;
-    }
-    if (!isEmail && !usePin) {
-      toast.error(t("enter_pin"));
-      return;
-    }
     setBusy(true);
-    const { error } = await supabase.auth.signInWithPassword({
-      email: isEmail ? id.toLowerCase() : usernameToEmail(id),
-      password: isEmail ? pin : pinToPassword(pin),
-    });
-    setBusy(false);
-    if (error) {
-      toast.error(t("invalid_credentials"));
-      return;
+    let email: string;
+    let password: string;
+    if (isAdminMode) {
+      // Admin: full email + password
+      if (!/^\S+@\S+\.\S+$/.test(id)) { setBusy(false); toast.error(t("invalid_credentials")); return; }
+      if (pin.length < 6) { setBusy(false); toast.error(t("invalid_credentials")); return; }
+      email = id.toLowerCase();
+      password = pin;
+    } else {
+      // Employee: username + 4-digit PIN
+      if (!/^[a-z0-9_.-]{2,30}$/.test(id.toLowerCase())) { setBusy(false); toast.error(t("invalid_credentials")); return; }
+      if (!/^\d{4}$/.test(pin)) { setBusy(false); toast.error(t("enter_pin")); return; }
+      email = usernameToEmail(id);
+      password = pinToPassword(pin);
     }
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    setBusy(false);
+    if (error) { toast.error(t("invalid_credentials")); return; }
     await refresh();
   };
+
 
   const handleSetPin = async (e: React.FormEvent) => {
     e.preventDefault();
