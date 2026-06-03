@@ -110,11 +110,15 @@ function AuthPage() {
             <h1 className="mt-3 text-xl font-extrabold">{t("app_name")}</h1>
             <p className="text-sm text-muted-foreground">{t("staff_portal")}</p>
             {as && (
-              <div className="mt-2 inline-flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full bg-primary-soft text-primary">
-                {as === "admin" ? "Admin Login" : "Employee Login"}
+              <div className="mt-3 inline-flex items-center gap-1 text-xs font-bold px-3 py-1 rounded-full bg-primary-soft text-primary">
+                {as === "admin" ? "Administrator Sign In" : "Employee Sign In"}
               </div>
             )}
+            <p className="mt-3 text-sm text-muted-foreground max-w-xs">
+              Kindly enter your credentials below to continue.
+            </p>
           </div>
+
 
           {mode === "login" && (
             <form onSubmit={handleLogin} className="space-y-4">
