@@ -1,8 +1,8 @@
-import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { LangToggle } from "@/components/LangToggle";
-import { UserRound, ShieldCheck, ExternalLink } from "lucide-react";
+import { UserRound, ShieldCheck, ExternalLink, LogOut } from "lucide-react";
 import logo from "@/assets/gck-logo.jpeg.asset.json";
 
 export const Route = createFileRoute("/")({
@@ -10,19 +10,42 @@ export const Route = createFileRoute("/")({
 });
 
 function IndexPage() {
-  const { loading, user, role } = useAuth();
+  const { user, role, signOut } = useAuth();
   const { t, lang } = useI18n();
+  const navigate = useNavigate();
 
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center text-muted-foreground">...</div>;
-  }
-  if (user) {
-    return <Navigate to={role === "admin" ? "/admin" : "/me"} />;
-  }
+  const go = async (as: "employee" | "admin") => {
+    // If a different role is logged in, sign out first so the right login screen shows.
+    if (user && ((as === "admin" && role !== "admin") || (as === "employee" && role === "admin"))) {
+      await signOut();
+    }
+    // If user is logged in with the matching role, send them to their dashboard.
+    if (user) {
+      if (as === "admin" && role === "admin") {
+        navigate({ to: "/admin" });
+        return;
+      }
+      if (as === "employee" && role !== "admin") {
+        navigate({ to: "/me" });
+        return;
+      }
+    }
+    navigate({ to: "/auth", search: { as } });
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-soft via-background to-accent-soft flex flex-col">
-      <div className="flex justify-end p-4"><LangToggle /></div>
+      <div className="flex justify-end items-center gap-2 p-4">
+        {user && (
+          <button
+            onClick={() => signOut()}
+            className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-card border hover:bg-muted"
+          >
+            <LogOut className="size-3.5" /> {t("logout")}
+          </button>
+        )}
+        <LangToggle />
+      </div>
 
       <div className="flex-1 flex items-center justify-center p-4">
         <div className="w-full max-w-2xl">
@@ -39,10 +62,9 @@ function IndexPage() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-
-            <Link
-              to="/auth"
-              search={{ as: "employee" }}
+            <button
+              type="button"
+              onClick={() => go("employee")}
               className="bg-card hover:bg-primary-soft border-2 border-primary/20 hover:border-primary rounded-3xl shadow-md p-6 flex flex-col items-center text-center transition-colors"
             >
               <div className="size-20 rounded-full bg-primary text-primary-foreground flex items-center justify-center mb-3">
@@ -54,11 +76,11 @@ function IndexPage() {
               <div className="text-xs text-muted-foreground mt-1">
                 {lang === "hi" ? "हाज़िरी, कार्य एवं छुट्टी" : "Attendance, tasks & leave"}
               </div>
-            </Link>
+            </button>
 
-            <Link
-              to="/auth"
-              search={{ as: "admin" }}
+            <button
+              type="button"
+              onClick={() => go("admin")}
               className="bg-card hover:bg-accent-soft border-2 border-accent/30 hover:border-accent rounded-3xl shadow-md p-6 flex flex-col items-center text-center transition-colors"
             >
               <div className="size-20 rounded-full bg-accent text-accent-foreground flex items-center justify-center mb-3">
@@ -70,9 +92,8 @@ function IndexPage() {
               <div className="text-xs text-muted-foreground mt-1">
                 {lang === "hi" ? "टीम प्रबंधन एवं रिपोर्ट" : "Team management & reports"}
               </div>
-            </Link>
+            </button>
           </div>
-
 
           <a
             href="https://www.gck.org.in/"
