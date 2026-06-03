@@ -15,12 +15,16 @@ import logo from "@/assets/gck-logo.jpeg.asset.json";
 
 export const Route = createFileRoute("/auth")({
   component: AuthPage,
+  validateSearch: (s: Record<string, unknown>) => ({
+    as: s.as === "admin" || s.as === "employee" ? (s.as as "admin" | "employee") : undefined,
+  }),
 });
 
 function AuthPage() {
   const { t } = useI18n();
   const { user, profile, refresh } = useAuth();
   const router = useRouter();
+  const { as } = Route.useSearch();
   const [username, setUsername] = useState("");
   const [pin, setPin] = useState("");
   const [newPin, setNewPin] = useState("");
