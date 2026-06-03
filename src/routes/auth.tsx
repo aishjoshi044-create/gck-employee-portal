@@ -174,10 +174,7 @@ function AuthPage() {
                 {t("login")}
               </Button>
 
-              <button type="button" onClick={() => { setUsername(""); setPin(""); setMode("bootstrap"); }}
-                className="text-xs text-muted-foreground hover:text-foreground w-full text-center pt-2">
-                First-time setup
-              </button>
+
             </form>
           )}
 
