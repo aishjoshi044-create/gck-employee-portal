@@ -32,8 +32,14 @@ function EmployeesPage() {
   const { data: employees } = useQuery({
     queryKey: ["employees"],
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("*, user_roles(role)").order("created_at", { ascending: false });
-      return data ?? [];
+      const [{ data: profs }, { data: roles }] = await Promise.all([
+        supabase.from("profiles").select("*").order("created_at", { ascending: false }),
+        supabase.from("user_roles").select("user_id, role"),
+      ]);
+      const adminIds = new Set((roles ?? []).filter((r: any) => r.role === "admin").map((r: any) => r.user_id));
+      return (profs ?? [])
+        .filter((p: any) => !adminIds.has(p.id))
+        .map((p: any) => ({ ...p, user_roles: [{ role: "employee" }] }));
     },
   });
 
