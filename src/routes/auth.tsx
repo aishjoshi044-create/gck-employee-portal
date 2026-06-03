@@ -111,11 +111,7 @@ function AuthPage() {
         <div className="flex justify-end mb-2"><LangToggle /></div>
 
         <div className="bg-card rounded-3xl shadow-xl border p-6 sm:p-8">
-          {as && (
-            <div className="mb-5 text-center text-base font-bold">
-              {as === "admin" ? "Administrator Sign In" : "Employee Sign In"}
-            </div>
-          )}
+
 
 
 
