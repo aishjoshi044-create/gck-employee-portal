@@ -65,6 +65,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let mounted = true;
     (async () => {
+      // "Remember me" enforcement: if user opted out, sign out when a new browser session starts.
+      if (typeof window !== "undefined") {
+        const remember = localStorage.getItem("gck-remember");
+        const tabAlive = sessionStorage.getItem("gck-tab-alive");
+        if (remember === "0" && !tabAlive) {
+          await supabase.auth.signOut();
+        }
+        sessionStorage.setItem("gck-tab-alive", "1");
+      }
       await refresh();
       if (mounted) setLoading(false);
     })();
