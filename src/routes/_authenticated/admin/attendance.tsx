@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { Check, X } from "lucide-react";
+import { Check, X, FileDown, FileSpreadsheet } from "lucide-react";
+import { downloadPdf, downloadExcel } from "@/lib/exports";
 
 export const Route = createFileRoute("/_authenticated/admin/attendance")({
   component: AdminAttendance,
@@ -35,11 +36,27 @@ function AdminAttendance() {
     if (error) toast.error(error.message); else { qc.invalidateQueries({ queryKey: ["admin-attendance"] }); toast.success("Saved"); }
   };
 
+  const buildRows = () =>
+    (rows ?? []).map((r: any) => [
+      r.full_name,
+      r.department ?? "—",
+      r.attendance?.status ?? "—",
+      r.attendance?.check_in_at ? format(new Date(r.attendance.check_in_at), "h:mm a") : "—",
+      r.attendance?.lat && r.attendance?.lng ? `${r.attendance.lat.toFixed(4)}, ${r.attendance.lng.toFixed(4)}` : "—",
+    ]);
+  const HEAD = ["Name", "Department", "Status", "Check-in", "Location"];
+
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-extrabold">{t("attendance")}</h1>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         <Input type="date" className="tap-lg max-w-xs" value={date} onChange={(e) => setDate(e.target.value)} />
+        <Button variant="outline" className="gap-2" onClick={() => downloadPdf({ title: `Attendance — ${format(new Date(date), "d MMM yyyy")}`, filename: `attendance-${date}.pdf`, head: HEAD, body: buildRows() })}>
+          <FileDown className="size-4" /> PDF
+        </Button>
+        <Button variant="outline" className="gap-2" onClick={() => downloadExcel(`attendance-${date}.xlsx`, [{ name: date, header: HEAD, rows: buildRows() }])}>
+          <FileSpreadsheet className="size-4" /> Excel
+        </Button>
       </div>
       <Card className="p-0 overflow-hidden">
         <table className="w-full text-sm">

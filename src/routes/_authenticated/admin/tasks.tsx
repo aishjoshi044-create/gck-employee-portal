@@ -10,10 +10,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus, Loader2, FileDown, FileSpreadsheet } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { downloadPdf, downloadExcel } from "@/lib/exports";
 
 export const Route = createFileRoute("/_authenticated/admin/tasks")({
   component: AdminTasks,
@@ -34,17 +35,38 @@ function AdminTasks() {
     },
   });
 
+  const buildRows = () =>
+    (tasks ?? []).map((tk: any) => [
+      tk.title ?? "",
+      tk.profiles?.full_name ?? "—",
+      tk.department ?? "—",
+      tk.priority,
+      tk.status,
+      tk.deadline ? format(new Date(tk.deadline), "d MMM yyyy") : "—",
+      tk.created_at ? format(new Date(tk.created_at), "d MMM yyyy") : "—",
+      tk.completed_at ? format(new Date(tk.completed_at), "d MMM yyyy") : "—",
+    ]);
+  const HEAD = ["Title", "Assigned To", "Department", "Priority", "Status", "Deadline", "Created", "Completed"];
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h1 className="text-2xl font-extrabold">{t("tasks")}</h1>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild><Button className="tap-lg gap-2"><Plus className="size-5" />{t("new_task")}</Button></DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>{t("new_task")}</DialogTitle></DialogHeader>
-            <TaskForm onSaved={() => { setOpen(false); qc.invalidateQueries({ queryKey: ["admin-tasks"] }); }} />
-          </DialogContent>
-        </Dialog>
+        <div className="flex gap-2 flex-wrap">
+          <Button variant="outline" className="gap-2" onClick={() => downloadPdf({ title: "Tasks Report", filename: `tasks-${format(new Date(), "yyyy-MM-dd")}.pdf`, head: HEAD, body: buildRows() })}>
+            <FileDown className="size-4" /> PDF
+          </Button>
+          <Button variant="outline" className="gap-2" onClick={() => downloadExcel(`tasks-${format(new Date(), "yyyy-MM-dd")}.xlsx`, [{ name: "Tasks", header: HEAD, rows: buildRows() }])}>
+            <FileSpreadsheet className="size-4" /> Excel
+          </Button>
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild><Button className="tap-lg gap-2"><Plus className="size-5" />{t("new_task")}</Button></DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>{t("new_task")}</DialogTitle></DialogHeader>
+              <TaskForm onSaved={() => { setOpen(false); qc.invalidateQueries({ queryKey: ["admin-tasks"] }); }} />
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
