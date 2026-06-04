@@ -17,6 +17,7 @@ export const createEmployee = createServerFn({ method: "POST" })
       date_of_birth: z.string().optional().nullable(),
       date_of_joining: z.string().optional().nullable(),
       role: z.enum(["employee", "admin"]).default("employee"),
+      pin: z.string().regex(/^\d{4}$/, "PIN must be exactly 4 digits"),
       face_descriptor: z.array(z.number()).length(128).optional().nullable(),
     }).parse(input)
   )
@@ -30,8 +31,7 @@ export const createEmployee = createServerFn({ method: "POST" })
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    // Generate a random 4-digit PIN
-    const pin = String(Math.floor(1000 + Math.random() * 9000));
+    const pin = data.pin;
     const email = `${data.username}@gck.local`;
 
     const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
@@ -53,7 +53,7 @@ export const createEmployee = createServerFn({ method: "POST" })
       address: data.address ?? null,
       date_of_birth: data.date_of_birth || null,
       date_of_joining: data.date_of_joining || null,
-      pin_changed: false,
+      pin_changed: true,
       active: true,
       face_descriptor: data.face_descriptor ?? null,
     });
@@ -65,27 +65,30 @@ export const createEmployee = createServerFn({ method: "POST" })
     const { error: roleErr } = await supabaseAdmin.from("user_roles").insert({ user_id: uid, role: data.role });
     if (roleErr) throw new Error(roleErr.message);
 
-    return { user_id: uid, username: data.username, temporary_pin: pin };
+    return { user_id: uid, username: data.username, pin };
   });
 
-/** Admin resets an employee's PIN to a fresh random 4-digit one. */
+/** Admin sets an employee's PIN to a specific 4-digit value. */
 export const resetEmployeePin = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input) => z.object({ user_id: z.string().uuid() }).parse(input))
+  .inputValidator((input) => z.object({
+    user_id: z.string().uuid(),
+    pin: z.string().regex(/^\d{4}$/, "PIN must be exactly 4 digits"),
+  }).parse(input))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
     const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", userId);
     if (!roles?.some((r) => r.role === "admin")) throw new Error("Forbidden");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const pin = String(Math.floor(1000 + Math.random() * 9000));
     const { error } = await supabaseAdmin.auth.admin.updateUserById(data.user_id, {
-      password: passwordFromPin(pin),
+      password: passwordFromPin(data.pin),
     });
     if (error) throw new Error(error.message);
-    await supabaseAdmin.from("profiles").update({ pin_changed: false }).eq("id", data.user_id);
-    return { temporary_pin: pin };
+    await supabaseAdmin.from("profiles").update({ pin_changed: true }).eq("id", data.user_id);
+    return { pin: data.pin };
   });
+
 
 /** Admin sets the active flag on an employee. */
 export const setEmployeeActive = createServerFn({ method: "POST" })

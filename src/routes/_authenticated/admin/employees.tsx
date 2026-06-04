@@ -81,9 +81,15 @@ function EmployeesPage() {
             </div>
             {!e.active && <span className="text-[10px] font-bold uppercase bg-muted px-2 py-0.5 rounded">{t("inactive")}</span>}
             <Button size="icon" variant="outline" title={t("change_pin")} onClick={async () => {
-              const r = await resetPin({ data: { user_id: e.id } });
-              setCreated({ username: e.username, name: e.full_name, pin: r.temporary_pin });
+              const newPin = window.prompt(`Set new 4-digit PIN for ${e.full_name}:`, "");
+              if (!newPin) return;
+              if (!/^\d{4}$/.test(newPin)) { toast.error("PIN must be exactly 4 digits"); return; }
+              try {
+                const r = await resetPin({ data: { user_id: e.id, pin: newPin } });
+                setCreated({ username: e.username, name: e.full_name, pin: r.pin });
+              } catch (err: any) { toast.error(err?.message ?? "Failed"); }
             }}><KeyRound className="size-4" /></Button>
+
             <Button size="icon" variant="outline" title={e.active ? t("deactivate") : t("activate")} onClick={async () => {
               await toggle({ data: { user_id: e.id, active: !e.active } });
               qc.invalidateQueries({ queryKey: ["employees"] });
@@ -100,17 +106,19 @@ function EmployeesPage() {
 
 function NewEmployeeForm({ onCreated, create }: { onCreated: (c: { username: string; pin: string; name: string }) => void; create: any }) {
   const { t } = useI18n();
-  const [form, setForm] = useState({ username: "", full_name: "", phone: "", department: "", address: "", date_of_birth: "", date_of_joining: "" });
+  const [form, setForm] = useState({ username: "", full_name: "", phone: "", department: "", address: "", date_of_birth: "", date_of_joining: "", pin: "" });
   const [faceDescriptor, setFaceDescriptor] = useState<number[] | null>(null);
   const [faceBlob, setFaceBlob] = useState<Blob | null>(null);
   const [busy, setBusy] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!/^\d{4}$/.test(form.pin)) { toast.error("Enter a 4-digit PIN for the employee"); return; }
     if (!faceDescriptor) { toast.error("Please capture the employee's face — required for secure check-in"); return; }
     setBusy(true);
     try {
       const r = await create({ data: { ...form, face_descriptor: faceDescriptor } });
+
       // Upload the reference photo to the avatars bucket and link it to the profile.
       if (faceBlob && r.user_id) {
         const path = `${r.user_id}/face-${Date.now()}.jpg`;
@@ -119,7 +127,7 @@ function NewEmployeeForm({ onCreated, create }: { onCreated: (c: { username: str
           await supabase.from("profiles").update({ photo_url: path }).eq("id", r.user_id);
         }
       }
-      onCreated({ username: r.username, pin: r.temporary_pin, name: form.full_name });
+      onCreated({ username: r.username, pin: r.pin, name: form.full_name });
       toast.success("Employee created");
     } catch (err: any) { toast.error(err?.message ?? t("error")); }
     finally { setBusy(false); }
@@ -138,6 +146,20 @@ function NewEmployeeForm({ onCreated, create }: { onCreated: (c: { username: str
         <div><Label>{t("birthday")}</Label><Input type="date" className="tap-lg mt-1" value={form.date_of_birth} onChange={(e) => setForm({ ...form, date_of_birth: e.target.value })} /></div>
         <div><Label>Joining</Label><Input type="date" className="tap-lg mt-1" value={form.date_of_joining} onChange={(e) => setForm({ ...form, date_of_joining: e.target.value })} /></div>
       </div>
+      <div>
+        <Label className="flex items-center gap-1"><KeyRound className="size-4" /> 4-digit login PIN</Label>
+        <Input
+          inputMode="numeric"
+          maxLength={4}
+          className="tap-lg mt-1 text-center text-xl tracking-[0.5em] font-mono"
+          value={form.pin}
+          onChange={(e) => setForm({ ...form, pin: e.target.value.replace(/\D/g, "").slice(0, 4) })}
+          placeholder="0000"
+          required
+        />
+        <p className="text-[11px] text-muted-foreground mt-1">Share this PIN with the employee. Only admins can change it later.</p>
+      </div>
+
       <div className="pt-2 border-t">
         <Label className="font-semibold flex items-center gap-1"><ScanFace className="size-4" /> Face registration</Label>
         <p className="text-xs text-muted-foreground mb-2">Capture the employee in person. Selfies on attendance will be matched against this photo (≥ 60% similarity required).</p>
