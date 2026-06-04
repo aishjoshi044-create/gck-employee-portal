@@ -146,6 +146,20 @@ function NewEmployeeForm({ onCreated, create }: { onCreated: (c: { username: str
         <div><Label>{t("birthday")}</Label><Input type="date" className="tap-lg mt-1" value={form.date_of_birth} onChange={(e) => setForm({ ...form, date_of_birth: e.target.value })} /></div>
         <div><Label>Joining</Label><Input type="date" className="tap-lg mt-1" value={form.date_of_joining} onChange={(e) => setForm({ ...form, date_of_joining: e.target.value })} /></div>
       </div>
+      <div>
+        <Label className="flex items-center gap-1"><KeyRound className="size-4" /> 4-digit login PIN</Label>
+        <Input
+          inputMode="numeric"
+          maxLength={4}
+          className="tap-lg mt-1 text-center text-xl tracking-[0.5em] font-mono"
+          value={form.pin}
+          onChange={(e) => setForm({ ...form, pin: e.target.value.replace(/\D/g, "").slice(0, 4) })}
+          placeholder="0000"
+          required
+        />
+        <p className="text-[11px] text-muted-foreground mt-1">Share this PIN with the employee. Only admins can change it later.</p>
+      </div>
+
       <div className="pt-2 border-t">
         <Label className="font-semibold flex items-center gap-1"><ScanFace className="size-4" /> Face registration</Label>
         <p className="text-xs text-muted-foreground mb-2">Capture the employee in person. Selfies on attendance will be matched against this photo (≥ 60% similarity required).</p>
