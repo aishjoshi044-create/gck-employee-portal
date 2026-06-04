@@ -3,6 +3,7 @@ import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
@@ -17,6 +18,16 @@ function LeavesPage() {
   const { user } = useAuth();
   const { t } = useI18n();
   const qc = useQueryClient();
+  // Realtime: new leave requests from employees appear instantly.
+  useEffect(() => {
+    const ch = supabase
+      .channel("admin-leaves-rt")
+      .on("postgres_changes", { event: "*", schema: "public", table: "leave_requests" }, () => {
+        qc.invalidateQueries({ queryKey: ["admin-leaves"] });
+      })
+      .subscribe();
+    return () => { ch.unsubscribe(); };
+  }, [qc]);
   const { data } = useQuery({
     queryKey: ["admin-leaves"],
     queryFn: async () => {
