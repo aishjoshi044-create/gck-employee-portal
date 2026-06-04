@@ -2,10 +2,11 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { format } from "date-fns";
 import { ChevronRight } from "lucide-react";
+import { useEffect } from "react";
 
 export const Route = createFileRoute("/_authenticated/me/tasks/")({
   component: MyTasksList,
@@ -14,6 +15,7 @@ export const Route = createFileRoute("/_authenticated/me/tasks/")({
 function MyTasksList() {
   const { user } = useAuth();
   const { t } = useI18n();
+  const qc = useQueryClient();
   const { data: tasks, isLoading } = useQuery({
     queryKey: ["my-tasks", user?.id],
     enabled: !!user,
@@ -22,6 +24,20 @@ function MyTasksList() {
       return data ?? [];
     },
   });
+
+  useEffect(() => {
+    if (!user) return;
+    const ch = supabase
+      .channel(`my-tasks-rt-${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "tasks", filter: `assigned_to=eq.${user.id}` }, () => {
+        qc.invalidateQueries({ queryKey: ["my-tasks", user.id] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "task_updates" }, () => {
+        qc.invalidateQueries({ queryKey: ["task-updates"] });
+      })
+      .subscribe();
+    return () => { ch.unsubscribe(); };
+  }, [user, qc]);
 
   if (isLoading) return <div className="text-center text-muted-foreground py-8">{t("loading")}</div>;
   if (!tasks?.length) return <Card className="p-8 text-center text-muted-foreground">{t("no_tasks")}</Card>;
