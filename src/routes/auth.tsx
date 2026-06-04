@@ -34,11 +34,17 @@ function AuthPage() {
   const [mode, setMode] = useState<"login" | "set-pin" | "bootstrap">("login");
   const bootstrap = useServerFn(bootstrapAdmin);
 
-  // After login, if pin not yet changed -> set-pin step. Otherwise route to home.
+  // After login, route by role; if pin not yet changed force the set-pin step.
   useEffect(() => {
     if (!user) return;
-    if (profile && !profile.pin_changed) setMode("set-pin");
-    else if (profile?.pin_changed) router.navigate({ to: "/" });
+    if (profile && !profile.pin_changed) { setMode("set-pin"); return; }
+    if (!profile) return;
+    // Determine where to land based on selected role + actual role.
+    (async () => {
+      const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
+      const isAdmin = roles?.some((r: any) => r.role === "admin");
+      router.navigate({ to: isAdmin ? "/admin" : "/me" });
+    })();
   }, [user, profile, router]);
 
   const isAdminMode = as === "admin";
@@ -82,7 +88,9 @@ function AuthPage() {
       await supabase.from("profiles").update({ pin_changed: true }).eq("id", user.id);
       toast.success(t("pin_changed"));
       await refresh();
-      router.navigate({ to: "/" });
+      const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
+      const isAdmin = roles?.some((r: any) => r.role === "admin");
+      router.navigate({ to: isAdmin ? "/admin" : "/me" });
     } else {
       toast.error(error?.message ?? t("error"));
     }
@@ -111,6 +119,13 @@ function AuthPage() {
         <div className="flex justify-end mb-2"><LangToggle /></div>
 
         <div className="bg-card rounded-3xl shadow-xl border p-6 sm:p-8">
+          <div className="flex flex-col items-center mb-4">
+            <img src={logo.url} alt="GCK" className="size-16" />
+            <h1 className="text-lg font-extrabold mt-2 text-center">Gram Chetna Kendra</h1>
+            <p className="text-xs text-muted-foreground">
+              {isAdminMode ? "Administrator login" : "Employee login"}
+            </p>
+          </div>
 
 
 
