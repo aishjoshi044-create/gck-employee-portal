@@ -129,6 +129,8 @@ export const dict = {
   notifications: { en: "Notifications", hi: "सूचनाएँ" },
   leaves: { en: "Leaves", hi: "छुट्टियाँ" },
   announcements: { en: "Announcements", hi: "घोषणाएँ" },
+  locations: { en: "Live Locations", hi: "लाइव स्थान" },
+  download_excel: { en: "Download Excel", hi: "एक्सेल डाउनलोड" },
   new_task: { en: "New Task", hi: "नया काम" },
   new_announcement: { en: "New Announcement", hi: "नई घोषणा" },
   download_pdf: { en: "Download PDF", hi: "PDF डाउनलोड" },

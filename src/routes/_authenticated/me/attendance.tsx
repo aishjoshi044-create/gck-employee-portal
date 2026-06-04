@@ -6,9 +6,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Camera, CheckCircle2, Loader2, RotateCcw, MapPin } from "lucide-react";
+import { Camera, CheckCircle2, Loader2, RotateCcw, MapPin, ScanFace, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from "date-fns";
+import { getFaceDescriptor, loadFaceModels, similarityPct } from "@/lib/face";
 
 export const Route = createFileRoute("/_authenticated/me/attendance")({
   component: AttendancePage,
@@ -102,7 +103,7 @@ function SelfiePreview({ path }: { path: string }) {
 }
 
 function SelfieCheckIn({ onDone }: { onDone: () => void }) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { t } = useI18n();
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -111,16 +112,26 @@ function SelfieCheckIn({ onDone }: { onDone: () => void }) {
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [busy, setBusy] = useState(false);
   const [cameraOn, setCameraOn] = useState(false);
+  const [matchPct, setMatchPct] = useState<number | null>(null);
+  const [modelsReady, setModelsReady] = useState(false);
+  const [storedDescriptor, setStoredDescriptor] = useState<number[] | null>(null);
+
+  useEffect(() => {
+    loadFaceModels().then(() => setModelsReady(true)).catch(() => toast.error("Could not load face model"));
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      if (!user) return;
+      const { data } = await supabase.from("profiles").select("face_descriptor").eq("id", user.id).maybeSingle();
+      const fd = (data as any)?.face_descriptor;
+      if (Array.isArray(fd) && fd.length === 128) setStoredDescriptor(fd);
+    })();
+  }, [user]);
 
   const startCamera = async () => {
-    if (!navigator.mediaDevices?.getUserMedia) {
-      toast.error("Camera not supported on this device/browser");
-      return;
-    }
-    if (!window.isSecureContext) {
-      toast.error("Camera requires HTTPS");
-      return;
-    }
+    if (!navigator.mediaDevices?.getUserMedia) { toast.error("Camera not supported"); return; }
+    if (!window.isSecureContext) { toast.error("Camera requires HTTPS"); return; }
     try {
       let stream: MediaStream;
       try {
@@ -130,6 +141,7 @@ function SelfieCheckIn({ onDone }: { onDone: () => void }) {
       }
       streamRef.current = stream;
       setCameraOn(true);
+      setMatchPct(null);
       setTimeout(async () => {
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
@@ -143,10 +155,7 @@ function SelfieCheckIn({ onDone }: { onDone: () => void }) {
         { enableHighAccuracy: true, timeout: 10000 }
       );
     } catch (err: any) {
-      const msg = err?.name === "NotAllowedError" ? "Camera permission denied. Please allow camera access in your browser."
-        : err?.name === "NotFoundError" ? "No camera found on this device."
-        : err?.message ?? "Could not start camera";
-      toast.error(msg);
+      toast.error(err?.name === "NotAllowedError" ? "Camera permission denied" : err?.message ?? "Camera error");
     }
   };
 
@@ -158,24 +167,49 @@ function SelfieCheckIn({ onDone }: { onDone: () => void }) {
 
   useEffect(() => () => stopCamera(), []);
 
-  const capture = () => {
+  const capture = async () => {
     const v = videoRef.current;
     if (!v) return;
-    const canvas = document.createElement("canvas");
-    canvas.width = v.videoWidth;
-    canvas.height = v.videoHeight;
-    canvas.getContext("2d")!.drawImage(v, 0, 0);
-    canvas.toBlob((blob) => {
-      if (!blob) return;
+    setBusy(true);
+    try {
+      const canvas = document.createElement("canvas");
+      canvas.width = v.videoWidth;
+      canvas.height = v.videoHeight;
+      canvas.getContext("2d")!.drawImage(v, 0, 0);
+
+      // Face-match against the stored reference, if present.
+      if (storedDescriptor) {
+        const desc = await getFaceDescriptor(canvas);
+        if (!desc) {
+          toast.error("No face detected. Face the camera with good lighting.");
+          setBusy(false);
+          return;
+        }
+        const pct = similarityPct(desc, storedDescriptor);
+        setMatchPct(pct);
+        if (pct < 60) {
+          toast.error(`Face match only ${pct}%. Cannot mark attendance.`);
+          setBusy(false);
+          return;
+        }
+      }
+
+      const blob: Blob | null = await new Promise((res) => canvas.toBlob((b) => res(b), "image/jpeg", 0.85));
+      if (!blob) { setBusy(false); return; }
       setPhotoBlob(blob);
       setPreviewUrl(URL.createObjectURL(blob));
       stopCamera();
-    }, "image/jpeg", 0.85);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Capture failed");
+    } finally {
+      setBusy(false);
+    }
   };
 
   const retake = () => {
     setPhotoBlob(null);
     setPreviewUrl(null);
+    setMatchPct(null);
     startCamera();
   };
 
@@ -196,7 +230,6 @@ function SelfieCheckIn({ onDone }: { onDone: () => void }) {
         lng: coords?.lng ?? null,
       });
       if (insErr) throw insErr;
-      // also update live location
       if (coords) {
         await supabase.from("employee_locations").upsert({ user_id: user.id, lat: coords.lat, lng: coords.lng, updated_at: new Date().toISOString() });
       }
@@ -212,6 +245,18 @@ function SelfieCheckIn({ onDone }: { onDone: () => void }) {
 
   return (
     <div className="space-y-3">
+      {!storedDescriptor && profile && (
+        <div className="text-xs flex items-start gap-2 p-2 rounded-md bg-warning/15 text-warning-foreground border border-warning/40">
+          <AlertTriangle className="size-4 shrink-0 mt-0.5" />
+          <span>No reference face stored. Ask admin to re-capture your face for secure check-in.</span>
+        </div>
+      )}
+      {storedDescriptor && (
+        <div className="text-xs flex items-center gap-1 justify-center text-muted-foreground">
+          <ScanFace className="size-3" /> Face match required (≥ 60%)
+        </div>
+      )}
+
       <div className="aspect-square max-w-xs mx-auto bg-muted rounded-2xl overflow-hidden flex items-center justify-center">
         {previewUrl ? (
           <img src={previewUrl} alt="preview" className="w-full h-full object-cover" />
@@ -221,16 +266,24 @@ function SelfieCheckIn({ onDone }: { onDone: () => void }) {
           <Camera className="size-16 text-muted-foreground" />
         )}
       </div>
+
+      {matchPct !== null && (
+        <div className={`text-center text-sm font-bold ${matchPct >= 60 ? "text-success" : "text-destructive"}`}>
+          Match: {matchPct}%
+        </div>
+      )}
+
       {coords && <p className="text-xs text-muted-foreground flex items-center justify-center gap-1"><MapPin className="size-3" /> {coords.lat.toFixed(4)}, {coords.lng.toFixed(4)}</p>}
 
       {!cameraOn && !previewUrl && (
-        <Button onClick={startCamera} className="w-full tap-xl bg-accent text-accent-foreground hover:bg-accent/90 gap-2">
-          <Camera className="size-6" /> {t("take_selfie")}
+        <Button onClick={startCamera} disabled={storedDescriptor != null && !modelsReady} className="w-full tap-xl bg-accent text-accent-foreground hover:bg-accent/90 gap-2">
+          {storedDescriptor && !modelsReady ? <Loader2 className="size-5 animate-spin" /> : <Camera className="size-6" />}
+          {t("take_selfie")}
         </Button>
       )}
       {cameraOn && !previewUrl && (
-        <Button onClick={capture} className="w-full tap-xl bg-primary gap-2">
-          <Camera className="size-6" /> {t("capture")}
+        <Button onClick={capture} disabled={busy} className="w-full tap-xl bg-primary gap-2">
+          {busy ? <Loader2 className="size-5 animate-spin" /> : <Camera className="size-6" />} {t("capture")}
         </Button>
       )}
       {previewUrl && (

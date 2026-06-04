@@ -34,11 +34,11 @@ function IndexPage() {
         </div>
       )}
 
-      <div className="px-4 py-6 flex flex-col items-center max-w-md mx-auto">
-        <img src={logo.url} alt="GCK" width={72} height={72} className="size-16" />
-        <h1 className="mt-3 text-lg font-extrabold text-center">Gram Chetna Kendra</h1>
-        <p className="text-base font-semibold mt-4 text-center">
-          {lang === "hi" ? "कृपया अपनी भूमिका चुनें" : "Please select your role"}
+      <div className="px-4 py-8 flex flex-col items-center max-w-md mx-auto">
+        <img src={logo.url} alt="GCK" width={96} height={96} className="size-24 object-contain" />
+        <h1 className="mt-3 text-xl font-extrabold text-center tracking-tight">Gram Chetna Kendra</h1>
+        <p className="text-sm font-semibold mt-5 text-center text-muted-foreground">
+          {lang === "hi" ? "कृपया अपनी भूमिका चुनें" : "Please select your role to sign in"}
         </p>
 
         <div className="grid grid-cols-2 gap-3 w-full mt-5">

@@ -11,8 +11,9 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Plus, Search, KeyRound, Power, Printer, Loader2 } from "lucide-react";
+import { Plus, Search, KeyRound, Power, Printer, Loader2, ScanFace } from "lucide-react";
 import logo from "@/assets/gck-logo.jpeg.asset.json";
+import { FaceCapture } from "@/components/FaceCapture";
 
 export const Route = createFileRoute("/_authenticated/admin/employees")({
   component: EmployeesPage,
@@ -55,7 +56,7 @@ function EmployeesPage() {
         <h1 className="text-2xl font-extrabold">{t("employees")}</h1>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild><Button className="tap-lg gap-2"><Plus className="size-5" />{t("add_employee")}</Button></DialogTrigger>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader><DialogTitle>{t("add_employee")}</DialogTitle></DialogHeader>
             <NewEmployeeForm onCreated={(c) => { setCreated(c); setOpen(false); qc.invalidateQueries({ queryKey: ["employees"] }); }} create={create} />
           </DialogContent>
@@ -72,7 +73,10 @@ function EmployeesPage() {
           <Card key={e.id} className="p-3 flex items-center gap-3">
             <div className="size-10 rounded-full bg-primary-soft text-primary flex items-center justify-center font-bold">{e.full_name?.[0]}</div>
             <div className="flex-1 min-w-0">
-              <div className="font-semibold truncate">{e.full_name}</div>
+              <div className="font-semibold truncate flex items-center gap-1">
+                {e.full_name}
+                {e.face_descriptor && <ScanFace className="size-3 text-success" />}
+              </div>
               <div className="text-xs text-muted-foreground truncate">@{e.username} · {e.department ?? "—"} · {e.user_roles?.[0]?.role ?? "employee"}</div>
             </div>
             {!e.active && <span className="text-[10px] font-bold uppercase bg-muted px-2 py-0.5 rounded">{t("inactive")}</span>}
@@ -97,13 +101,24 @@ function EmployeesPage() {
 function NewEmployeeForm({ onCreated, create }: { onCreated: (c: { username: string; pin: string; name: string }) => void; create: any }) {
   const { t } = useI18n();
   const [form, setForm] = useState({ username: "", full_name: "", phone: "", department: "", address: "", date_of_birth: "", date_of_joining: "" });
+  const [faceDescriptor, setFaceDescriptor] = useState<number[] | null>(null);
+  const [faceBlob, setFaceBlob] = useState<Blob | null>(null);
   const [busy, setBusy] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!faceDescriptor) { toast.error("Please capture the employee's face — required for secure check-in"); return; }
     setBusy(true);
     try {
-      const r = await create({ data: form });
+      const r = await create({ data: { ...form, face_descriptor: faceDescriptor } });
+      // Upload the reference photo to the avatars bucket and link it to the profile.
+      if (faceBlob && r.user_id) {
+        const path = `${r.user_id}/face-${Date.now()}.jpg`;
+        const up = await supabase.storage.from("avatars").upload(path, faceBlob, { contentType: "image/jpeg", upsert: true });
+        if (!up.error) {
+          await supabase.from("profiles").update({ photo_url: path }).eq("id", r.user_id);
+        }
+      }
       onCreated({ username: r.username, pin: r.temporary_pin, name: form.full_name });
       toast.success("Employee created");
     } catch (err: any) { toast.error(err?.message ?? t("error")); }
@@ -122,6 +137,14 @@ function NewEmployeeForm({ onCreated, create }: { onCreated: (c: { username: str
       <div className="grid grid-cols-2 gap-2">
         <div><Label>{t("birthday")}</Label><Input type="date" className="tap-lg mt-1" value={form.date_of_birth} onChange={(e) => setForm({ ...form, date_of_birth: e.target.value })} /></div>
         <div><Label>Joining</Label><Input type="date" className="tap-lg mt-1" value={form.date_of_joining} onChange={(e) => setForm({ ...form, date_of_joining: e.target.value })} /></div>
+      </div>
+      <div className="pt-2 border-t">
+        <Label className="font-semibold flex items-center gap-1"><ScanFace className="size-4" /> Face registration</Label>
+        <p className="text-xs text-muted-foreground mb-2">Capture the employee in person. Selfies on attendance will be matched against this photo (≥ 60% similarity required).</p>
+        <FaceCapture
+          buttonLabel="Open camera"
+          onCaptured={({ blob, descriptor }) => { setFaceBlob(blob); setFaceDescriptor(descriptor); toast.success("Face captured"); }}
+        />
       </div>
       <Button type="submit" disabled={busy} className="w-full tap-lg">{busy ? <Loader2 className="size-5 animate-spin" /> : t("create")}</Button>
     </form>

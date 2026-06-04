@@ -1,64 +1,47 @@
-## Gram Chetna Kendra Staff Portal — Build Plan
+A lot of separate features here. Grouping into 7 work items, in order:
 
-This is a large full-stack app. I'll build it in phases, starting with the foundation (auth, design system, i18n, core schema) and the most-used flows (employee attendance + tasks, admin dashboard), then layer on reports, notifications, and polish.
+## 1. New logo everywhere
+- Upload the new `gck-2.jpeg` as a Lovable asset (replaces `gck-logo.jpeg`).
+- Replace every `gck-logo.jpeg.asset.json` import (auth page, role page, app shell, PDF headers) with the new pointer.
+- Remove any border/ring still wrapping the logo container.
 
-### Phase 1 — Foundation (this iteration)
-- Enable **Lovable Cloud** (Postgres + Auth + Storage)
-- Design system in `src/styles.css`: warm green/orange palette, large-tap tokens, friendly type (Nunito + Hind for Hindi), icon-first components
-- **i18n**: lightweight context + `en`/`hi` dictionaries, language toggle in header, persisted to profile + localStorage
-- **Auth**: username + 4-digit PIN (mapped to a synthetic email under the hood for Supabase Auth). First-login PIN setup
-- **Schema + RLS**:
-  - `profiles` (id, full_name, photo_url, phone, department, address, username, pin_set, language, active)
-  - `user_roles` (admin/employee enum, separate table, `has_role()` SECURITY DEFINER)
-  - `attendance` (user_id, date, check_in_at, selfie_url, lat, lng) — unique (user_id, date)
-  - `tasks` (title, description, deadline, priority, status, location_lat/lng, assigned_to, created_by)
-  - `task_updates` (task_id, user_id, note, audio_url, photo_urls[])
-  - `leave_requests` (user_id, start_date, end_date, reason, status)
-  - `announcements` (title, body, audience, target_user_ids[])
-  - `locations` (user_id, lat, lng, updated_at) — live employee GPS
-  - Storage buckets: `avatars` (public), `selfies` (private), `task-media` (private), `documents` (private)
-- Route shell: `/auth`, `/_authenticated/` gate, employee home, admin dashboard with role-based redirect
+## 2. Auth flow — role asked once, then credentials, then login
+- Currently the role page → credentials page sometimes re-prompts for role. Make `/` (role select) write role to local state and navigate to `/auth?as=admin|employee`.
+- `/auth` reads `as` from search params, never re-shows the role picker, just shows credentials + submit. After successful login → redirect by role.
 
-### Phase 2 — Employee panel
-- Home screen (greeting, today's tasks card, attendance status, quick actions)
-- **Selfie attendance** (camera API → capture → geolocation → upload to `selfies` bucket → insert row). Once-per-day guard
-- Monthly attendance calendar (own record)
-- My Tasks list + detail view with large status buttons
-- Submit update: voice recorder (MediaRecorder, 2 min cap), up to 5 photos, optional text note
-- Passive location sharing (geolocation watch while marked present)
-- Leave request form
-- Profile: view info, change PIN
+## 3. Mobile sidebar for admin (hamburger)
+- In `AppShell`, when admin and viewport <md, render a hamburger (3-line) button in the header that opens a `Sheet` containing the admin nav links (Dashboard, Employees, Tasks, Attendance, Leaves, Updates, Announcements, Reports, Live Map).
+- Desktop unchanged.
 
-### Phase 3 — Admin panel
-- Dashboard cards (totals) + **Leaflet** live map with color-coded pins
-- Employee management: create (auto-generates username + PIN, printable credential card), edit, deactivate, document upload
-- Attendance: daily table, per-employee heatmap calendar, manual correction
-- Tasks: create/assign (individual or whole department), Kanban + list, audit trail
-- Updates viewer: inline audio player, photo gallery, admin comments
-- Leave approval queue
-- Announcements composer
-- Search bar (employees + tasks)
+## 4. Realtime updates / announcements for employees
+- Root cause: employee pages fetch once, no subscription. Add Supabase realtime channels on `updates` and `announcements` tables in employee dashboard + me/index, invalidating the relevant React Query keys on insert/update.
+- Also enable replication for those tables via migration (`alter publication supabase_realtime add table ...`) if not already.
 
-### Phase 4 — Reports, notifications, extras
-- PDF export via `jspdf` + `jspdf-autotable`: monthly attendance per employee, monthly task report, combined report
-- In-app notifications (auto deadline alerts, announcements, birthdays/anniversaries)
-- Performance score (attendance % × task completion %)
-- Daily auto-summary for admin
-- Dark mode toggle
-- 3-step onboarding tooltip walkthrough
-- Offline cache for attendance + task views (TanStack Query persist + service worker for reads)
+## 5. Live location section (per-employee)
+- New admin route `/_authenticated/admin/locations`: list all active employees with online/offline dot + last-seen time. Click a name → opens a focused map (re-use `LiveMap` styled component) zoomed to that one employee with live updates and a "follow" toggle.
+- Add nav entry in admin sidebar.
 
-### Technical notes
-- Stack: TanStack Start + React + Tailwind v4 + shadcn + Lovable Cloud (Supabase under the hood)
-- PIN auth: store username as `{username}@gck.local` synthetic email; PIN as password. Admin issues a temporary PIN; employee changes it on first login (flag on `profiles`)
-- All sensitive writes through `createServerFn` with `requireSupabaseAuth`; admin-only mutations gated by `has_role(auth.uid(), 'admin')` in RLS
-- Maps: `leaflet` + `react-leaflet` (no API key required, OSM tiles)
+## 6. Rich Excel + PDF exports across Tasks, Attendance, Reports
+- Add `xlsx` (SheetJS) dependency for `.xlsx` exports.
+- Build a shared `pdfHeader(doc)` helper that embeds the new logo (base64), org name, report title, generated date/time, and a colored band; shared table styling (zebra rows, brand color header, footer with page numbers).
+- Buttons on Admin → Tasks, Attendance, Reports: "Download PDF" + "Download Excel".
+- Reports page gets:
+  - Range selector: Daily / Monthly / Yearly / Custom (date pickers).
+  - Performance report per employee with columns: Employee, Department, Period, Attendance %, Task Completion %, On-Time %, Report Submission %, Report Timeliness %, Manager Rating, Overall Score, Performance Level (Outstanding / Good / Average / Needs Improvement based on score thresholds).
+  - Bar chart of overall score (rendered to canvas via `chart.js`, embedded as image in PDF).
 
-### A few quick decisions I need from you before I start
+## 7. Face-match selfie verification
+- On employee registration (admin → Employees → add): require capturing a reference selfie via webcam (not file upload). Store descriptor in new column `profiles.face_descriptor jsonb` (128-d array from `face-api.js`).
+- On employee daily selfie check-in: capture selfie, compute descriptor, compare to stored descriptor using Euclidean distance; map to similarity %, require ≥ 60% to mark attendance, otherwise reject with "Face did not match".
+- Models: load `face-api.js` tiny face detector + face recognition net from CDN at runtime (no server changes). All matching done client-side.
+- Migration: add `face_descriptor jsonb` to `profiles`.
 
-1. **Language default** — should the app open in **Hindi** or **English** for a brand-new device?
-2. **Logo** — you mentioned the logo will be provided. Should I (a) generate a placeholder GCK logo now and you swap later, or (b) wait for you to upload it before I start?
-3. **Scope of this first delivery** — this is ~4 phases of work. Want me to **ship all phases in one go** (longer build, complete app), or **start with Phase 1 + Phase 2 (employee panel)** so you can try it on a phone immediately, then iterate?
-4. **Departments** — any fixed list (e.g. Field, Office, Outreach, Health), or should admin create them freely?
+## Technical notes
+- New deps: `xlsx`, `face-api.js`, `chart.js`.
+- Migration adds `profiles.face_descriptor` and enables realtime on `updates` + `announcements`.
+- Face matching threshold: distance ≤ 0.6 ≈ ~60% match, configurable in code.
+- PDF logo uses the new asset converted to base64 at build time via dynamic import.
 
-Once you answer, I'll enable Cloud and start building.
+## Out of scope (confirm if you want these too)
+- Server-side face verification (currently client-side only — fine for this use case since admin trust model).
+- Push notifications for updates (only in-app realtime).
