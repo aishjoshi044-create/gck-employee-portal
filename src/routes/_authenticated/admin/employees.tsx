@@ -106,17 +106,19 @@ function EmployeesPage() {
 
 function NewEmployeeForm({ onCreated, create }: { onCreated: (c: { username: string; pin: string; name: string }) => void; create: any }) {
   const { t } = useI18n();
-  const [form, setForm] = useState({ username: "", full_name: "", phone: "", department: "", address: "", date_of_birth: "", date_of_joining: "" });
+  const [form, setForm] = useState({ username: "", full_name: "", phone: "", department: "", address: "", date_of_birth: "", date_of_joining: "", pin: "" });
   const [faceDescriptor, setFaceDescriptor] = useState<number[] | null>(null);
   const [faceBlob, setFaceBlob] = useState<Blob | null>(null);
   const [busy, setBusy] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!/^\d{4}$/.test(form.pin)) { toast.error("Enter a 4-digit PIN for the employee"); return; }
     if (!faceDescriptor) { toast.error("Please capture the employee's face — required for secure check-in"); return; }
     setBusy(true);
     try {
       const r = await create({ data: { ...form, face_descriptor: faceDescriptor } });
+
       // Upload the reference photo to the avatars bucket and link it to the profile.
       if (faceBlob && r.user_id) {
         const path = `${r.user_id}/face-${Date.now()}.jpg`;
