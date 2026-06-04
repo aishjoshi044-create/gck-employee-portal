@@ -184,6 +184,7 @@ export type Database = {
           date_of_birth: string | null
           date_of_joining: string | null
           department: string | null
+          face_descriptor: Json | null
           full_name: string
           id: string
           language: string
@@ -200,6 +201,7 @@ export type Database = {
           date_of_birth?: string | null
           date_of_joining?: string | null
           department?: string | null
+          face_descriptor?: Json | null
           full_name: string
           id: string
           language?: string
@@ -216,6 +218,7 @@ export type Database = {
           date_of_birth?: string | null
           date_of_joining?: string | null
           department?: string | null
+          face_descriptor?: Json | null
           full_name?: string
           id?: string
           language?: string
