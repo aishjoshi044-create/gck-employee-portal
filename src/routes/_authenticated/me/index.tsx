@@ -1,11 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
-import { Camera, ClipboardList, CalendarDays, User, CheckCircle2 } from "lucide-react";
-import { format } from "date-fns";
+import { Camera, ClipboardList, CalendarDays, User, CheckCircle2, Megaphone, Bell } from "lucide-react";
+import { format, formatDistanceToNow } from "date-fns";
 
 export const Route = createFileRoute("/_authenticated/me/")({
   component: EmployeeHome,
@@ -14,6 +15,7 @@ export const Route = createFileRoute("/_authenticated/me/")({
 function EmployeeHome() {
   const { user, profile } = useAuth();
   const { t, lang } = useI18n();
+  const qc = useQueryClient();
   const today = format(new Date(), "yyyy-MM-dd");
 
   const { data: attendanceToday } = useQuery({
@@ -38,6 +40,38 @@ function EmployeeHome() {
       return data ?? [];
     },
   });
+
+  const { data: announcements } = useQuery({
+    queryKey: ["me-announcements", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("announcements")
+        .select("*")
+        .or(`audience.eq.all,target_user_ids.cs.{${user!.id}}`)
+        .order("created_at", { ascending: false })
+        .limit(5);
+      return data ?? [];
+    },
+  });
+
+  // Realtime: announcements + notifications + tasks. New rows refresh instantly.
+  useEffect(() => {
+    if (!user) return;
+    const ch = supabase
+      .channel(`me-feed-${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "announcements" }, () => {
+        qc.invalidateQueries({ queryKey: ["me-announcements"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` }, () => {
+        qc.invalidateQueries({ queryKey: ["me-announcements"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "tasks", filter: `assigned_to=eq.${user.id}` }, () => {
+        qc.invalidateQueries({ queryKey: ["my-tasks-summary"] });
+      })
+      .subscribe();
+    return () => { ch.unsubscribe(); };
+  }, [user, qc]);
 
   return (
     <div className="space-y-4">
@@ -72,6 +106,26 @@ function EmployeeHome() {
           </Card>
         </Link>
       </div>
+
+      {!!announcements?.length && (
+        <div>
+          <h2 className="font-bold text-lg mb-2 flex items-center gap-2"><Megaphone className="size-5 text-accent" /> {t("announcements")}</h2>
+          <div className="space-y-2">
+            {announcements.map((a: any) => (
+              <Card key={a.id} className="p-3 border-l-4 border-l-accent">
+                <div className="flex items-start gap-2">
+                  <Bell className="size-4 text-accent mt-0.5 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-bold text-sm">{a.title}</div>
+                    <div className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(a.created_at), { addSuffix: true })}</div>
+                    <p className="text-sm mt-1 whitespace-pre-wrap">{a.body}</p>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div>
         <h2 className="font-bold text-lg mb-2">{t("today")} — {t("my_tasks")}</h2>
