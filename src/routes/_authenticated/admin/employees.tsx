@@ -81,9 +81,15 @@ function EmployeesPage() {
             </div>
             {!e.active && <span className="text-[10px] font-bold uppercase bg-muted px-2 py-0.5 rounded">{t("inactive")}</span>}
             <Button size="icon" variant="outline" title={t("change_pin")} onClick={async () => {
-              const r = await resetPin({ data: { user_id: e.id } });
-              setCreated({ username: e.username, name: e.full_name, pin: r.temporary_pin });
+              const newPin = window.prompt(`Set new 4-digit PIN for ${e.full_name}:`, "");
+              if (!newPin) return;
+              if (!/^\d{4}$/.test(newPin)) { toast.error("PIN must be exactly 4 digits"); return; }
+              try {
+                const r = await resetPin({ data: { user_id: e.id, pin: newPin } });
+                setCreated({ username: e.username, name: e.full_name, pin: r.pin });
+              } catch (err: any) { toast.error(err?.message ?? "Failed"); }
             }}><KeyRound className="size-4" /></Button>
+
             <Button size="icon" variant="outline" title={e.active ? t("deactivate") : t("activate")} onClick={async () => {
               await toggle({ data: { user_id: e.id, active: !e.active } });
               qc.invalidateQueries({ queryKey: ["employees"] });
