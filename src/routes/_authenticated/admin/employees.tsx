@@ -127,7 +127,7 @@ function NewEmployeeForm({ onCreated, create }: { onCreated: (c: { username: str
           await supabase.from("profiles").update({ photo_url: path }).eq("id", r.user_id);
         }
       }
-      onCreated({ username: r.username, pin: r.temporary_pin, name: form.full_name });
+      onCreated({ username: r.username, pin: r.pin, name: form.full_name });
       toast.success("Employee created");
     } catch (err: any) { toast.error(err?.message ?? t("error")); }
     finally { setBusy(false); }
