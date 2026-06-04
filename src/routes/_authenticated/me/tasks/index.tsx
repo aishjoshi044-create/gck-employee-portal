@@ -15,6 +15,7 @@ export const Route = createFileRoute("/_authenticated/me/tasks/")({
 function MyTasksList() {
   const { user } = useAuth();
   const { t } = useI18n();
+  const qc = useQueryClient();
   const { data: tasks, isLoading } = useQuery({
     queryKey: ["my-tasks", user?.id],
     enabled: !!user,
@@ -23,6 +24,20 @@ function MyTasksList() {
       return data ?? [];
     },
   });
+
+  useEffect(() => {
+    if (!user) return;
+    const ch = supabase
+      .channel(`my-tasks-rt-${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "tasks", filter: `assigned_to=eq.${user.id}` }, () => {
+        qc.invalidateQueries({ queryKey: ["my-tasks", user.id] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "task_updates" }, () => {
+        qc.invalidateQueries({ queryKey: ["task-updates"] });
+      })
+      .subscribe();
+    return () => { ch.unsubscribe(); };
+  }, [user, qc]);
 
   if (isLoading) return <div className="text-center text-muted-foreground py-8">{t("loading")}</div>;
   if (!tasks?.length) return <Card className="p-8 text-center text-muted-foreground">{t("no_tasks")}</Card>;
