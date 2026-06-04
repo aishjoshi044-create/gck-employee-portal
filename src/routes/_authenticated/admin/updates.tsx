@@ -37,6 +37,17 @@ function UpdatesPage() {
     },
   });
 
+  // Realtime: new task updates appear instantly.
+  useEffect(() => {
+    const ch = supabase
+      .channel("admin-updates-rt")
+      .on("postgres_changes", { event: "*", schema: "public", table: "task_updates" }, () => {
+        qc.invalidateQueries({ queryKey: ["admin-updates"] });
+      })
+      .subscribe();
+    return () => { ch.unsubscribe(); };
+  }, [qc]);
+
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-extrabold">{t("updates")}</h1>
