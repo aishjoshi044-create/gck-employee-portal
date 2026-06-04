@@ -17,6 +17,7 @@ export const createEmployee = createServerFn({ method: "POST" })
       date_of_birth: z.string().optional().nullable(),
       date_of_joining: z.string().optional().nullable(),
       role: z.enum(["employee", "admin"]).default("employee"),
+      face_descriptor: z.array(z.number()).length(128).optional().nullable(),
     }).parse(input)
   )
   .handler(async ({ data, context }) => {
@@ -54,6 +55,7 @@ export const createEmployee = createServerFn({ method: "POST" })
       date_of_joining: data.date_of_joining || null,
       pin_changed: false,
       active: true,
+      face_descriptor: data.face_descriptor ?? null,
     });
     if (profErr) {
       await supabaseAdmin.auth.admin.deleteUser(uid);
