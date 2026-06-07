@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedMeIndexRouteImport } from './routes/_authenticated/me/index'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
+import { Route as AuthenticatedMeReportsRouteImport } from './routes/_authenticated/me/reports'
 import { Route as AuthenticatedMeProfileRouteImport } from './routes/_authenticated/me/profile'
 import { Route as AuthenticatedMeLeaveRouteImport } from './routes/_authenticated/me/leave'
 import { Route as AuthenticatedMeAttendanceRouteImport } from './routes/_authenticated/me/attendance'
@@ -23,6 +24,7 @@ import { Route as AuthenticatedAdminReportsRouteImport } from './routes/_authent
 import { Route as AuthenticatedAdminLocationsRouteImport } from './routes/_authenticated/admin/locations'
 import { Route as AuthenticatedAdminLeavesRouteImport } from './routes/_authenticated/admin/leaves'
 import { Route as AuthenticatedAdminEmployeesRouteImport } from './routes/_authenticated/admin/employees'
+import { Route as AuthenticatedAdminDailyReportsRouteImport } from './routes/_authenticated/admin/daily-reports'
 import { Route as AuthenticatedAdminAttendanceRouteImport } from './routes/_authenticated/admin/attendance'
 import { Route as AuthenticatedAdminAnnouncementsRouteImport } from './routes/_authenticated/admin/announcements'
 import { Route as AuthenticatedMeTasksIndexRouteImport } from './routes/_authenticated/me/tasks/index'
@@ -50,6 +52,11 @@ const AuthenticatedMeIndexRoute = AuthenticatedMeIndexRouteImport.update({
 const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   id: '/admin/',
   path: '/admin/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedMeReportsRoute = AuthenticatedMeReportsRouteImport.update({
+  id: '/me/reports',
+  path: '/me/reports',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedMeProfileRoute = AuthenticatedMeProfileRouteImport.update({
@@ -103,6 +110,12 @@ const AuthenticatedAdminEmployeesRoute =
     path: '/admin/employees',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAdminDailyReportsRoute =
+  AuthenticatedAdminDailyReportsRouteImport.update({
+    id: '/admin/daily-reports',
+    path: '/admin/daily-reports',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminAttendanceRoute =
   AuthenticatedAdminAttendanceRouteImport.update({
     id: '/admin/attendance',
@@ -132,6 +145,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/admin/announcements': typeof AuthenticatedAdminAnnouncementsRoute
   '/admin/attendance': typeof AuthenticatedAdminAttendanceRoute
+  '/admin/daily-reports': typeof AuthenticatedAdminDailyReportsRoute
   '/admin/employees': typeof AuthenticatedAdminEmployeesRoute
   '/admin/leaves': typeof AuthenticatedAdminLeavesRoute
   '/admin/locations': typeof AuthenticatedAdminLocationsRoute
@@ -141,6 +155,7 @@ export interface FileRoutesByFullPath {
   '/me/attendance': typeof AuthenticatedMeAttendanceRoute
   '/me/leave': typeof AuthenticatedMeLeaveRoute
   '/me/profile': typeof AuthenticatedMeProfileRoute
+  '/me/reports': typeof AuthenticatedMeReportsRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/me/': typeof AuthenticatedMeIndexRoute
   '/me/tasks/$id': typeof AuthenticatedMeTasksIdRoute
@@ -151,6 +166,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/admin/announcements': typeof AuthenticatedAdminAnnouncementsRoute
   '/admin/attendance': typeof AuthenticatedAdminAttendanceRoute
+  '/admin/daily-reports': typeof AuthenticatedAdminDailyReportsRoute
   '/admin/employees': typeof AuthenticatedAdminEmployeesRoute
   '/admin/leaves': typeof AuthenticatedAdminLeavesRoute
   '/admin/locations': typeof AuthenticatedAdminLocationsRoute
@@ -160,6 +176,7 @@ export interface FileRoutesByTo {
   '/me/attendance': typeof AuthenticatedMeAttendanceRoute
   '/me/leave': typeof AuthenticatedMeLeaveRoute
   '/me/profile': typeof AuthenticatedMeProfileRoute
+  '/me/reports': typeof AuthenticatedMeReportsRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/me': typeof AuthenticatedMeIndexRoute
   '/me/tasks/$id': typeof AuthenticatedMeTasksIdRoute
@@ -172,6 +189,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/admin/announcements': typeof AuthenticatedAdminAnnouncementsRoute
   '/_authenticated/admin/attendance': typeof AuthenticatedAdminAttendanceRoute
+  '/_authenticated/admin/daily-reports': typeof AuthenticatedAdminDailyReportsRoute
   '/_authenticated/admin/employees': typeof AuthenticatedAdminEmployeesRoute
   '/_authenticated/admin/leaves': typeof AuthenticatedAdminLeavesRoute
   '/_authenticated/admin/locations': typeof AuthenticatedAdminLocationsRoute
@@ -181,6 +199,7 @@ export interface FileRoutesById {
   '/_authenticated/me/attendance': typeof AuthenticatedMeAttendanceRoute
   '/_authenticated/me/leave': typeof AuthenticatedMeLeaveRoute
   '/_authenticated/me/profile': typeof AuthenticatedMeProfileRoute
+  '/_authenticated/me/reports': typeof AuthenticatedMeReportsRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/me/': typeof AuthenticatedMeIndexRoute
   '/_authenticated/me/tasks/$id': typeof AuthenticatedMeTasksIdRoute
@@ -193,6 +212,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/admin/announcements'
     | '/admin/attendance'
+    | '/admin/daily-reports'
     | '/admin/employees'
     | '/admin/leaves'
     | '/admin/locations'
@@ -202,6 +222,7 @@ export interface FileRouteTypes {
     | '/me/attendance'
     | '/me/leave'
     | '/me/profile'
+    | '/me/reports'
     | '/admin/'
     | '/me/'
     | '/me/tasks/$id'
@@ -212,6 +233,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/admin/announcements'
     | '/admin/attendance'
+    | '/admin/daily-reports'
     | '/admin/employees'
     | '/admin/leaves'
     | '/admin/locations'
@@ -221,6 +243,7 @@ export interface FileRouteTypes {
     | '/me/attendance'
     | '/me/leave'
     | '/me/profile'
+    | '/me/reports'
     | '/admin'
     | '/me'
     | '/me/tasks/$id'
@@ -232,6 +255,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/admin/announcements'
     | '/_authenticated/admin/attendance'
+    | '/_authenticated/admin/daily-reports'
     | '/_authenticated/admin/employees'
     | '/_authenticated/admin/leaves'
     | '/_authenticated/admin/locations'
@@ -241,6 +265,7 @@ export interface FileRouteTypes {
     | '/_authenticated/me/attendance'
     | '/_authenticated/me/leave'
     | '/_authenticated/me/profile'
+    | '/_authenticated/me/reports'
     | '/_authenticated/admin/'
     | '/_authenticated/me/'
     | '/_authenticated/me/tasks/$id'
@@ -288,6 +313,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin/'
       preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/me/reports': {
+      id: '/_authenticated/me/reports'
+      path: '/me/reports'
+      fullPath: '/me/reports'
+      preLoaderRoute: typeof AuthenticatedMeReportsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/me/profile': {
@@ -353,6 +385,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminEmployeesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/daily-reports': {
+      id: '/_authenticated/admin/daily-reports'
+      path: '/admin/daily-reports'
+      fullPath: '/admin/daily-reports'
+      preLoaderRoute: typeof AuthenticatedAdminDailyReportsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/attendance': {
       id: '/_authenticated/admin/attendance'
       path: '/admin/attendance'
@@ -387,6 +426,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminAnnouncementsRoute: typeof AuthenticatedAdminAnnouncementsRoute
   AuthenticatedAdminAttendanceRoute: typeof AuthenticatedAdminAttendanceRoute
+  AuthenticatedAdminDailyReportsRoute: typeof AuthenticatedAdminDailyReportsRoute
   AuthenticatedAdminEmployeesRoute: typeof AuthenticatedAdminEmployeesRoute
   AuthenticatedAdminLeavesRoute: typeof AuthenticatedAdminLeavesRoute
   AuthenticatedAdminLocationsRoute: typeof AuthenticatedAdminLocationsRoute
@@ -396,6 +436,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedMeAttendanceRoute: typeof AuthenticatedMeAttendanceRoute
   AuthenticatedMeLeaveRoute: typeof AuthenticatedMeLeaveRoute
   AuthenticatedMeProfileRoute: typeof AuthenticatedMeProfileRoute
+  AuthenticatedMeReportsRoute: typeof AuthenticatedMeReportsRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
   AuthenticatedMeIndexRoute: typeof AuthenticatedMeIndexRoute
   AuthenticatedMeTasksIdRoute: typeof AuthenticatedMeTasksIdRoute
@@ -405,6 +446,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminAnnouncementsRoute: AuthenticatedAdminAnnouncementsRoute,
   AuthenticatedAdminAttendanceRoute: AuthenticatedAdminAttendanceRoute,
+  AuthenticatedAdminDailyReportsRoute: AuthenticatedAdminDailyReportsRoute,
   AuthenticatedAdminEmployeesRoute: AuthenticatedAdminEmployeesRoute,
   AuthenticatedAdminLeavesRoute: AuthenticatedAdminLeavesRoute,
   AuthenticatedAdminLocationsRoute: AuthenticatedAdminLocationsRoute,
@@ -414,6 +456,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedMeAttendanceRoute: AuthenticatedMeAttendanceRoute,
   AuthenticatedMeLeaveRoute: AuthenticatedMeLeaveRoute,
   AuthenticatedMeProfileRoute: AuthenticatedMeProfileRoute,
+  AuthenticatedMeReportsRoute: AuthenticatedMeReportsRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
   AuthenticatedMeIndexRoute: AuthenticatedMeIndexRoute,
   AuthenticatedMeTasksIdRoute: AuthenticatedMeTasksIdRoute,
