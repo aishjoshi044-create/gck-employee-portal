@@ -30,17 +30,17 @@ export const Route = createFileRoute("/_authenticated/admin/tasks")({
 const STATUSES = ["not_started", "in_progress", "completed", "failed"] as const;
 type Status = (typeof STATUSES)[number];
 
-const STATUS_META: Record<Status, { label: string; icon: any; color: string; bg: string }> = {
-  not_started: { label: "Not Started", icon: Circle, color: "text-muted-foreground", bg: "bg-muted/40" },
-  in_progress: { label: "In Progress", icon: PlayCircle, color: "text-warning", bg: "bg-warning/10" },
-  completed:   { label: "Completed",   icon: CheckCircle2, color: "text-success", bg: "bg-success/10" },
-  failed:      { label: "Failed",      icon: AlertCircle, color: "text-destructive", bg: "bg-destructive/10" },
+const STATUS_META: Record<Status, { labelKey: "not_started" | "in_progress" | "completed" | "failed"; icon: any; color: string; bg: string }> = {
+  not_started: { labelKey: "not_started", icon: Circle, color: "text-muted-foreground", bg: "bg-muted/40" },
+  in_progress: { labelKey: "in_progress", icon: PlayCircle, color: "text-warning", bg: "bg-warning/10" },
+  completed:   { labelKey: "completed",   icon: CheckCircle2, color: "text-success", bg: "bg-success/10" },
+  failed:      { labelKey: "failed",      icon: AlertCircle, color: "text-destructive", bg: "bg-destructive/10" },
 };
 
-const PRIORITY_META: Record<string, { dot: string; badge: string; label: string }> = {
-  high:   { dot: "bg-destructive", badge: "bg-destructive/15 text-destructive border-destructive/30", label: "High" },
-  medium: { dot: "bg-warning",     badge: "bg-warning/15 text-warning-foreground border-warning/30", label: "Medium" },
-  low:    { dot: "bg-info",        badge: "bg-info/15 text-info border-info/30", label: "Low" },
+const PRIORITY_META: Record<string, { dot: string; badge: string; labelKey: "priority_high" | "priority_medium" | "priority_low" }> = {
+  high:   { dot: "bg-destructive", badge: "bg-destructive/15 text-destructive border-destructive/30", labelKey: "priority_high" },
+  medium: { dot: "bg-warning",     badge: "bg-warning/15 text-warning-foreground border-warning/30", labelKey: "priority_medium" },
+  low:    { dot: "bg-info",        badge: "bg-info/15 text-info border-info/30", labelKey: "priority_low" },
 };
 
 function AdminTasks() {
