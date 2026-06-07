@@ -171,20 +171,20 @@ function AdminTasks() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight">Tasks</h1>
-          <p className="text-sm text-muted-foreground">Manage and track all field tasks</p>
+          <h1 className="text-2xl font-extrabold tracking-tight">{t("tasks")}</h1>
+          <p className="text-sm text-muted-foreground">{t("manage_tasks_subtitle")}</p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <Button variant="outline" size="sm" className="gap-2" onClick={() => downloadPdf({ title: "Tasks Report", filename: `tasks-${format(new Date(), "yyyy-MM-dd")}.pdf`, head: HEAD, body: buildRows() })}>
+          <Button variant="outline" size="sm" className="gap-2" onClick={() => downloadPdf({ title: t("tasks_report"), filename: `tasks-${format(new Date(), "yyyy-MM-dd")}.pdf`, head: HEAD, body: buildRows() })}>
             <FileDown className="size-4" /> PDF
           </Button>
-          <Button variant="outline" size="sm" className="gap-2" onClick={() => downloadExcel(`tasks-${format(new Date(), "yyyy-MM-dd")}.xlsx`, [{ name: "Tasks", header: HEAD, rows: buildRows() }])}>
+          <Button variant="outline" size="sm" className="gap-2" onClick={() => downloadExcel(`tasks-${format(new Date(), "yyyy-MM-dd")}.xlsx`, [{ name: t("tasks"), header: HEAD, rows: buildRows() }])}>
             <FileSpreadsheet className="size-4" /> Excel
           </Button>
           <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild><Button size="sm" className="gap-2"><Plus className="size-4" />New Task</Button></DialogTrigger>
+            <DialogTrigger asChild><Button size="sm" className="gap-2"><Plus className="size-4" />{t("new_task")}</Button></DialogTrigger>
             <DialogContent className="max-w-lg">
-              <DialogHeader><DialogTitle>New Task</DialogTitle></DialogHeader>
+              <DialogHeader><DialogTitle>{t("new_task")}</DialogTitle></DialogHeader>
               <TaskForm employees={employees ?? []} onSaved={() => { setOpen(false); qc.invalidateQueries({ queryKey: ["admin-tasks"] }); }} />
             </DialogContent>
           </Dialog>
@@ -193,11 +193,11 @@ function AdminTasks() {
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
-        <SummaryCard label="Total" value={stats.total} icon={LayoutGrid} tone="muted" />
-        <SummaryCard label="Pending" value={stats.pending} icon={Circle} tone="muted" />
-        <SummaryCard label="In Progress" value={stats.in_progress} icon={PlayCircle} tone="warning" />
-        <SummaryCard label="Completed" value={stats.completed} icon={CheckCircle2} tone="success" />
-        <SummaryCard label="Overdue" value={stats.overdue} icon={AlertCircle} tone="destructive" />
+        <SummaryCard label={t("total")} value={stats.total} icon={LayoutGrid} tone="muted" />
+        <SummaryCard label={t("pending")} value={stats.pending} icon={Circle} tone="muted" />
+        <SummaryCard label={t("in_progress")} value={stats.in_progress} icon={PlayCircle} tone="warning" />
+        <SummaryCard label={t("completed")} value={stats.completed} icon={CheckCircle2} tone="success" />
+        <SummaryCard label={t("overdue")} value={stats.overdue} icon={AlertCircle} tone="destructive" />
       </div>
 
       {/* Toolbar: search + filters + view toggle */}
@@ -205,55 +205,56 @@ function AdminTasks() {
         <div className="flex flex-wrap items-center gap-2">
           <div className="relative flex-1 min-w-[200px]">
             <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Search tasks, employees, villages…" className="pl-9 h-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+            <Input placeholder={t("search_tasks_placeholder")} className="pl-9 h-9" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
 
-          <FilterSelect value={fEmployee} onChange={setFEmployee} placeholder="Employee" width="w-[150px]">
-            <SelectItem value="all">All Employees</SelectItem>
+          <FilterSelect value={fEmployee} onChange={setFEmployee} placeholder={t("employees")} width="w-[150px]">
+            <SelectItem value="all">{t("all_employees")}</SelectItem>
             {employees?.map((e) => <SelectItem key={e.id} value={e.id}>{e.full_name}</SelectItem>)}
           </FilterSelect>
 
-          <FilterSelect value={fProject} onChange={setFProject} placeholder="Project" width="w-[140px]">
-            <SelectItem value="all">All Projects</SelectItem>
+          <FilterSelect value={fProject} onChange={setFProject} placeholder={t("project")} width="w-[140px]">
+            <SelectItem value="all">{t("all_projects")}</SelectItem>
             {projects.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
           </FilterSelect>
 
           <FilterSelect value={fStatus} onChange={setFStatus} placeholder="Status" width="w-[140px]">
-            <SelectItem value="all">All Status</SelectItem>
-            {STATUSES.map((s) => <SelectItem key={s} value={s}>{STATUS_META[s].label}</SelectItem>)}
+            <SelectItem value="all">{t("all_status")}</SelectItem>
+            {STATUSES.map((s) => <SelectItem key={s} value={s}>{t(STATUS_META[s].labelKey)}</SelectItem>)}
           </FilterSelect>
 
-          <FilterSelect value={fPriority} onChange={setFPriority} placeholder="Priority" width="w-[130px]">
-            <SelectItem value="all">All Priority</SelectItem>
-            <SelectItem value="high">High</SelectItem>
-            <SelectItem value="medium">Medium</SelectItem>
-            <SelectItem value="low">Low</SelectItem>
+          <FilterSelect value={fPriority} onChange={setFPriority} placeholder={t("priority")} width="w-[130px]">
+            <SelectItem value="all">{t("all_priority")}</SelectItem>
+            <SelectItem value="high">{t("priority_high")}</SelectItem>
+            <SelectItem value="medium">{t("priority_medium")}</SelectItem>
+            <SelectItem value="low">{t("priority_low")}</SelectItem>
           </FilterSelect>
 
-          <FilterSelect value={fDate} onChange={setFDate} placeholder="Date" width="w-[130px]">
-            <SelectItem value="all">Any Date</SelectItem>
-            <SelectItem value="today">Due Today</SelectItem>
-            <SelectItem value="overdue">Overdue</SelectItem>
-            <SelectItem value="week">Next 7 days</SelectItem>
-            <SelectItem value="month">This Month</SelectItem>
+          <FilterSelect value={fDate} onChange={setFDate} placeholder={t("deadline")} width="w-[130px]">
+            <SelectItem value="all">{t("any_date")}</SelectItem>
+            <SelectItem value="today">{t("due_today")}</SelectItem>
+            <SelectItem value="overdue">{t("overdue")}</SelectItem>
+            <SelectItem value="week">{t("next_7_days")}</SelectItem>
+            <SelectItem value="month">{t("this_month")}</SelectItem>
           </FilterSelect>
 
           {activeFilterCount > 0 && (
             <Button variant="ghost" size="sm" className="gap-1 h-9" onClick={resetFilters}>
-              <X className="size-3.5" /> Clear ({activeFilterCount})
+              <X className="size-3.5" /> {t("clear")} ({activeFilterCount})
             </Button>
           )}
 
           <div className="ml-auto">
             <Tabs value={view} onValueChange={(v) => setView(v as any)}>
               <TabsList className="h-9">
-                <TabsTrigger value="kanban" className="gap-1.5 px-3"><LayoutGrid className="size-3.5" />Kanban</TabsTrigger>
-                <TabsTrigger value="table" className="gap-1.5 px-3"><TableIcon className="size-3.5" />Table</TabsTrigger>
+                <TabsTrigger value="kanban" className="gap-1.5 px-3"><LayoutGrid className="size-3.5" />{t("kanban")}</TabsTrigger>
+                <TabsTrigger value="table" className="gap-1.5 px-3"><TableIcon className="size-3.5" />{t("table_view")}</TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
         </div>
       </Card>
+
 
       {/* Views */}
       {view === "kanban" ? (
