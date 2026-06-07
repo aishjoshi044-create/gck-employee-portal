@@ -500,6 +500,7 @@ function MetaItem({ icon: Icon, label, value }: { icon: any; label: string; valu
 
 function TaskForm({ employees, onSaved }: { employees: any[]; onSaved: () => void }) {
   const { user } = useAuth();
+  const { t } = useI18n();
   const [form, setForm] = useState({
     title: "", description: "", priority: "medium" as "low" | "medium" | "high",
     deadline: "", assigned_to: "", department: "", location_label: "",
@@ -520,59 +521,59 @@ function TaskForm({ employees, onSaved }: { employees: any[]; onSaved: () => voi
       };
       if (assignMode === "all") {
         const rows = employees.map((emp) => ({ ...base, assigned_to: emp.id, department: emp.department ?? null }));
-        if (!rows.length) throw new Error("No active employees");
+        if (!rows.length) throw new Error(t("no_active_employees"));
         const { error } = await supabase.from("tasks").insert(rows);
         if (error) throw error;
       } else if (assignMode === "dept") {
-        if (!form.department) throw new Error("Pick a project");
+        if (!form.department) throw new Error(t("pick_project"));
         const rows = employees.filter((e) => e.department === form.department)
           .map((emp) => ({ ...base, assigned_to: emp.id, department: form.department }));
-        if (!rows.length) throw new Error("No employees in this project");
+        if (!rows.length) throw new Error(t("no_employees_in_project"));
         const { error } = await supabase.from("tasks").insert(rows);
         if (error) throw error;
       } else {
-        if (!form.assigned_to) throw new Error("Pick an employee");
+        if (!form.assigned_to) throw new Error(t("pick_employee"));
         const { error } = await supabase.from("tasks").insert({ ...base, assigned_to: form.assigned_to, department: form.department || null });
         if (error) throw error;
       }
-      toast.success("Task created");
+      toast.success(t("task_created"));
       onSaved();
-    } catch (e: any) { toast.error(e?.message ?? "Error"); }
+    } catch (e: any) { toast.error(e?.message ?? t("error")); }
     finally { setBusy(false); }
   };
 
   return (
     <form onSubmit={submit} className="space-y-3">
-      <div><Label>Title</Label><Input className="mt-1" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required /></div>
-      <div><Label>Description</Label><Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
+      <div><Label>{t("title")}</Label><Input className="mt-1" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required /></div>
+      <div><Label>{t("description")}</Label><Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <Label>Priority</Label>
+          <Label>{t("priority")}</Label>
           <Select value={form.priority} onValueChange={(v: any) => setForm({ ...form, priority: v })}>
             <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="low">Low</SelectItem>
-              <SelectItem value="medium">Medium</SelectItem>
-              <SelectItem value="high">High</SelectItem>
+              <SelectItem value="low">{t("priority_low")}</SelectItem>
+              <SelectItem value="medium">{t("priority_medium")}</SelectItem>
+              <SelectItem value="high">{t("priority_high")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
-        <div><Label>Deadline</Label><Input type="date" className="mt-1" value={form.deadline} onChange={(e) => setForm({ ...form, deadline: e.target.value })} /></div>
+        <div><Label>{t("deadline")}</Label><Input type="date" className="mt-1" value={form.deadline} onChange={(e) => setForm({ ...form, deadline: e.target.value })} /></div>
       </div>
       <div>
-        <Label>Assign to</Label>
+        <Label>{t("assign_to")}</Label>
         <Select value={assignMode} onValueChange={(v: any) => setAssignMode(v)}>
           <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="one">Single employee</SelectItem>
-            <SelectItem value="dept">Whole project / department</SelectItem>
-            <SelectItem value="all">All employees</SelectItem>
+            <SelectItem value="one">{t("single_employee")}</SelectItem>
+            <SelectItem value="dept">{t("whole_project")}</SelectItem>
+            <SelectItem value="all">{t("all_employees_opt")}</SelectItem>
           </SelectContent>
         </Select>
       </div>
       {assignMode === "dept" && (
         <div>
-          <Label>Project</Label>
+          <Label>{t("project")}</Label>
           <Select value={form.department} onValueChange={(v) => setForm({ ...form, department: v })}>
             <SelectTrigger className="mt-1"><SelectValue placeholder="—" /></SelectTrigger>
             <SelectContent>{departments.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
@@ -581,15 +582,15 @@ function TaskForm({ employees, onSaved }: { employees: any[]; onSaved: () => voi
       )}
       {assignMode === "one" && (
         <div>
-          <Label>Employee</Label>
+          <Label>{t("employees")}</Label>
           <Select value={form.assigned_to} onValueChange={(v) => setForm({ ...form, assigned_to: v })}>
             <SelectTrigger className="mt-1"><SelectValue placeholder="—" /></SelectTrigger>
             <SelectContent>{employees.map((e) => <SelectItem key={e.id} value={e.id}>{e.full_name}</SelectItem>)}</SelectContent>
           </Select>
         </div>
       )}
-      <div><Label>Village / Location</Label><Input className="mt-1" value={form.location_label} onChange={(e) => setForm({ ...form, location_label: e.target.value })} placeholder="Village / address" /></div>
-      <Button type="submit" disabled={busy} className="w-full">{busy ? <Loader2 className="size-4 animate-spin" /> : "Create Task"}</Button>
+      <div><Label>{t("village_location")}</Label><Input className="mt-1" value={form.location_label} onChange={(e) => setForm({ ...form, location_label: e.target.value })} placeholder={t("village_address_ph")} /></div>
+      <Button type="submit" disabled={busy} className="w-full">{busy ? <Loader2 className="size-4 animate-spin" /> : t("create_task")}</Button>
     </form>
   );
 }
