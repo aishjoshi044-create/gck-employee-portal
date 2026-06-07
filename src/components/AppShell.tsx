@@ -6,7 +6,7 @@ import { useTheme } from "@/lib/theme";
 import { LangToggle } from "@/components/LangToggle";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from "@/components/ui/sheet";
-import { LogOut, Moon, Sun, Home, ClipboardList, CalendarCheck, User, CalendarDays, Megaphone, Users, FileText, MapPin, Inbox, Menu } from "lucide-react";
+import { LogOut, Moon, Sun, Home, ClipboardList, CalendarCheck, User, CalendarDays, Megaphone, Users, FileText, MapPin, Inbox, Menu, NotebookPen } from "lucide-react";
 import logo from "@/assets/gck-logo.jpeg.asset.json";
 
 interface NavItem { to: string; labelKey: Parameters<ReturnType<typeof useI18n>["t"]>[0]; icon: any; }
@@ -15,6 +15,7 @@ const employeeNav: NavItem[] = [
   { to: "/me", labelKey: "home", icon: Home },
   { to: "/me/attendance", labelKey: "attendance", icon: CalendarCheck },
   { to: "/me/tasks", labelKey: "my_tasks", icon: ClipboardList },
+  { to: "/me/reports", labelKey: "daily_reports", icon: NotebookPen },
   { to: "/me/leave", labelKey: "leave_request", icon: CalendarDays },
   { to: "/me/profile", labelKey: "my_profile", icon: User },
 ];
@@ -24,6 +25,7 @@ const adminNav: NavItem[] = [
   { to: "/admin/employees", labelKey: "employees", icon: Users },
   { to: "/admin/attendance", labelKey: "attendance", icon: CalendarCheck },
   { to: "/admin/tasks", labelKey: "tasks", icon: ClipboardList },
+  { to: "/admin/daily-reports", labelKey: "daily_reports", icon: NotebookPen },
   { to: "/admin/updates", labelKey: "updates", icon: Inbox },
   { to: "/admin/leaves", labelKey: "leaves", icon: CalendarDays },
   { to: "/admin/locations", labelKey: "locations", icon: MapPin },
