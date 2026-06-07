@@ -308,6 +308,7 @@ function FilterSelect({ value, onChange, placeholder, width, children }: { value
 }
 
 function KanbanView({ tasks, onSelect }: { tasks: any[]; onSelect: (t: any) => void }) {
+  const { t } = useI18n();
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
       {STATUSES.map((s) => {
@@ -319,13 +320,13 @@ function KanbanView({ tasks, onSelect }: { tasks: any[]; onSelect: (t: any) => v
             <div className={`flex items-center justify-between px-3 py-2 rounded-t-lg border border-b-0 ${meta.bg}`}>
               <div className="flex items-center gap-2">
                 <Icon className={`size-4 ${meta.color}`} />
-                <span className="text-sm font-bold">{meta.label}</span>
+                <span className="text-sm font-bold">{t(meta.labelKey)}</span>
               </div>
               <Badge variant="secondary" className="h-5 px-2 text-xs">{items.length}</Badge>
             </div>
             <div className="border rounded-b-lg p-2 space-y-2 bg-card/50 min-h-[200px] max-h-[calc(100vh-380px)] overflow-y-auto">
               {items.length === 0 && (
-                <div className="text-xs text-muted-foreground text-center py-8">No tasks</div>
+                <div className="text-xs text-muted-foreground text-center py-8">{t("no_tasks")}</div>
               )}
               {items.map((tk) => <TaskCard key={tk.id} task={tk} onClick={() => onSelect(tk)} />)}
             </div>
@@ -337,6 +338,7 @@ function KanbanView({ tasks, onSelect }: { tasks: any[]; onSelect: (t: any) => v
 }
 
 function TaskCard({ task, onClick }: { task: any; onClick: () => void }) {
+  const { t } = useI18n();
   const overdue = task.deadline && isPast(new Date(task.deadline)) && task.status !== "completed";
   const pri = PRIORITY_META[task.priority];
   return (
@@ -348,7 +350,7 @@ function TaskCard({ task, onClick }: { task: any; onClick: () => void }) {
       <div className="space-y-1 text-xs text-muted-foreground pl-4">
         <div className="flex items-center gap-1.5 truncate">
           <User className="size-3 shrink-0" />
-          <span className="truncate">{task.profiles?.full_name ?? (task.department ? `Dept: ${task.department}` : "Unassigned")}</span>
+          <span className="truncate">{task.profiles?.full_name ?? (task.department ? `${t("dept_prefix")}: ${task.department}` : t("unassigned"))}</span>
         </div>
         {task.location_label && (
           <div className="flex items-center gap-1.5 truncate">
@@ -360,7 +362,7 @@ function TaskCard({ task, onClick }: { task: any; onClick: () => void }) {
           <div className={`flex items-center gap-1.5 ${overdue ? "text-destructive font-medium" : ""}`}>
             <Calendar className="size-3 shrink-0" />
             <span>{format(new Date(task.deadline), "d MMM")}</span>
-            {overdue && <span>· Overdue</span>}
+            {overdue && <span>· {t("overdue")}</span>}
           </div>
         )}
       </div>
@@ -369,23 +371,24 @@ function TaskCard({ task, onClick }: { task: any; onClick: () => void }) {
 }
 
 function TableView({ tasks, onSelect }: { tasks: any[]; onSelect: (t: any) => void }) {
+  const { t } = useI18n();
   return (
     <Card className="overflow-hidden">
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/40">
-            <TableHead className="font-semibold">Task</TableHead>
-            <TableHead className="font-semibold">Employee</TableHead>
-            <TableHead className="font-semibold hidden md:table-cell">Project</TableHead>
-            <TableHead className="font-semibold hidden lg:table-cell">Village</TableHead>
-            <TableHead className="font-semibold">Priority</TableHead>
+            <TableHead className="font-semibold">{t("title")}</TableHead>
+            <TableHead className="font-semibold">{t("employees")}</TableHead>
+            <TableHead className="font-semibold hidden md:table-cell">{t("project")}</TableHead>
+            <TableHead className="font-semibold hidden lg:table-cell">{t("village")}</TableHead>
+            <TableHead className="font-semibold">{t("priority")}</TableHead>
             <TableHead className="font-semibold">Status</TableHead>
-            <TableHead className="font-semibold">Due</TableHead>
+            <TableHead className="font-semibold">{t("due")}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {tasks.length === 0 && (
-            <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">No tasks match your filters</TableCell></TableRow>
+            <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">{t("no_tasks_match")}</TableCell></TableRow>
           )}
           {tasks.map((tk) => {
             const overdue = tk.deadline && isPast(new Date(tk.deadline)) && tk.status !== "completed";
@@ -397,8 +400,8 @@ function TableView({ tasks, onSelect }: { tasks: any[]; onSelect: (t: any) => vo
                 <TableCell className="text-sm text-muted-foreground">{tk.profiles?.full_name ?? "—"}</TableCell>
                 <TableCell className="text-sm text-muted-foreground hidden md:table-cell">{tk.department ?? "—"}</TableCell>
                 <TableCell className="text-sm text-muted-foreground hidden lg:table-cell">{tk.location_label ?? "—"}</TableCell>
-                <TableCell><Badge variant="outline" className={`${pri?.badge} text-xs`}>{pri?.label}</Badge></TableCell>
-                <TableCell><Badge variant="outline" className={`${sm?.bg} ${sm?.color} border-0 text-xs`}>{sm?.label}</Badge></TableCell>
+                <TableCell><Badge variant="outline" className={`${pri?.badge} text-xs`}>{pri ? t(pri.labelKey) : tk.priority}</Badge></TableCell>
+                <TableCell><Badge variant="outline" className={`${sm?.bg} ${sm?.color} border-0 text-xs`}>{sm ? t(sm.labelKey) : tk.status}</Badge></TableCell>
                 <TableCell className={`text-sm ${overdue ? "text-destructive font-medium" : "text-muted-foreground"}`}>
                   {tk.deadline ? format(new Date(tk.deadline), "d MMM yyyy") : "—"}
                 </TableCell>
