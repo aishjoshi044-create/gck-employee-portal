@@ -416,6 +416,7 @@ function TableView({ tasks, onSelect }: { tasks: any[]; onSelect: (t: any) => vo
 
 function TaskDetails({ task }: { task: any }) {
   const qc = useQueryClient();
+  const { t } = useI18n();
   const sm = STATUS_META[task.status as Status];
   const pri = PRIORITY_META[task.priority];
   const overdue = task.deadline && isPast(new Date(task.deadline)) && task.status !== "completed";
@@ -436,39 +437,35 @@ function TaskDetails({ task }: { task: any }) {
   const save = async (id: string) => {
     const { error } = await supabase.from("task_updates").update({ admin_comment: comment[id] ?? "" }).eq("id", id);
     if (error) toast.error(error.message);
-    else { toast.success("Reply sent"); qc.invalidateQueries({ queryKey: ["task-replies", task.id] }); }
+    else { toast.success(t("reply_sent")); qc.invalidateQueries({ queryKey: ["task-replies", task.id] }); }
   };
 
   return (
     <div className="space-y-5 mt-4">
-      {/* Status pills */}
       <div className="flex flex-wrap gap-2">
-        <Badge variant="outline" className={`${sm?.bg} ${sm?.color} border-0`}>{sm?.label}</Badge>
-        <Badge variant="outline" className={pri?.badge}><Flag className="size-3 mr-1" />{pri?.label}</Badge>
-        {overdue && <Badge variant="outline" className="bg-destructive/15 text-destructive border-destructive/30"><Clock className="size-3 mr-1" />Overdue</Badge>}
+        <Badge variant="outline" className={`${sm?.bg} ${sm?.color} border-0`}>{sm ? t(sm.labelKey) : task.status}</Badge>
+        <Badge variant="outline" className={pri?.badge}><Flag className="size-3 mr-1" />{pri ? t(pri.labelKey) : task.priority}</Badge>
+        {overdue && <Badge variant="outline" className="bg-destructive/15 text-destructive border-destructive/30"><Clock className="size-3 mr-1" />{t("overdue")}</Badge>}
       </div>
 
-      {/* Meta grid */}
       <div className="grid grid-cols-2 gap-3 text-sm">
-        <MetaItem icon={User} label="Employee" value={task.profiles?.full_name ?? "—"} />
-        <MetaItem icon={LayoutGrid} label="Project" value={task.department ?? "—"} />
-        <MetaItem icon={MapPin} label="Village" value={task.location_label ?? "—"} />
-        <MetaItem icon={Calendar} label="Due Date" value={task.deadline ? format(new Date(task.deadline), "d MMM yyyy") : "—"} />
+        <MetaItem icon={User} label={t("employees")} value={task.profiles?.full_name ?? "—"} />
+        <MetaItem icon={LayoutGrid} label={t("project")} value={task.department ?? "—"} />
+        <MetaItem icon={MapPin} label={t("village")} value={task.location_label ?? "—"} />
+        <MetaItem icon={Calendar} label={t("due_date")} value={task.deadline ? format(new Date(task.deadline), "d MMM yyyy") : "—"} />
       </div>
 
-      {/* Description */}
       {task.description && (
         <div>
-          <div className="text-xs font-bold uppercase text-muted-foreground mb-1">Description</div>
+          <div className="text-xs font-bold uppercase text-muted-foreground mb-1">{t("description")}</div>
           <p className="text-sm whitespace-pre-wrap bg-muted/40 rounded-md p-3">{task.description}</p>
         </div>
       )}
 
-      {/* Comments / replies */}
       <div>
-        <div className="text-xs font-bold uppercase text-muted-foreground mb-2">Comments ({replies?.length ?? 0})</div>
+        <div className="text-xs font-bold uppercase text-muted-foreground mb-2">{t("comments")} ({replies?.length ?? 0})</div>
         <div className="space-y-2">
-          {!replies?.length && <Card className="p-4 text-center text-sm text-muted-foreground">No updates yet</Card>}
+          {!replies?.length && <Card className="p-4 text-center text-sm text-muted-foreground">{t("no_updates_yet")}</Card>}
           {replies?.map((u: any) => (
             <Card key={u.id} className="p-3 space-y-2">
               <div className="text-xs text-muted-foreground flex items-center justify-between">
@@ -476,10 +473,10 @@ function TaskDetails({ task }: { task: any }) {
                 <span>{format(new Date(u.created_at), "d MMM, h:mm a")}</span>
               </div>
               {u.note && <p className="text-sm whitespace-pre-wrap">{u.note}</p>}
-              {u.admin_comment && <div className="bg-info/10 border-l-4 border-info p-2 text-sm rounded-sm"><strong>Reply:</strong> {u.admin_comment}</div>}
+              {u.admin_comment && <div className="bg-info/10 border-l-4 border-info p-2 text-sm rounded-sm"><strong>{t("reply")}:</strong> {u.admin_comment}</div>}
               <div className="flex gap-2 pt-1">
-                <Input placeholder="Reply…" className="h-8 text-sm" value={comment[u.id] ?? u.admin_comment ?? ""} onChange={(e) => setComment({ ...comment, [u.id]: e.target.value })} />
-                <Button size="sm" className="h-8" onClick={() => save(u.id)}>Send</Button>
+                <Input placeholder={t("reply_placeholder")} className="h-8 text-sm" value={comment[u.id] ?? u.admin_comment ?? ""} onChange={(e) => setComment({ ...comment, [u.id]: e.target.value })} />
+                <Button size="sm" className="h-8" onClick={() => save(u.id)}>{t("send")}</Button>
               </div>
             </Card>
           ))}
