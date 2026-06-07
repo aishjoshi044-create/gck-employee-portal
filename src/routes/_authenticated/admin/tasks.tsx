@@ -159,12 +159,12 @@ function AdminTasks() {
       tk.profiles?.full_name ?? (tk.assigned_to ? "—" : "All / Dept"),
       tk.department ?? "—",
       tk.location_label ?? "—",
-      PRIORITY_META[tk.priority]?.label ?? tk.priority,
-      STATUS_META[tk.status as Status]?.label ?? tk.status,
+      PRIORITY_META[tk.priority] ? t(PRIORITY_META[tk.priority].labelKey) : tk.priority,
+      STATUS_META[tk.status as Status] ? t(STATUS_META[tk.status as Status].labelKey) : tk.status,
       tk.deadline ? format(new Date(tk.deadline), "d MMM yyyy") : "—",
       tk.created_at ? format(new Date(tk.created_at), "d MMM yyyy") : "—",
     ]);
-  const HEAD = ["Title", "Employee", "Project", "Village", "Priority", "Status", "Deadline", "Created"];
+  const HEAD = [t("title"), t("employees"), t("project"), t("village"), t("priority"), "Status", t("deadline"), "Created"];
 
   return (
     <div className="space-y-4">
