@@ -69,9 +69,16 @@ function AdminTasks() {
         ? await supabase.from("profiles").select("id, full_name, department").in("id", ids)
         : { data: [] as any[] };
       const pMap = new Map((profs ?? []).map((p: any) => [p.id, p]));
-      return ts.map((x: any) => ({ ...x, profiles: x.assigned_to ? pMap.get(x.assigned_to) : null }));
+      const taskIds = ts.map((x: any) => x.id);
+      const { data: ups } = taskIds.length
+        ? await supabase.from("task_updates").select("task_id").in("task_id", taskIds)
+        : { data: [] as any[] };
+      const cMap = new Map<string, number>();
+      (ups ?? []).forEach((u: any) => cMap.set(u.task_id, (cMap.get(u.task_id) ?? 0) + 1));
+      return ts.map((x: any) => ({ ...x, profiles: x.assigned_to ? pMap.get(x.assigned_to) : null, updates_count: cMap.get(x.id) ?? 0 }));
     },
   });
+
 
   const { data: employees } = useQuery({
     queryKey: ["emp-pick"],
