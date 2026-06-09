@@ -293,6 +293,38 @@ export type Database = {
         }
         Relationships: []
       }
+      task_discussions: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          task_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          task_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          task_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_discussions_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_updates: {
         Row: {
           admin_comment: string | null
@@ -302,6 +334,7 @@ export type Database = {
           note: string | null
           photo_urls: string[] | null
           task_id: string
+          update_type: string
           user_id: string
         }
         Insert: {
@@ -312,6 +345,7 @@ export type Database = {
           note?: string | null
           photo_urls?: string[] | null
           task_id: string
+          update_type?: string
           user_id: string
         }
         Update: {
@@ -322,6 +356,7 @@ export type Database = {
           note?: string | null
           photo_urls?: string[] | null
           task_id?: string
+          update_type?: string
           user_id?: string
         }
         Relationships: [
