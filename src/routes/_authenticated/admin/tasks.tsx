@@ -17,6 +17,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Plus, Loader2, FileDown, FileSpreadsheet, Search, LayoutGrid, Table as TableIcon,
   Calendar, MapPin, User, Flag, X, Clock, AlertCircle, CheckCircle2, Circle, PlayCircle,
+  MessageSquare, Camera, Send, Image as ImageIcon,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
