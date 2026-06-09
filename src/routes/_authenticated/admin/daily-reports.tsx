@@ -193,8 +193,8 @@ function AdminDailyReportsPage() {
         </div>
       </Card>
 
-      <Card className="overflow-hidden">
-        <div className="overflow-x-auto">
+      <Card className="overflow-hidden flex-1 min-h-[60vh]">
+        <div className="overflow-auto max-h-[70vh]">
           <Table>
             <TableHeader>
               <TableRow>
