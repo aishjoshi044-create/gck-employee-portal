@@ -237,7 +237,22 @@ export const dict = {
   on_leave: { en: "On Leave", hi: "छुट्टी पर" },
   active: { en: "Active", hi: "सक्रिय" },
   inactive: { en: "Inactive", hi: "बंद" },
+  work_updates: { en: "Work Updates", hi: "कार्य अपडेट" },
+  add_work_update: { en: "Add Work Update", hi: "कार्य अपडेट जोड़ें" },
+  update_type: { en: "Update Type", hi: "अपडेट प्रकार" },
+  update_type_progress: { en: "Progress Update", hi: "प्रगति अपडेट" },
+  update_type_issue: { en: "Issue Report", hi: "समस्या रिपोर्ट" },
+  update_type_completion: { en: "Completion Update", hi: "पूर्णता अपडेट" },
+  message: { en: "Message", hi: "संदेश" },
+  photos: { en: "Photos", hi: "फ़ोटो" },
+  max_photos_5: { en: "Max 5 photos", hi: "अधिकतम 5 फ़ोटो" },
+  discussion: { en: "Discussion", hi: "चर्चा" },
+  write_message: { en: "Write a message...", hi: "संदेश लिखें..." },
+  no_discussion_yet: { en: "No messages yet", hi: "अभी कोई संदेश नहीं" },
+  updates_count: { en: "Updates", hi: "अपडेट" },
+  post: { en: "Post", hi: "भेजें" },
 } satisfies Dict;
+
 
 export type DictKey = keyof typeof dict;
 
