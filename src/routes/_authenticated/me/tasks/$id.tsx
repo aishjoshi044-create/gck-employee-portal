@@ -196,8 +196,18 @@ function UpdateComposer({ taskId, onSent }: { taskId: string; onSent: () => void
 
   return (
     <Card className="p-4 space-y-3">
-      <h2 className="font-bold">{t("send_update")}</h2>
-      <Textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder={t("note_text")} className="min-h-20" />
+      <h2 className="font-bold">{t("add_work_update")}</h2>
+      <div>
+        <label className="text-xs font-bold uppercase text-muted-foreground">{t("update_type")}</label>
+        <div className="grid grid-cols-3 gap-1.5 mt-1">
+          {(["progress", "issue", "completion"] as const).map((ut) => (
+            <Button key={ut} type="button" size="sm" variant={updateType === ut ? "default" : "outline"} onClick={() => setUpdateType(ut)} className="text-xs">
+              {t(`update_type_${ut}` as any)}
+            </Button>
+          ))}
+        </div>
+      </div>
+      <Textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder={t("message")} className="min-h-20" />
 
       <div className="flex gap-2 flex-wrap">
         {!recording && !audioBlob && <Button type="button" variant="outline" className="tap-lg gap-2" onClick={startRec}><Mic className="size-5" />{t("record")}</Button>}
