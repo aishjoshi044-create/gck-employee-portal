@@ -126,6 +126,7 @@ function UpdateComposer({ taskId, onSent }: { taskId: string; onSent: () => void
   const { user } = useAuth();
   const { t } = useI18n();
   const [note, setNote] = useState("");
+  const [updateType, setUpdateType] = useState<"progress" | "issue" | "completion">("progress");
   const [photos, setPhotos] = useState<File[]>([]);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [recording, setRecording] = useState(false);
@@ -133,6 +134,7 @@ function UpdateComposer({ taskId, onSent }: { taskId: string; onSent: () => void
   const recRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<number | null>(null);
+
 
   const startRec = async () => {
     try {
