@@ -240,32 +240,6 @@ function AdminDailyReportsPage() {
         </div>
       </Card>
 
-      <Card className="p-3">
-        <div className="flex items-center gap-2 mb-2"><Users className="size-4 text-primary" /><h2 className="font-semibold">{t("performance_summary")}</h2></div>
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t("full_name")}</TableHead>
-                <TableHead className="text-right">{t("reports_submitted")}</TableHead>
-                <TableHead className="text-right">{t("villages_visited")}</TableHead>
-                <TableHead className="text-right">{t("beneficiaries_reached")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {perfSummary.map((p) => (
-                <TableRow key={p.uid}>
-                  <TableCell className="font-medium">{p.name}</TableCell>
-                  <TableCell className="text-right">{p.count}</TableCell>
-                  <TableCell className="text-right">{p.villages}</TableCell>
-                  <TableCell className="text-right">{p.beneficiaries}</TableCell>
-                </TableRow>
-              ))}
-              {perfSummary.length === 0 && (<TableRow><TableCell colSpan={4} className="text-center text-muted-foreground text-sm p-4">—</TableCell></TableRow>)}
-            </TableBody>
-          </Table>
-        </div>
-      </Card>
 
       <AdminReportDetail report={detail} profileName={detail ? pmap.get(detail.user_id)?.full_name ?? "—" : ""} onClose={() => setDetail(null)} onDecide={decide} />
     </div>
