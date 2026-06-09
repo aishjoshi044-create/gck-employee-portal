@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { format, startOfDay } from "date-fns";
+import { format } from "date-fns";
 import { CheckCircle2, Clock, XCircle, FileText, Loader2, Search, AlertCircle } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 
