@@ -245,7 +245,7 @@ export const dict = {
   update_type_completion: { en: "Completion Update", hi: "पूर्णता अपडेट" },
   max_photos_5: { en: "Max 5 photos", hi: "अधिकतम 5 फ़ोटो" },
 
-  max_photos_5: { en: "Max 5 photos", hi: "अधिकतम 5 फ़ोटो" },
+
   discussion: { en: "Discussion", hi: "चर्चा" },
   write_message: { en: "Write a message...", hi: "संदेश लिखें..." },
   no_discussion_yet: { en: "No messages yet", hi: "अभी कोई संदेश नहीं" },
