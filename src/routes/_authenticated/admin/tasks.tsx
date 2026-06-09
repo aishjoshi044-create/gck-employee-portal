@@ -17,6 +17,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Plus, Loader2, FileDown, FileSpreadsheet, Search, LayoutGrid, Table as TableIcon,
   Calendar, MapPin, User, Flag, X, Clock, AlertCircle, CheckCircle2, Circle, PlayCircle,
+  MessageSquare, Camera, Send, Image as ImageIcon,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -69,9 +70,16 @@ function AdminTasks() {
         ? await supabase.from("profiles").select("id, full_name, department").in("id", ids)
         : { data: [] as any[] };
       const pMap = new Map((profs ?? []).map((p: any) => [p.id, p]));
-      return ts.map((x: any) => ({ ...x, profiles: x.assigned_to ? pMap.get(x.assigned_to) : null }));
+      const taskIds = ts.map((x: any) => x.id);
+      const { data: ups } = taskIds.length
+        ? await supabase.from("task_updates").select("task_id").in("task_id", taskIds)
+        : { data: [] as any[] };
+      const cMap = new Map<string, number>();
+      (ups ?? []).forEach((u: any) => cMap.set(u.task_id, (cMap.get(u.task_id) ?? 0) + 1));
+      return ts.map((x: any) => ({ ...x, profiles: x.assigned_to ? pMap.get(x.assigned_to) : null, updates_count: cMap.get(x.id) ?? 0 }));
     },
   });
+
 
   const { data: employees } = useQuery({
     queryKey: ["emp-pick"],
@@ -342,33 +350,27 @@ function TaskCard({ task, onClick }: { task: any; onClick: () => void }) {
   const overdue = task.deadline && isPast(new Date(task.deadline)) && task.status !== "completed";
   const pri = PRIORITY_META[task.priority];
   return (
-    <button onClick={onClick} className="w-full text-left bg-background border rounded-md p-2.5 hover:border-primary/40 hover:shadow-sm transition group">
-      <div className="flex items-start gap-2 mb-1.5">
-        <span className={`mt-1 size-2 rounded-full shrink-0 ${pri?.dot}`} />
-        <div className="font-semibold text-sm leading-snug line-clamp-2 flex-1 group-hover:text-primary">{task.title}</div>
+    <button onClick={onClick} className="w-full text-left bg-background border rounded-md px-2.5 py-2 hover:border-primary/40 hover:shadow-sm transition group">
+      <div className="font-semibold text-sm leading-snug line-clamp-2 group-hover:text-primary">{task.title}</div>
+      <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+        <User className="size-3 shrink-0" />
+        <span className="truncate">{task.profiles?.full_name ?? (task.department ? task.department : t("unassigned"))}</span>
       </div>
-      <div className="space-y-1 text-xs text-muted-foreground pl-4">
-        <div className="flex items-center gap-1.5 truncate">
-          <User className="size-3 shrink-0" />
-          <span className="truncate">{task.profiles?.full_name ?? (task.department ? `${t("dept_prefix")}: ${task.department}` : t("unassigned"))}</span>
+      <div className="mt-1.5 flex items-center justify-between gap-2 text-xs">
+        <div className="flex items-center gap-1.5">
+          <Badge variant="outline" className={`${pri?.badge} h-5 px-1.5 text-[10px]`}>{pri ? t(pri.labelKey) : task.priority}</Badge>
+          {task.deadline && (
+            <span className={`flex items-center gap-1 ${overdue ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+              <Calendar className="size-3" />{format(new Date(task.deadline), "d MMM")}
+            </span>
+          )}
         </div>
-        {task.location_label && (
-          <div className="flex items-center gap-1.5 truncate">
-            <MapPin className="size-3 shrink-0" />
-            <span className="truncate">{task.location_label}</span>
-          </div>
-        )}
-        {task.deadline && (
-          <div className={`flex items-center gap-1.5 ${overdue ? "text-destructive font-medium" : ""}`}>
-            <Calendar className="size-3 shrink-0" />
-            <span>{format(new Date(task.deadline), "d MMM")}</span>
-            {overdue && <span>· {t("overdue")}</span>}
-          </div>
-        )}
+        <span className="flex items-center gap-1 text-muted-foreground"><MessageSquare className="size-3" />{task.updates_count ?? 0}</span>
       </div>
     </button>
   );
 }
+
 
 function TableView({ tasks, onSelect }: { tasks: any[]; onSelect: (t: any) => void }) {
   const { t } = useI18n();
@@ -414,14 +416,21 @@ function TableView({ tasks, onSelect }: { tasks: any[]; onSelect: (t: any) => vo
   );
 }
 
+const UPDATE_TYPE_META: Record<string, { labelKey: "update_type_progress" | "update_type_issue" | "update_type_completion"; cls: string }> = {
+  progress:   { labelKey: "update_type_progress",   cls: "bg-info/15 text-info border-info/30" },
+  issue:      { labelKey: "update_type_issue",      cls: "bg-destructive/15 text-destructive border-destructive/30" },
+  completion: { labelKey: "update_type_completion", cls: "bg-success/15 text-success border-success/30" },
+};
+
 function TaskDetails({ task }: { task: any }) {
   const qc = useQueryClient();
   const { t } = useI18n();
+  const { user } = useAuth();
   const sm = STATUS_META[task.status as Status];
   const pri = PRIORITY_META[task.priority];
   const overdue = task.deadline && isPast(new Date(task.deadline)) && task.status !== "completed";
 
-  const { data: replies } = useQuery({
+  const { data: updates } = useQuery({
     queryKey: ["task-replies", task.id],
     queryFn: async () => {
       const { data: ups } = await supabase.from("task_updates").select("*").eq("task_id", task.id).order("created_at", { ascending: false });
@@ -433,11 +442,35 @@ function TaskDetails({ task }: { task: any }) {
     },
   });
 
-  const [comment, setComment] = useState<Record<string, string>>({});
-  const save = async (id: string) => {
-    const { error } = await supabase.from("task_updates").update({ admin_comment: comment[id] ?? "" }).eq("id", id);
+  const { data: discussion } = useQuery({
+    queryKey: ["task-discussion", task.id],
+    queryFn: async () => {
+      const { data: ds } = await supabase.from("task_discussions").select("*").eq("task_id", task.id).order("created_at", { ascending: true });
+      if (!ds?.length) return [];
+      const ids = [...new Set(ds.map((d: any) => d.user_id))];
+      const { data: profs } = await supabase.from("profiles").select("id, full_name").in("id", ids);
+      const pMap = new Map((profs ?? []).map((p: any) => [p.id, p]));
+      return ds.map((d: any) => ({ ...d, profiles: pMap.get(d.user_id) }));
+    },
+  });
+
+  useEffect(() => {
+    const ch = supabase.channel(`task-drawer-${task.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "task_discussions", filter: `task_id=eq.${task.id}` }, () => qc.invalidateQueries({ queryKey: ["task-discussion", task.id] }))
+      .on("postgres_changes", { event: "*", schema: "public", table: "task_updates", filter: `task_id=eq.${task.id}` }, () => qc.invalidateQueries({ queryKey: ["task-replies", task.id] }))
+      .subscribe();
+    return () => { ch.unsubscribe(); };
+  }, [task.id, qc]);
+
+  const [msg, setMsg] = useState("");
+  const [sending, setSending] = useState(false);
+  const sendDiscussion = async () => {
+    if (!user || !msg.trim()) return;
+    setSending(true);
+    const { error } = await supabase.from("task_discussions").insert({ task_id: task.id, user_id: user.id, message: msg.trim() });
+    setSending(false);
     if (error) toast.error(error.message);
-    else { toast.success(t("reply_sent")); qc.invalidateQueries({ queryKey: ["task-replies", task.id] }); }
+    else { setMsg(""); qc.invalidateQueries({ queryKey: ["task-discussion", task.id] }); }
   };
 
   return (
@@ -463,28 +496,82 @@ function TaskDetails({ task }: { task: any }) {
       )}
 
       <div>
-        <div className="text-xs font-bold uppercase text-muted-foreground mb-2">{t("comments")} ({replies?.length ?? 0})</div>
-        <div className="space-y-2">
-          {!replies?.length && <Card className="p-4 text-center text-sm text-muted-foreground">{t("no_updates_yet")}</Card>}
-          {replies?.map((u: any) => (
-            <Card key={u.id} className="p-3 space-y-2">
-              <div className="text-xs text-muted-foreground flex items-center justify-between">
-                <span className="font-medium text-foreground">{u.profiles?.full_name ?? "—"}</span>
-                <span>{format(new Date(u.created_at), "d MMM, h:mm a")}</span>
+        <div className="text-xs font-bold uppercase text-muted-foreground mb-2">{t("work_updates")} ({updates?.length ?? 0})</div>
+        {!updates?.length ? (
+          <Card className="p-4 text-center text-sm text-muted-foreground">{t("no_updates_yet")}</Card>
+        ) : (
+          <div className="relative pl-4 border-l-2 border-muted space-y-3">
+            {updates.map((u: any) => <UpdateTimelineItem key={u.id} u={u} />)}
+          </div>
+        )}
+      </div>
+
+      <div>
+        <div className="text-xs font-bold uppercase text-muted-foreground mb-2 flex items-center gap-1.5"><MessageSquare className="size-3.5" />{t("discussion")} ({discussion?.length ?? 0})</div>
+        <Card className="p-3 space-y-3">
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {!discussion?.length && <div className="text-center text-sm text-muted-foreground py-4">{t("no_discussion_yet")}</div>}
+            {discussion?.map((d: any) => (
+              <div key={d.id} className="text-sm">
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="font-semibold text-xs">{d.profiles?.full_name ?? "—"}</span>
+                  <span className="text-[10px] text-muted-foreground">{format(new Date(d.created_at), "d MMM, h:mm a")}</span>
+                </div>
+                <p className="whitespace-pre-wrap bg-muted/40 rounded-md p-2 mt-1">{d.message}</p>
               </div>
-              {u.note && <p className="text-sm whitespace-pre-wrap">{u.note}</p>}
-              {u.admin_comment && <div className="bg-info/10 border-l-4 border-info p-2 text-sm rounded-sm"><strong>{t("reply")}:</strong> {u.admin_comment}</div>}
-              <div className="flex gap-2 pt-1">
-                <Input placeholder={t("reply_placeholder")} className="h-8 text-sm" value={comment[u.id] ?? u.admin_comment ?? ""} onChange={(e) => setComment({ ...comment, [u.id]: e.target.value })} />
-                <Button size="sm" className="h-8" onClick={() => save(u.id)}>{t("send")}</Button>
-              </div>
-            </Card>
-          ))}
-        </div>
+            ))}
+          </div>
+          <div className="flex gap-2 pt-2 border-t">
+            <Input placeholder={t("write_message")} className="h-9 text-sm" value={msg} onChange={(e) => setMsg(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendDiscussion(); } }} />
+            <Button size="sm" className="h-9 gap-1" disabled={sending || !msg.trim()} onClick={sendDiscussion}>
+              {sending ? <Loader2 className="size-3.5 animate-spin" /> : <Send className="size-3.5" />}{t("post")}
+            </Button>
+          </div>
+        </Card>
       </div>
     </div>
   );
 }
+
+function UpdateTimelineItem({ u }: { u: any }) {
+  const { t } = useI18n();
+  const [photoUrls, setPhotoUrls] = useState<string[]>([]);
+  const meta = UPDATE_TYPE_META[u.update_type ?? "progress"] ?? UPDATE_TYPE_META.progress;
+  useEffect(() => {
+    (async () => {
+      if (!u.photo_urls?.length) return;
+      const urls = await Promise.all((u.photo_urls as string[]).map(async (p) =>
+        (await supabase.storage.from("task-media").createSignedUrl(p, 600)).data?.signedUrl ?? ""));
+      setPhotoUrls(urls.filter(Boolean));
+    })();
+  }, [u]);
+  return (
+    <div className="relative">
+      <span className="absolute -left-[21px] top-2 size-3 rounded-full bg-primary ring-4 ring-background" />
+      <Card className="p-3 space-y-2">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-sm font-semibold truncate">{u.profiles?.full_name ?? "—"}</span>
+            <Badge variant="outline" className={`${meta.cls} text-[10px] h-5 px-1.5`}>{t(meta.labelKey)}</Badge>
+          </div>
+          <span className="text-[10px] text-muted-foreground">{format(new Date(u.created_at), "d MMM, h:mm a")}</span>
+        </div>
+        {u.note && <p className="text-sm whitespace-pre-wrap">{u.note}</p>}
+        {photoUrls.length > 0 && (
+          <div className="grid grid-cols-5 gap-1">
+            {photoUrls.map((src, i) => (
+              <a key={i} href={src} target="_blank" rel="noreferrer">
+                <img src={src} className="aspect-square object-cover rounded" />
+              </a>
+            ))}
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+
 
 function MetaItem({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
   return (
