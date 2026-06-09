@@ -243,8 +243,8 @@ export const dict = {
   update_type_progress: { en: "Progress Update", hi: "प्रगति अपडेट" },
   update_type_issue: { en: "Issue Report", hi: "समस्या रिपोर्ट" },
   update_type_completion: { en: "Completion Update", hi: "पूर्णता अपडेट" },
-  message: { en: "Message", hi: "संदेश" },
-  photos: { en: "Photos", hi: "फ़ोटो" },
+  max_photos_5: { en: "Max 5 photos", hi: "अधिकतम 5 फ़ोटो" },
+
   max_photos_5: { en: "Max 5 photos", hi: "अधिकतम 5 फ़ोटो" },
   discussion: { en: "Discussion", hi: "चर्चा" },
   write_message: { en: "Write a message...", hi: "संदेश लिखें..." },
