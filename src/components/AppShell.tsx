@@ -26,7 +26,7 @@ const adminNav: NavItem[] = [
   { to: "/admin/attendance", labelKey: "attendance", icon: CalendarCheck },
   { to: "/admin/tasks", labelKey: "tasks", icon: ClipboardList },
   { to: "/admin/daily-reports", labelKey: "daily_reports", icon: NotebookPen },
-  { to: "/admin/updates", labelKey: "updates", icon: Inbox },
+  
   { to: "/admin/leaves", labelKey: "leaves", icon: CalendarDays },
   { to: "/admin/locations", labelKey: "locations", icon: MapPin },
   { to: "/admin/announcements", labelKey: "announcements", icon: Megaphone },
