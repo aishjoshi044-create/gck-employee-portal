@@ -416,14 +416,21 @@ function TableView({ tasks, onSelect }: { tasks: any[]; onSelect: (t: any) => vo
   );
 }
 
+const UPDATE_TYPE_META: Record<string, { labelKey: "update_type_progress" | "update_type_issue" | "update_type_completion"; cls: string }> = {
+  progress:   { labelKey: "update_type_progress",   cls: "bg-info/15 text-info border-info/30" },
+  issue:      { labelKey: "update_type_issue",      cls: "bg-destructive/15 text-destructive border-destructive/30" },
+  completion: { labelKey: "update_type_completion", cls: "bg-success/15 text-success border-success/30" },
+};
+
 function TaskDetails({ task }: { task: any }) {
   const qc = useQueryClient();
   const { t } = useI18n();
+  const { user } = useAuth();
   const sm = STATUS_META[task.status as Status];
   const pri = PRIORITY_META[task.priority];
   const overdue = task.deadline && isPast(new Date(task.deadline)) && task.status !== "completed";
 
-  const { data: replies } = useQuery({
+  const { data: updates } = useQuery({
     queryKey: ["task-replies", task.id],
     queryFn: async () => {
       const { data: ups } = await supabase.from("task_updates").select("*").eq("task_id", task.id).order("created_at", { ascending: false });
@@ -435,11 +442,35 @@ function TaskDetails({ task }: { task: any }) {
     },
   });
 
-  const [comment, setComment] = useState<Record<string, string>>({});
-  const save = async (id: string) => {
-    const { error } = await supabase.from("task_updates").update({ admin_comment: comment[id] ?? "" }).eq("id", id);
+  const { data: discussion } = useQuery({
+    queryKey: ["task-discussion", task.id],
+    queryFn: async () => {
+      const { data: ds } = await supabase.from("task_discussions").select("*").eq("task_id", task.id).order("created_at", { ascending: true });
+      if (!ds?.length) return [];
+      const ids = [...new Set(ds.map((d: any) => d.user_id))];
+      const { data: profs } = await supabase.from("profiles").select("id, full_name").in("id", ids);
+      const pMap = new Map((profs ?? []).map((p: any) => [p.id, p]));
+      return ds.map((d: any) => ({ ...d, profiles: pMap.get(d.user_id) }));
+    },
+  });
+
+  useEffect(() => {
+    const ch = supabase.channel(`task-drawer-${task.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "task_discussions", filter: `task_id=eq.${task.id}` }, () => qc.invalidateQueries({ queryKey: ["task-discussion", task.id] }))
+      .on("postgres_changes", { event: "*", schema: "public", table: "task_updates", filter: `task_id=eq.${task.id}` }, () => qc.invalidateQueries({ queryKey: ["task-replies", task.id] }))
+      .subscribe();
+    return () => { ch.unsubscribe(); };
+  }, [task.id, qc]);
+
+  const [msg, setMsg] = useState("");
+  const [sending, setSending] = useState(false);
+  const sendDiscussion = async () => {
+    if (!user || !msg.trim()) return;
+    setSending(true);
+    const { error } = await supabase.from("task_discussions").insert({ task_id: task.id, user_id: user.id, message: msg.trim() });
+    setSending(false);
     if (error) toast.error(error.message);
-    else { toast.success(t("reply_sent")); qc.invalidateQueries({ queryKey: ["task-replies", task.id] }); }
+    else { setMsg(""); qc.invalidateQueries({ queryKey: ["task-discussion", task.id] }); }
   };
 
   return (
@@ -465,28 +496,82 @@ function TaskDetails({ task }: { task: any }) {
       )}
 
       <div>
-        <div className="text-xs font-bold uppercase text-muted-foreground mb-2">{t("comments")} ({replies?.length ?? 0})</div>
-        <div className="space-y-2">
-          {!replies?.length && <Card className="p-4 text-center text-sm text-muted-foreground">{t("no_updates_yet")}</Card>}
-          {replies?.map((u: any) => (
-            <Card key={u.id} className="p-3 space-y-2">
-              <div className="text-xs text-muted-foreground flex items-center justify-between">
-                <span className="font-medium text-foreground">{u.profiles?.full_name ?? "—"}</span>
-                <span>{format(new Date(u.created_at), "d MMM, h:mm a")}</span>
+        <div className="text-xs font-bold uppercase text-muted-foreground mb-2">{t("work_updates")} ({updates?.length ?? 0})</div>
+        {!updates?.length ? (
+          <Card className="p-4 text-center text-sm text-muted-foreground">{t("no_updates_yet")}</Card>
+        ) : (
+          <div className="relative pl-4 border-l-2 border-muted space-y-3">
+            {updates.map((u: any) => <UpdateTimelineItem key={u.id} u={u} />)}
+          </div>
+        )}
+      </div>
+
+      <div>
+        <div className="text-xs font-bold uppercase text-muted-foreground mb-2 flex items-center gap-1.5"><MessageSquare className="size-3.5" />{t("discussion")} ({discussion?.length ?? 0})</div>
+        <Card className="p-3 space-y-3">
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {!discussion?.length && <div className="text-center text-sm text-muted-foreground py-4">{t("no_discussion_yet")}</div>}
+            {discussion?.map((d: any) => (
+              <div key={d.id} className="text-sm">
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="font-semibold text-xs">{d.profiles?.full_name ?? "—"}</span>
+                  <span className="text-[10px] text-muted-foreground">{format(new Date(d.created_at), "d MMM, h:mm a")}</span>
+                </div>
+                <p className="whitespace-pre-wrap bg-muted/40 rounded-md p-2 mt-1">{d.message}</p>
               </div>
-              {u.note && <p className="text-sm whitespace-pre-wrap">{u.note}</p>}
-              {u.admin_comment && <div className="bg-info/10 border-l-4 border-info p-2 text-sm rounded-sm"><strong>{t("reply")}:</strong> {u.admin_comment}</div>}
-              <div className="flex gap-2 pt-1">
-                <Input placeholder={t("reply_placeholder")} className="h-8 text-sm" value={comment[u.id] ?? u.admin_comment ?? ""} onChange={(e) => setComment({ ...comment, [u.id]: e.target.value })} />
-                <Button size="sm" className="h-8" onClick={() => save(u.id)}>{t("send")}</Button>
-              </div>
-            </Card>
-          ))}
-        </div>
+            ))}
+          </div>
+          <div className="flex gap-2 pt-2 border-t">
+            <Input placeholder={t("write_message")} className="h-9 text-sm" value={msg} onChange={(e) => setMsg(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendDiscussion(); } }} />
+            <Button size="sm" className="h-9 gap-1" disabled={sending || !msg.trim()} onClick={sendDiscussion}>
+              {sending ? <Loader2 className="size-3.5 animate-spin" /> : <Send className="size-3.5" />}{t("post")}
+            </Button>
+          </div>
+        </Card>
       </div>
     </div>
   );
 }
+
+function UpdateTimelineItem({ u }: { u: any }) {
+  const { t } = useI18n();
+  const [photoUrls, setPhotoUrls] = useState<string[]>([]);
+  const meta = UPDATE_TYPE_META[u.update_type ?? "progress"] ?? UPDATE_TYPE_META.progress;
+  useEffect(() => {
+    (async () => {
+      if (!u.photo_urls?.length) return;
+      const urls = await Promise.all((u.photo_urls as string[]).map(async (p) =>
+        (await supabase.storage.from("task-media").createSignedUrl(p, 600)).data?.signedUrl ?? ""));
+      setPhotoUrls(urls.filter(Boolean));
+    })();
+  }, [u]);
+  return (
+    <div className="relative">
+      <span className="absolute -left-[21px] top-2 size-3 rounded-full bg-primary ring-4 ring-background" />
+      <Card className="p-3 space-y-2">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-sm font-semibold truncate">{u.profiles?.full_name ?? "—"}</span>
+            <Badge variant="outline" className={`${meta.cls} text-[10px] h-5 px-1.5`}>{t(meta.labelKey)}</Badge>
+          </div>
+          <span className="text-[10px] text-muted-foreground">{format(new Date(u.created_at), "d MMM, h:mm a")}</span>
+        </div>
+        {u.note && <p className="text-sm whitespace-pre-wrap">{u.note}</p>}
+        {photoUrls.length > 0 && (
+          <div className="grid grid-cols-5 gap-1">
+            {photoUrls.map((src, i) => (
+              <a key={i} href={src} target="_blank" rel="noreferrer">
+                <img src={src} className="aspect-square object-cover rounded" />
+              </a>
+            ))}
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+
 
 function MetaItem({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
   return (
