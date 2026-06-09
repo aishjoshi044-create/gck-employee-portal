@@ -120,20 +120,8 @@ function AdminDailyReportsPage() {
     missing: Math.max(0, profiles.length - new Set(todayReports.map((r) => r.user_id)).size),
   };
 
-  const perfSummary = useMemo(() => {
-    const map = new Map<string, { count: number; villages: Set<string>; beneficiaries: number }>();
-    for (const r of filtered) {
-      const m = map.get(r.user_id) ?? { count: 0, villages: new Set(), beneficiaries: 0 };
-      m.count += 1;
-      if (r.village) m.villages.add(r.village);
-      m.beneficiaries += r.beneficiaries_reached;
-      map.set(r.user_id, m);
-    }
-    return Array.from(map.entries()).map(([uid, v]) => ({
-      uid, name: pmap.get(uid)?.full_name ?? "—",
-      count: v.count, villages: v.villages.size, beneficiaries: v.beneficiaries,
-    })).sort((a, b) => b.count - a.count).slice(0, 10);
-  }, [filtered, pmap]);
+
+
 
   const decide = async (report: DailyReport, status: Status, note?: string) => {
     const { error } = await (supabase as any).from("daily_reports").update({
