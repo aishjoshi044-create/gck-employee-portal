@@ -13,8 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { format, startOfDay } from "date-fns";
-import { CheckCircle2, Clock, XCircle, FileText, MapPin, Loader2, Search, AlertCircle, Users } from "lucide-react";
+import { format } from "date-fns";
+import { CheckCircle2, Clock, XCircle, FileText, Loader2, Search, AlertCircle } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/_authenticated/admin/daily-reports")({
@@ -120,20 +120,8 @@ function AdminDailyReportsPage() {
     missing: Math.max(0, profiles.length - new Set(todayReports.map((r) => r.user_id)).size),
   };
 
-  const perfSummary = useMemo(() => {
-    const map = new Map<string, { count: number; villages: Set<string>; beneficiaries: number }>();
-    for (const r of filtered) {
-      const m = map.get(r.user_id) ?? { count: 0, villages: new Set(), beneficiaries: 0 };
-      m.count += 1;
-      if (r.village) m.villages.add(r.village);
-      m.beneficiaries += r.beneficiaries_reached;
-      map.set(r.user_id, m);
-    }
-    return Array.from(map.entries()).map(([uid, v]) => ({
-      uid, name: pmap.get(uid)?.full_name ?? "—",
-      count: v.count, villages: v.villages.size, beneficiaries: v.beneficiaries,
-    })).sort((a, b) => b.count - a.count).slice(0, 10);
-  }, [filtered, pmap]);
+
+
 
   const decide = async (report: DailyReport, status: Status, note?: string) => {
     const { error } = await (supabase as any).from("daily_reports").update({
@@ -205,8 +193,8 @@ function AdminDailyReportsPage() {
         </div>
       </Card>
 
-      <Card className="overflow-hidden">
-        <div className="overflow-x-auto">
+      <Card className="overflow-hidden flex-1 min-h-[60vh]">
+        <div className="overflow-auto max-h-[70vh]">
           <Table>
             <TableHeader>
               <TableRow>
@@ -240,32 +228,6 @@ function AdminDailyReportsPage() {
         </div>
       </Card>
 
-      <Card className="p-3">
-        <div className="flex items-center gap-2 mb-2"><Users className="size-4 text-primary" /><h2 className="font-semibold">{t("performance_summary")}</h2></div>
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t("full_name")}</TableHead>
-                <TableHead className="text-right">{t("reports_submitted")}</TableHead>
-                <TableHead className="text-right">{t("villages_visited")}</TableHead>
-                <TableHead className="text-right">{t("beneficiaries_reached")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {perfSummary.map((p) => (
-                <TableRow key={p.uid}>
-                  <TableCell className="font-medium">{p.name}</TableCell>
-                  <TableCell className="text-right">{p.count}</TableCell>
-                  <TableCell className="text-right">{p.villages}</TableCell>
-                  <TableCell className="text-right">{p.beneficiaries}</TableCell>
-                </TableRow>
-              ))}
-              {perfSummary.length === 0 && (<TableRow><TableCell colSpan={4} className="text-center text-muted-foreground text-sm p-4">—</TableCell></TableRow>)}
-            </TableBody>
-          </Table>
-        </div>
-      </Card>
 
       <AdminReportDetail report={detail} profileName={detail ? pmap.get(detail.user_id)?.full_name ?? "—" : ""} onClose={() => setDetail(null)} onDecide={decide} />
     </div>

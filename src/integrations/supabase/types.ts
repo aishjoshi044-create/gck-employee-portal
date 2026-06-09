@@ -86,6 +86,69 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_reports: {
+        Row: {
+          activity_other: string | null
+          activity_type: Database["public"]["Enums"]["daily_activity_type"]
+          admin_note: string | null
+          beneficiaries_reached: number
+          created_at: string
+          id: string
+          issues: string | null
+          lat: number | null
+          lng: number | null
+          photo_urls: string[]
+          report_date: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["daily_report_status"]
+          updated_at: string
+          user_id: string
+          village: string | null
+          work_done: string
+        }
+        Insert: {
+          activity_other?: string | null
+          activity_type: Database["public"]["Enums"]["daily_activity_type"]
+          admin_note?: string | null
+          beneficiaries_reached?: number
+          created_at?: string
+          id?: string
+          issues?: string | null
+          lat?: number | null
+          lng?: number | null
+          photo_urls?: string[]
+          report_date?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["daily_report_status"]
+          updated_at?: string
+          user_id: string
+          village?: string | null
+          work_done: string
+        }
+        Update: {
+          activity_other?: string | null
+          activity_type?: Database["public"]["Enums"]["daily_activity_type"]
+          admin_note?: string | null
+          beneficiaries_reached?: number
+          created_at?: string
+          id?: string
+          issues?: string | null
+          lat?: number | null
+          lng?: number | null
+          photo_urls?: string[]
+          report_date?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["daily_report_status"]
+          updated_at?: string
+          user_id?: string
+          village?: string | null
+          work_done?: string
+        }
+        Relationships: []
+      }
       employee_locations: {
         Row: {
           lat: number
@@ -362,6 +425,14 @@ export type Database = {
     Enums: {
       app_role: "admin" | "employee"
       attendance_status: "present" | "absent" | "late" | "leave"
+      daily_activity_type:
+        | "survey"
+        | "meeting"
+        | "training"
+        | "field_visit"
+        | "documentation"
+        | "other"
+      daily_report_status: "pending" | "approved" | "rejected"
       leave_status: "pending" | "approved" | "rejected"
       task_priority: "low" | "medium" | "high"
       task_status: "not_started" | "in_progress" | "completed" | "failed"
@@ -494,6 +565,15 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "employee"],
       attendance_status: ["present", "absent", "late", "leave"],
+      daily_activity_type: [
+        "survey",
+        "meeting",
+        "training",
+        "field_visit",
+        "documentation",
+        "other",
+      ],
+      daily_report_status: ["pending", "approved", "rejected"],
       leave_status: ["pending", "approved", "rejected"],
       task_priority: ["low", "medium", "high"],
       task_status: ["not_started", "in_progress", "completed", "failed"],
