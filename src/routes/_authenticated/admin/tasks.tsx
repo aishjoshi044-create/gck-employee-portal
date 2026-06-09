@@ -349,33 +349,27 @@ function TaskCard({ task, onClick }: { task: any; onClick: () => void }) {
   const overdue = task.deadline && isPast(new Date(task.deadline)) && task.status !== "completed";
   const pri = PRIORITY_META[task.priority];
   return (
-    <button onClick={onClick} className="w-full text-left bg-background border rounded-md p-2.5 hover:border-primary/40 hover:shadow-sm transition group">
-      <div className="flex items-start gap-2 mb-1.5">
-        <span className={`mt-1 size-2 rounded-full shrink-0 ${pri?.dot}`} />
-        <div className="font-semibold text-sm leading-snug line-clamp-2 flex-1 group-hover:text-primary">{task.title}</div>
+    <button onClick={onClick} className="w-full text-left bg-background border rounded-md px-2.5 py-2 hover:border-primary/40 hover:shadow-sm transition group">
+      <div className="font-semibold text-sm leading-snug line-clamp-2 group-hover:text-primary">{task.title}</div>
+      <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+        <User className="size-3 shrink-0" />
+        <span className="truncate">{task.profiles?.full_name ?? (task.department ? task.department : t("unassigned"))}</span>
       </div>
-      <div className="space-y-1 text-xs text-muted-foreground pl-4">
-        <div className="flex items-center gap-1.5 truncate">
-          <User className="size-3 shrink-0" />
-          <span className="truncate">{task.profiles?.full_name ?? (task.department ? `${t("dept_prefix")}: ${task.department}` : t("unassigned"))}</span>
+      <div className="mt-1.5 flex items-center justify-between gap-2 text-xs">
+        <div className="flex items-center gap-1.5">
+          <Badge variant="outline" className={`${pri?.badge} h-5 px-1.5 text-[10px]`}>{pri ? t(pri.labelKey) : task.priority}</Badge>
+          {task.deadline && (
+            <span className={`flex items-center gap-1 ${overdue ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+              <Calendar className="size-3" />{format(new Date(task.deadline), "d MMM")}
+            </span>
+          )}
         </div>
-        {task.location_label && (
-          <div className="flex items-center gap-1.5 truncate">
-            <MapPin className="size-3 shrink-0" />
-            <span className="truncate">{task.location_label}</span>
-          </div>
-        )}
-        {task.deadline && (
-          <div className={`flex items-center gap-1.5 ${overdue ? "text-destructive font-medium" : ""}`}>
-            <Calendar className="size-3 shrink-0" />
-            <span>{format(new Date(task.deadline), "d MMM")}</span>
-            {overdue && <span>· {t("overdue")}</span>}
-          </div>
-        )}
+        <span className="flex items-center gap-1 text-muted-foreground"><MessageSquare className="size-3" />{task.updates_count ?? 0}</span>
       </div>
     </button>
   );
 }
+
 
 function TableView({ tasks, onSelect }: { tasks: any[]; onSelect: (t: any) => void }) {
   const { t } = useI18n();
