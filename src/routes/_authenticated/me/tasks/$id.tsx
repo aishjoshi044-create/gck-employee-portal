@@ -79,16 +79,75 @@ function TaskDetail() {
       <UpdateComposer taskId={id} onSent={() => qc.invalidateQueries({ queryKey: ["task-updates", id] })} />
 
       <div>
-        <h2 className="font-bold mb-2">{t("updates")}</h2>
+        <h2 className="font-bold mb-2">{t("work_updates")}</h2>
         {!updates?.length ? <Card className="p-4 text-center text-sm text-muted-foreground">—</Card> : (
           <div className="space-y-2">
             {updates.map((u) => <UpdateCard key={u.id} u={u} />)}
           </div>
         )}
       </div>
+
+      <DiscussionPanel taskId={id} />
     </div>
   );
 }
+
+function DiscussionPanel({ taskId }: { taskId: string }) {
+  const { user } = useAuth();
+  const { t } = useI18n();
+  const qc = useQueryClient();
+  const { data: discussion } = useQuery({
+    queryKey: ["task-discussion", taskId],
+    queryFn: async () => {
+      const { data: ds } = await supabase.from("task_discussions").select("*").eq("task_id", taskId).order("created_at", { ascending: true });
+      if (!ds?.length) return [];
+      const ids = [...new Set(ds.map((d: any) => d.user_id))];
+      const { data: profs } = await supabase.from("profiles").select("id, full_name").in("id", ids);
+      const pMap = new Map((profs ?? []).map((p: any) => [p.id, p]));
+      return ds.map((d: any) => ({ ...d, profiles: pMap.get(d.user_id) }));
+    },
+  });
+  useEffect(() => {
+    const ch = supabase.channel(`emp-disc-${taskId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "task_discussions", filter: `task_id=eq.${taskId}` }, () => qc.invalidateQueries({ queryKey: ["task-discussion", taskId] }))
+      .subscribe();
+    return () => { ch.unsubscribe(); };
+  }, [taskId, qc]);
+  const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState(false);
+  const send = async () => {
+    if (!user || !msg.trim()) return;
+    setBusy(true);
+    const { error } = await supabase.from("task_discussions").insert({ task_id: taskId, user_id: user.id, message: msg.trim() });
+    setBusy(false);
+    if (error) toast.error(error.message);
+    else { setMsg(""); qc.invalidateQueries({ queryKey: ["task-discussion", taskId] }); }
+  };
+  return (
+    <Card className="p-4 space-y-3">
+      <h2 className="font-bold">{t("discussion")} ({discussion?.length ?? 0})</h2>
+      <div className="space-y-2 max-h-72 overflow-y-auto">
+        {!discussion?.length && <div className="text-center text-sm text-muted-foreground py-4">{t("no_discussion_yet")}</div>}
+        {discussion?.map((d: any) => (
+          <div key={d.id} className="text-sm">
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="font-semibold text-xs">{d.profiles?.full_name ?? "—"}</span>
+              <span className="text-[10px] text-muted-foreground">{format(new Date(d.created_at), "d MMM, h:mm a")}</span>
+            </div>
+            <p className="whitespace-pre-wrap bg-muted/40 rounded-md p-2 mt-1">{d.message}</p>
+          </div>
+        ))}
+      </div>
+      <div className="flex gap-2 pt-2 border-t">
+        <Textarea value={msg} onChange={(e) => setMsg(e.target.value)} placeholder={t("write_message")} className="min-h-10 text-sm" />
+        <Button size="sm" disabled={busy || !msg.trim()} onClick={send} className="gap-1 self-end">
+          {busy ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}{t("post")}
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
 
 function UpdateCard({ u }: { u: any }) {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
