@@ -184,7 +184,7 @@ function UpdateComposer({ taskId, onSent }: { taskId: string; onSent: () => void
         photoPaths.push(pp);
       }
       const { error: insErr } = await supabase.from("task_updates").insert({
-        task_id: taskId, user_id: user.id, note: note || null, audio_url: audioPath, photo_urls: photoPaths,
+        task_id: taskId, user_id: user.id, note: note || null, audio_url: audioPath, photo_urls: photoPaths, update_type: updateType,
       });
       if (insErr) throw insErr;
       toast.success(t("update_sent"));
