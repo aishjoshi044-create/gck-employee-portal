@@ -129,7 +129,7 @@ function AdminDashboard() {
       }));
       (recentAnnRes.data ?? []).forEach((r) => feed.push({
         id: `an-${r.id}`, kind: "announcement",
-        name: profileMap.get(r.created_by)?.full_name ?? "Admin",
+        name: (r.created_by && profileMap.get(r.created_by)?.full_name) || "Admin",
         when: r.created_at, detail: r.title,
       }));
       feed.sort((a, b) => +new Date(b.when) - +new Date(a.when));
