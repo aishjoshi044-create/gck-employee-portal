@@ -143,8 +143,168 @@ export function downloadExcel(filename: string, sheets: ExcelSheet[]) {
 }
 
 export function performanceLevel(score: number): string {
-  if (score >= 90) return "Outstanding";
+  if (score >= 90) return "Excellent";
   if (score >= 75) return "Good";
   if (score >= 60) return "Average";
   return "Needs Improvement";
+}
+
+// ===== Employee performance PDF =====
+export interface EmpPerfSection {
+  title: string;
+  rows: { label: string; value: string | number }[];
+}
+export interface EmpPerfPdfOptions {
+  filename: string;
+  employeeName: string;
+  department: string;
+  period: string;
+  overallScore: number;
+  category: string;
+  kpis: { label: string; value: string | number }[];
+  sections: EmpPerfSection[];
+  breakdown: { label: string; pct: number }[];
+  feedback?: { rating: number; comment: string };
+  summary: { strengths: string[]; improvements: string[]; assessment: string };
+}
+
+export async function downloadEmployeePerfPdf(opts: EmpPerfPdfOptions) {
+  const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const margin = 36;
+
+  // Header band
+  doc.setFillColor(BRAND_R, BRAND_G, BRAND_B);
+  doc.rect(0, 0, pageW, 80, "F");
+  const logoData = await loadLogoDataUrl();
+  if (logoData) { try { doc.addImage(logoData, "JPEG", 18, 14, 52, 52); } catch { /* */ } }
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold"); doc.setFontSize(17);
+  doc.text("Gram Chetna Kendra", 82, 32);
+  doc.setFont("helvetica", "normal"); doc.setFontSize(11);
+  doc.text("Employee Performance Report", 82, 50);
+  doc.setFontSize(9);
+  doc.text(`Generated: ${format(new Date(), "d MMM yyyy, h:mm a")}`, pageW - 18, 24, { align: "right" });
+
+  // Employee header card
+  let y = 100;
+  doc.setDrawColor(220); doc.setFillColor(248, 244, 238);
+  doc.roundedRect(margin, y, pageW - margin * 2, 78, 6, 6, "FD");
+  doc.setTextColor(30, 30, 30);
+  doc.setFont("helvetica", "bold"); doc.setFontSize(15);
+  doc.text(opts.employeeName, margin + 14, y + 24);
+  doc.setFont("helvetica", "normal"); doc.setFontSize(10); doc.setTextColor(80, 80, 80);
+  doc.text(`Department: ${opts.department}`, margin + 14, y + 42);
+  doc.text(`Period: ${opts.period}`, margin + 14, y + 58);
+  // Score badge
+  const badgeW = 140, badgeX = pageW - margin - badgeW - 14;
+  doc.setFillColor(BRAND_R, BRAND_G, BRAND_B);
+  doc.roundedRect(badgeX, y + 14, badgeW, 50, 5, 5, "F");
+  doc.setTextColor(255, 255, 255); doc.setFont("helvetica", "bold"); doc.setFontSize(22);
+  doc.text(`${opts.overallScore}/100`, badgeX + badgeW / 2, y + 38, { align: "center" });
+  doc.setFontSize(10); doc.setFont("helvetica", "normal");
+  doc.text(opts.category, badgeX + badgeW / 2, y + 56, { align: "center" });
+  y += 96;
+
+  // KPI grid (4 cards)
+  const cols = 4;
+  const gap = 10;
+  const cardW = (pageW - margin * 2 - gap * (cols - 1)) / cols;
+  doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.setTextColor(40, 40, 40);
+  doc.text("Key Indicators", margin, y);
+  y += 8;
+  opts.kpis.slice(0, cols).forEach((k, i) => {
+    const x = margin + i * (cardW + gap);
+    doc.setFillColor(255, 255, 255); doc.setDrawColor(220);
+    doc.roundedRect(x, y, cardW, 60, 5, 5, "FD");
+    doc.setTextColor(110, 110, 110); doc.setFont("helvetica", "normal"); doc.setFontSize(9);
+    doc.text(k.label, x + 10, y + 18);
+    doc.setTextColor(BRAND_R, BRAND_G, BRAND_B); doc.setFont("helvetica", "bold"); doc.setFontSize(18);
+    doc.text(String(k.value), x + 10, y + 44);
+  });
+  y += 76;
+
+  // Sections as compact tables
+  for (const sec of opts.sections) {
+    if (y > pageH - 140) { doc.addPage(); y = margin; }
+    doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.setTextColor(40, 40, 40);
+    doc.text(sec.title, margin, y);
+    autoTable(doc, {
+      startY: y + 6,
+      body: sec.rows.map((r) => [r.label, String(r.value)]),
+      theme: "grid",
+      styles: { fontSize: 9, cellPadding: 5, lineColor: [225, 225, 225] },
+      columnStyles: { 0: { fontStyle: "bold", textColor: [60, 60, 60], cellWidth: 180 }, 1: { halign: "right" } },
+      margin: { left: margin, right: margin },
+    } as UserOptions);
+    y = (doc as any).lastAutoTable.finalY + 18;
+  }
+
+  // Breakdown progress bars
+  if (y > pageH - 160) { doc.addPage(); y = margin; }
+  doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.setTextColor(40, 40, 40);
+  doc.text("Performance Breakdown", margin, y); y += 14;
+  const barW = pageW - margin * 2 - 160;
+  opts.breakdown.forEach((b) => {
+    doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(60, 60, 60);
+    doc.text(b.label, margin, y + 10);
+    doc.setFillColor(235, 235, 235);
+    doc.roundedRect(margin + 130, y, barW, 12, 3, 3, "F");
+    const fill = Math.max(0, Math.min(100, b.pct));
+    const color = fill >= 75 ? [34, 197, 94] : fill >= 60 ? [59, 130, 246] : fill >= 40 ? [245, 158, 11] : [239, 68, 68];
+    doc.setFillColor(color[0], color[1], color[2]);
+    doc.roundedRect(margin + 130, y, (barW * fill) / 100, 12, 3, 3, "F");
+    doc.setTextColor(40, 40, 40); doc.setFont("helvetica", "bold");
+    doc.text(`${fill}%`, margin + 130 + barW + 8, y + 10);
+    y += 22;
+  });
+  y += 6;
+
+  // Feedback
+  if (opts.feedback) {
+    if (y > pageH - 110) { doc.addPage(); y = margin; }
+    doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.setTextColor(40, 40, 40);
+    doc.text("Manager Feedback", margin, y); y += 8;
+    doc.setDrawColor(220); doc.setFillColor(252, 250, 246);
+    doc.roundedRect(margin, y, pageW - margin * 2, 60, 5, 5, "FD");
+    doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.setTextColor(60, 60, 60);
+    doc.text(`Rating: ${opts.feedback.rating}/5`, margin + 12, y + 18);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(70, 70, 70);
+    const lines = doc.splitTextToSize(opts.feedback.comment || "—", pageW - margin * 2 - 24);
+    doc.text(lines, margin + 12, y + 36);
+    y += 76;
+  }
+
+  // Summary
+  if (y > pageH - 170) { doc.addPage(); y = margin; }
+  doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.setTextColor(40, 40, 40);
+  doc.text("Performance Summary", margin, y); y += 12;
+
+  const drawList = (title: string, items: string[]) => {
+    doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.setTextColor(60, 60, 60);
+    doc.text(title, margin, y); y += 12;
+    doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(70, 70, 70);
+    items.forEach((it) => {
+      const lines = doc.splitTextToSize(`• ${it}`, pageW - margin * 2 - 12);
+      if (y + lines.length * 11 > pageH - 40) { doc.addPage(); y = margin; }
+      doc.text(lines, margin + 6, y);
+      y += lines.length * 11 + 2;
+    });
+    y += 6;
+  };
+  drawList("Strengths", opts.summary.strengths);
+  drawList("Areas for Improvement", opts.summary.improvements);
+  drawList("Overall Assessment", [opts.summary.assessment]);
+
+  // Footer on every page
+  const total = doc.getNumberOfPages();
+  for (let i = 1; i <= total; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8); doc.setTextColor(120, 120, 120);
+    doc.text(`Page ${i} of ${total}`, pageW - 18, pageH - 12, { align: "right" });
+    doc.text("Gram Chetna Kendra · Confidential", 18, pageH - 12);
+  }
+
+  doc.save(opts.filename);
 }
