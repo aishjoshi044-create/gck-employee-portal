@@ -383,10 +383,18 @@ function ReportForm({ open, onOpenChange }: { open: boolean; onOpenChange: (v: b
               <Label className="text-xs">{t("beneficiaries_reached")}</Label>
               <Input type="number" min={0} value={beneficiaries} onChange={(e) => setBeneficiaries(Number(e.target.value))} />
             </div>
+            <div>
+              <Label className="text-xs">{t("dr_project")} <span className="text-muted-foreground">({t("dr_optional")})</span></Label>
+              <Input value={project} onChange={(e) => setProject(e.target.value)} />
+            </div>
           </div>
           <div>
-            <Label className="text-xs">{t("issues_faced")}</Label>
+            <Label className="text-xs">{t("issues_faced")} <span className="text-muted-foreground">({t("dr_optional")})</span></Label>
             <Textarea rows={2} value={issues} onChange={(e) => setIssues(e.target.value)} />
+          </div>
+          <div>
+            <Label className="text-xs">{t("dr_case_study")} <span className="text-muted-foreground">({t("dr_optional")})</span></Label>
+            <Textarea rows={2} value={caseStudy} onChange={(e) => setCaseStudy(e.target.value)} />
           </div>
           <div>
             <Label className="text-xs">{t("upload_photos")}</Label>
