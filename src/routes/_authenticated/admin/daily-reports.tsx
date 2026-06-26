@@ -389,3 +389,12 @@ function Row({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+
+function Block({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <p className="whitespace-pre-wrap">{value}</p>
+    </div>
+  );
+}
