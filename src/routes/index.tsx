@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { UserRound, ShieldCheck, LogOut } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import logo from "@/assets/gck-logo.jpeg.asset.json";
 
 export const Route = createFileRoute("/")({
