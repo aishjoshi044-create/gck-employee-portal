@@ -146,11 +146,42 @@ function AdminDailyReportsPage() {
     setDetail(null);
   };
 
+  const exportRows = () => filtered.map((r) => {
+    const p = pmap.get(r.user_id);
+    return [
+      p?.full_name ?? "—",
+      format(new Date(r.report_date), "d MMM yyyy"),
+      t(ACTIVITY_KEYS[r.activity_type]),
+      r.village ?? "—",
+      r.project ?? "—",
+      r.beneficiaries_reached,
+      t(STATUS_META[r.status].key),
+    ];
+  });
+  const exportHead = [
+    t("full_name"), t("today"), t("activity_type"), t("village"), t("dr_project"), t("beneficiaries_reached"), t("pending"),
+  ];
+  const exportPdf = () => downloadPdf({
+    title: t("daily_reports"),
+    subtitle: `${filtered.length} ${t("reports_submitted")}`,
+    filename: `daily-reports-${format(new Date(), "yyyy-MM-dd")}.pdf`,
+    head: exportHead, body: exportRows(), orientation: "landscape",
+  });
+  const exportExcel = () => downloadExcel(`daily-reports-${format(new Date(), "yyyy-MM-dd")}.xlsx`, [
+    { name: "Reports", header: exportHead, rows: exportRows() },
+  ]);
+
   return (
     <div className="space-y-4">
-      <header>
-        <h1 className="text-xl sm:text-2xl font-bold tracking-tight">{t("daily_reports")}</h1>
-        <p className="text-sm text-muted-foreground">{t("performance_summary")}</p>
+      <header className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">{t("daily_reports")}</h1>
+          <p className="text-sm text-muted-foreground">{t("performance_summary")}</p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={exportPdf} className="gap-1"><Download className="size-4" />{t("dr_export_pdf")}</Button>
+          <Button variant="outline" size="sm" onClick={exportExcel} className="gap-1"><FileSpreadsheet className="size-4" />{t("dr_export_excel")}</Button>
+        </div>
       </header>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -160,7 +191,7 @@ function AdminDailyReportsPage() {
         <StatCard label={t("missing_reports")} value={stats.missing} Icon={AlertCircle} tone="red" />
       </div>
 
-      <Card className="p-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-6">
+      <Card className="p-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-7">
         <div className="lg:col-span-2">
           <Label className="text-xs">{t("search")}</Label>
           <div className="relative">
@@ -179,12 +210,32 @@ function AdminDailyReportsPage() {
           </Select>
         </div>
         <div>
+          <Label className="text-xs">{t("dr_project")}</Label>
+          <Select value={projectFilter} onValueChange={setProjectFilter}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t("dr_all_projects")}</SelectItem>
+              {projects.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
           <Label className="text-xs">{t("village")}</Label>
           <Select value={villageFilter} onValueChange={setVillageFilter}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t("any_date")}</SelectItem>
               {villages.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-xs">{t("activity_type")}</Label>
+          <Select value={activityFilter} onValueChange={setActivityFilter}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t("activity_type")}</SelectItem>
+              {(Object.keys(ACTIVITY_KEYS) as ActivityType[]).map((a) => <SelectItem key={a} value={a}>{t(ACTIVITY_KEYS[a])}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
