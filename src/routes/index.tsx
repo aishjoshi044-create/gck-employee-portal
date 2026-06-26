@@ -47,7 +47,7 @@ function IndexPage() {
     <div className="min-h-screen bg-gradient-to-br from-primary-soft via-background to-accent-soft overflow-y-auto">
       {user && (
         <div className="flex justify-end p-3">
-          <button onClick={() => signOut()} className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-card border">
+          <button onClick={handleLogout} className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-card border">
             <LogOut className="size-3.5" /> {lang === "hi" ? "लॉगआउट" : "Logout"}
           </button>
         </div>
