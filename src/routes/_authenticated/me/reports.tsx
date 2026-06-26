@@ -413,6 +413,28 @@ function ReportForm({ open, onOpenChange }: { open: boolean; onOpenChange: (v: b
               )}
             </div>
           </div>
+          <Collapsible open={planningOpen} onOpenChange={setPlanningOpen} className="rounded-md border">
+            <CollapsibleTrigger asChild>
+              <button type="button" className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium hover:bg-accent/40">
+                <span>{t("dr_planning_details")} <span className="text-xs text-muted-foreground font-normal">({t("dr_optional")})</span></span>
+                <ChevronDown className={`size-4 transition-transform ${planningOpen ? "rotate-180" : ""}`} />
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="px-3 pb-3 grid gap-3">
+              <div>
+                <Label className="text-xs">{t("dr_planned_work")}</Label>
+                <Textarea rows={2} value={plannedWork} onChange={(e) => setPlannedWork(e.target.value)} />
+              </div>
+              <div>
+                <Label className="text-xs">{t("dr_pending_work")}</Label>
+                <Textarea rows={2} value={pendingWork} onChange={(e) => setPendingWork(e.target.value)} />
+              </div>
+              <div>
+                <Label className="text-xs">{t("dr_replan_tomorrow")}</Label>
+                <Textarea rows={2} value={replanTomorrow} onChange={(e) => setReplanTomorrow(e.target.value)} />
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>{t("cancel")}</Button>
