@@ -70,6 +70,8 @@ function AdminDailyReportsPage() {
   const [empFilter, setEmpFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [villageFilter, setVillageFilter] = useState<string>("all");
+  const [projectFilter, setProjectFilter] = useState<string>("all");
+  const [activityFilter, setActivityFilter] = useState<string>("all");
   const [dateFilter, setDateFilter] = useState<string>("");
   const [search, setSearch] = useState("");
   const [detail, setDetail] = useState<DailyReport | null>(null);
