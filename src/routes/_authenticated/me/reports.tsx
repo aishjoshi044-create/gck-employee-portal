@@ -32,10 +32,16 @@ interface DailyReport {
   activity_type: ActivityType;
   activity_other: string | null;
   village: string | null;
+  project: string | null;
   beneficiaries_reached: number;
   work_done: string;
   issues: string | null;
+  case_study: string | null;
+  planned_work: string | null;
+  pending_work: string | null;
+  replan_tomorrow: string | null;
   photo_urls: string[];
+  video_urls: string[];
   lat: number | null;
   lng: number | null;
   status: Status;
