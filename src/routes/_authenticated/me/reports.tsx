@@ -187,7 +187,8 @@ function EmployeeReportsPage() {
         )}
       </Card>
 
-      {/* List */}
+      {/* Recent reports */}
+      <h2 className="text-sm font-semibold text-muted-foreground pt-2">{t("dr_my_recent_reports")}</h2>
       <div className="grid gap-2">
         {isLoading && <div className="flex justify-center p-8"><Loader2 className="size-6 animate-spin text-muted-foreground" /></div>}
         {!isLoading && filtered.length === 0 && (
