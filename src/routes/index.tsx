@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { UserRound, ShieldCheck, LogOut } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import logo from "@/assets/gck-logo.jpeg.asset.json";
 
 export const Route = createFileRoute("/")({
@@ -12,6 +13,24 @@ function IndexPage() {
   const { user, role, signOut } = useAuth();
   const { lang } = useI18n();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const handleLogout = async () => {
+    await queryClient.cancelQueries();
+    queryClient.clear();
+    await signOut();
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.removeItem("gck-remember");
+        sessionStorage.removeItem("gck-tab-alive");
+        Object.keys(localStorage)
+          .filter((k) => k.startsWith("sb-") || k.includes("pin"))
+          .forEach((k) => localStorage.removeItem(k));
+      } catch {}
+    }
+    navigate({ to: "/", replace: true });
+  };
+
 
   const go = async (as: "employee" | "admin") => {
     if (user && ((as === "admin" && role !== "admin") || (as === "employee" && role === "admin"))) {
@@ -28,7 +47,7 @@ function IndexPage() {
     <div className="min-h-screen bg-gradient-to-br from-primary-soft via-background to-accent-soft overflow-y-auto">
       {user && (
         <div className="flex justify-end p-3">
-          <button onClick={() => signOut()} className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-card border">
+          <button onClick={handleLogout} className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-card border">
             <LogOut className="size-3.5" /> {lang === "hi" ? "लॉगआउट" : "Logout"}
           </button>
         </div>

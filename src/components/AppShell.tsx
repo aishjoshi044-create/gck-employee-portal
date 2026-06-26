@@ -1,5 +1,6 @@
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
 import { useState, type ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { useTheme } from "@/lib/theme";
@@ -40,12 +41,24 @@ export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [mobileOpen, setMobileOpen] = useState(false);
+  const queryClient = useQueryClient();
 
   const nav = role === "admin" ? adminNav : employeeNav;
 
   const handleLogout = async () => {
+    await queryClient.cancelQueries();
+    queryClient.clear();
     await signOut();
-    router.navigate({ to: "/auth" });
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.removeItem("gck-remember");
+        sessionStorage.removeItem("gck-tab-alive");
+        Object.keys(localStorage)
+          .filter((k) => k.startsWith("sb-") || k.startsWith("gck-pin") || k.includes("pin"))
+          .forEach((k) => localStorage.removeItem(k));
+      } catch {}
+    }
+    router.navigate({ to: "/", replace: true });
   };
 
   const NavList = ({ compact = false, onItemClick }: { compact?: boolean; onItemClick?: () => void }) => (
