@@ -311,6 +311,39 @@ export type Database = {
         }
         Relationships: []
       }
+      report_documents: {
+        Row: {
+          category: Database["public"]["Enums"]["document_category"]
+          created_at: string
+          file_path: string
+          id: string
+          mime_type: string | null
+          size_bytes: number | null
+          title: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          category?: Database["public"]["Enums"]["document_category"]
+          created_at?: string
+          file_path: string
+          id?: string
+          mime_type?: string | null
+          size_bytes?: number | null
+          title: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["document_category"]
+          created_at?: string
+          file_path?: string
+          id?: string
+          mime_type?: string | null
+          size_bytes?: number | null
+          title?: string
+          uploaded_by?: string | null
+        }
+        Relationships: []
+      }
       task_discussions: {
         Row: {
           created_at: string
@@ -486,6 +519,7 @@ export type Database = {
         | "documentation"
         | "other"
       daily_report_status: "pending" | "approved" | "rejected"
+      document_category: "monthly_ppt" | "monthly_activity" | "budget" | "other"
       leave_status: "pending" | "approved" | "rejected"
       task_priority: "low" | "medium" | "high"
       task_status: "not_started" | "in_progress" | "completed" | "failed"
@@ -627,6 +661,7 @@ export const Constants = {
         "other",
       ],
       daily_report_status: ["pending", "approved", "rejected"],
+      document_category: ["monthly_ppt", "monthly_activity", "budget", "other"],
       leave_status: ["pending", "approved", "rejected"],
       task_priority: ["low", "medium", "high"],
       task_status: ["not_started", "in_progress", "completed", "failed"],
