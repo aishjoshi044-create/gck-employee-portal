@@ -13,9 +13,10 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
 import { format, startOfWeek, startOfMonth, endOfMonth, subMonths, startOfDay } from "date-fns";
-import { Plus, MapPin, ImagePlus, X, Search, FileText, CheckCircle2, Clock, XCircle, Loader2 } from "lucide-react";
+import { Plus, MapPin, ImagePlus, X, Search, FileText, CheckCircle2, Clock, XCircle, Loader2, ChevronDown } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/me/reports")({
   component: EmployeeReportsPage,
