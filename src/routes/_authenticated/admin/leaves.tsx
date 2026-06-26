@@ -137,8 +137,7 @@ function LeavesPage() {
   }, [list, q, statusF, typeF, from, to]);
 
   const decide = async (id: string, status: "approved" | "rejected", note?: string) => {
-    const patch: Record<string, unknown> = { status, decided_by: user!.id, decided_at: new Date().toISOString() };
-    if (note !== undefined) patch.admin_note = note || null;
+    const patch = { status, decided_by: user!.id, decided_at: new Date().toISOString(), admin_note: note ?? null };
     const { error } = await supabase.from("leave_requests").update(patch).eq("id", id);
     if (error) { toast.error(error.message); return; }
     qc.invalidateQueries({ queryKey: ["admin-leaves"] });
