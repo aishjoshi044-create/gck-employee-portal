@@ -460,18 +460,15 @@ function ReportDetail({ report, onClose }: { report: DailyReport | null; onClose
           </div>
           <Row label={t("activity_type")} value={`${t(ACTIVITY_KEYS[report.activity_type])}${report.activity_other ? `: ${report.activity_other}` : ""}`} />
           {report.village && <Row label={t("village_location")} value={report.village} />}
+          {report.project && <Row label={t("dr_project")} value={report.project} />}
           <Row label={t("beneficiaries_reached")} value={String(report.beneficiaries_reached)} />
           {report.lat != null && report.lng != null && <Row label={t("gps_location")} value={`${report.lat.toFixed(5)}, ${report.lng.toFixed(5)}`} />}
-          <div>
-            <div className="text-xs text-muted-foreground">{t("work_done_today")}</div>
-            <p className="whitespace-pre-wrap">{report.work_done}</p>
-          </div>
-          {report.issues && (
-            <div>
-              <div className="text-xs text-muted-foreground">{t("issues_faced")}</div>
-              <p className="whitespace-pre-wrap">{report.issues}</p>
-            </div>
-          )}
+          <Block label={t("work_done_today")} value={report.work_done} />
+          {report.issues && <Block label={t("issues_faced")} value={report.issues} />}
+          {report.case_study && <Block label={t("dr_case_study")} value={report.case_study} />}
+          {report.planned_work && <Block label={t("dr_planned_work")} value={report.planned_work} />}
+          {report.pending_work && <Block label={t("dr_pending_work")} value={report.pending_work} />}
+          {report.replan_tomorrow && <Block label={t("dr_replan_tomorrow")} value={report.replan_tomorrow} />}
           {report.photo_urls.length > 0 && (
             <div>
               <div className="text-xs text-muted-foreground mb-1">{t("photos")}</div>
