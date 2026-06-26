@@ -106,21 +106,24 @@ function AdminDailyReportsPage() {
   }, [qc]);
 
   const villages = useMemo(() => Array.from(new Set(reports.map((r) => r.village).filter(Boolean))) as string[], [reports]);
+  const projects = useMemo(() => Array.from(new Set(reports.map((r) => r.project).filter(Boolean))) as string[], [reports]);
 
   const today = format(new Date(), "yyyy-MM-dd");
   const filtered = useMemo(() => reports.filter((r) => {
     if (empFilter !== "all" && r.user_id !== empFilter) return false;
     if (statusFilter !== "all" && r.status !== statusFilter) return false;
     if (villageFilter !== "all" && r.village !== villageFilter) return false;
+    if (projectFilter !== "all" && r.project !== projectFilter) return false;
+    if (activityFilter !== "all" && r.activity_type !== activityFilter) return false;
     if (dateFilter && r.report_date !== dateFilter) return false;
     if (search.trim()) {
       const q = search.toLowerCase();
       const p = pmap.get(r.user_id);
-      const hay = `${r.work_done} ${r.village ?? ""} ${p?.full_name ?? ""}`.toLowerCase();
+      const hay = `${r.work_done} ${r.village ?? ""} ${r.project ?? ""} ${p?.full_name ?? ""}`.toLowerCase();
       if (!hay.includes(q)) return false;
     }
     return true;
-  }), [reports, empFilter, statusFilter, villageFilter, dateFilter, search, pmap]);
+  }), [reports, empFilter, statusFilter, villageFilter, projectFilter, activityFilter, dateFilter, search, pmap]);
 
   const todayReports = reports.filter((r) => r.report_date === today);
   const stats = {
