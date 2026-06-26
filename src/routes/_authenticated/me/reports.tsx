@@ -278,8 +278,9 @@ function ReportForm({ open, onOpenChange }: { open: boolean; onOpenChange: (v: b
   }, [photos]);
 
   const reset = () => {
-    setActivity("field_visit"); setActivityOther(""); setVillage(""); setBeneficiaries(0);
-    setWorkDone(""); setIssues(""); setPhotos([]); setCoords(null);
+    setActivity("field_visit"); setActivityOther(""); setVillage(""); setProject(""); setBeneficiaries(0);
+    setWorkDone(""); setIssues(""); setCaseStudy(""); setPlannedWork(""); setPendingWork(""); setReplanTomorrow("");
+    setPlanningOpen(false); setPhotos([]); setCoords(null);
   };
 
   const onFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -295,6 +296,7 @@ function ReportForm({ open, onOpenChange }: { open: boolean; onOpenChange: (v: b
   const submit = async () => {
     if (!user) return;
     if (!workDone.trim()) { toast.error(t("work_done_today")); return; }
+    if (!village.trim()) { toast.error(t("village_location")); return; }
     if (activity === "other" && !activityOther.trim()) { toast.error(t("specify_activity")); return; }
     setSubmitting(true);
     try {
@@ -313,9 +315,14 @@ function ReportForm({ open, onOpenChange }: { open: boolean; onOpenChange: (v: b
         activity_type: activity,
         activity_other: activity === "other" ? activityOther.trim() : null,
         village: village.trim() || null,
+        project: project.trim() || null,
         beneficiaries_reached: Number(beneficiaries) || 0,
         work_done: workDone.trim(),
         issues: issues.trim() || null,
+        case_study: caseStudy.trim() || null,
+        planned_work: plannedWork.trim() || null,
+        pending_work: pendingWork.trim() || null,
+        replan_tomorrow: replanTomorrow.trim() || null,
         photo_urls: uploaded,
         lat: coords?.lat ?? null,
         lng: coords?.lng ?? null,
