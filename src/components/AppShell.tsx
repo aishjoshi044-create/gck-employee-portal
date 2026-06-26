@@ -1,5 +1,6 @@
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
 import { useState, type ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { useTheme } from "@/lib/theme";
