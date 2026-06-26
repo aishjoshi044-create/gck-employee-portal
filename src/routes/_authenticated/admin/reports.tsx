@@ -1,605 +1,655 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useI18n } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { useMemo, useState } from "react";
 import {
-  format, startOfMonth, endOfMonth, eachDayOfInterval, differenceInBusinessDays, addDays, isWeekend, parseISO,
-} from "date-fns";
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import { useMemo, useState, useRef } from "react";
+import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, differenceInBusinessDays, addDays } from "date-fns";
 import {
-  FileDown, FileSpreadsheet, Users, FileText, CheckCircle2, HeartHandshake,
-  TrendingUp, MapPin, Briefcase, CalendarCheck, MessageSquareQuote,
+  FileDown, FileSpreadsheet, Play, Upload, Download, Trash2, Eye, FileText, Loader2,
 } from "lucide-react";
-import { downloadPdf, downloadExcel, downloadEmployeePerfPdf } from "@/lib/exports";
+import { downloadPdf, downloadExcel } from "@/lib/exports";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/admin/reports")({
   component: ReportsPage,
 });
 
-type Mode = "month" | "custom";
+type ReportType = "performance" | "attendance" | "task" | "daily" | "monthly" | "donor";
+type Period = "monthly" | "quarterly" | "yearly";
+
+interface Filters {
+  employeeId: string;
+  department: string;
+  project: string;
+  village: string;
+  activity: string;
+  status: string;
+  month: string;        // yyyy-MM
+  start: string;        // yyyy-MM-dd
+  end: string;          // yyyy-MM-dd
+  period: Period;
+}
+
+interface PreviewData {
+  type: ReportType;
+  title: string;
+  head: string[];
+  rows: (string | number)[][];
+  rangeLabel: string;
+}
 
 function ReportsPage() {
-  const { t, lang } = useI18n();
-  const [mode, setMode] = useState<Mode>("month");
-  const [month, setMonth] = useState(format(new Date(), "yyyy-MM"));
-  const [customStart, setCustomStart] = useState(format(startOfMonth(new Date()), "yyyy-MM-dd"));
-  const [customEnd, setCustomEnd] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
-  const [employeeId, setEmployeeId] = useState<string>("all");
+  const { t } = useI18n();
+  const qc = useQueryClient();
 
-  const { start, end, label } = useMemo(() => {
-    if (mode === "month") {
-      const d = new Date(month + "-01");
-      return {
-        start: format(startOfMonth(d), "yyyy-MM-dd"),
-        end: format(endOfMonth(d), "yyyy-MM-dd"),
-        label: format(d, "MMMM yyyy"),
-      };
-    }
-    return {
-      start: customStart,
-      end: customEnd,
-      label: `${format(new Date(customStart), "d MMM yyyy")} → ${format(new Date(customEnd), "d MMM yyyy")}`,
-    };
-  }, [mode, month, customStart, customEnd]);
+  const [reportType, setReportType] = useState<ReportType>("performance");
+  const today = new Date();
+  const [filters, setFilters] = useState<Filters>({
+    employeeId: "all",
+    department: "all",
+    project: "all",
+    village: "all",
+    activity: "all",
+    status: "all",
+    month: format(today, "yyyy-MM"),
+    start: format(startOfMonth(today), "yyyy-MM-dd"),
+    end: format(endOfMonth(today), "yyyy-MM-dd"),
+    period: "monthly",
+  });
+  const setF = (patch: Partial<Filters>) => setFilters((f) => ({ ...f, ...patch }));
 
-  const { data: employees } = useQuery({
-    queryKey: ["report-emps"],
+  const [preview, setPreview] = useState<PreviewData | null>(null);
+  const [generating, setGenerating] = useState(false);
+
+  // Lookups
+  const { data: employees = [] } = useQuery({
+    queryKey: ["rg-emps"],
     queryFn: async () =>
       (await supabase.from("profiles").select("id,full_name,department").eq("active", true).order("full_name")).data ?? [],
+    staleTime: 60_000,
   });
-
-  const { data: perf } = useQuery({
-    queryKey: ["perf-v2", start, end, employeeId, employees?.length ?? 0],
-    enabled: !!employees,
-    queryFn: async () => {
-      const targetIds = employeeId === "all" ? (employees ?? []).map((e) => e.id) : [employeeId];
-      if (!targetIds.length) return [];
-      const [{ data: att }, { data: tasks }, { data: reports }, { data: leaves }] = await Promise.all([
-        supabase.from("attendance").select("user_id,date,status").gte("date", start).lte("date", end).in("user_id", targetIds),
-        supabase.from("tasks").select("assigned_to,status,deadline,completed_at,created_at").gte("created_at", start).lte("created_at", end + "T23:59:59").in("assigned_to", targetIds),
-        supabase.from("daily_reports").select("user_id,report_date,activity_type,village,beneficiaries_reached,status,created_at").gte("report_date", start).lte("report_date", end).in("user_id", targetIds),
-        supabase.from("leave_requests").select("user_id,start_date,end_date,status").lte("start_date", end).gte("end_date", start).in("user_id", targetIds),
-      ]);
-
-      const startD = new Date(start);
-      const endD = new Date(end);
-      const totalWorkdays = Math.max(1, differenceInBusinessDays(addDays(endD, 1), startD));
-      const workdaySet = eachDayOfInterval({ start: startD, end: endD })
-        .filter((d) => !isWeekend(d))
-        .map((d) => format(d, "yyyy-MM-dd"));
-
-      return (employees ?? []).filter((e) => targetIds.includes(e.id)).map((e) => {
-        const myAtt = att?.filter((a) => a.user_id === e.id) ?? [];
-        const present = myAtt.filter((a) => a.status === "present" || a.status === "late").length;
-        const absent = myAtt.filter((a) => a.status === "absent").length;
-        const leaveDays = (leaves ?? []).filter((l) => l.user_id === e.id && l.status === "approved")
-          .reduce((sum, l) => {
-            const s = new Date(l.start_date), en = new Date(l.end_date);
-            return sum + Math.max(1, Math.round((en.getTime() - s.getTime()) / 86400000) + 1);
-          }, 0);
-        const attendancePct = Math.min(100, Math.round((present / totalWorkdays) * 100));
-
-        const myTasks = tasks?.filter((tk) => tk.assigned_to === e.id) ?? [];
-        const completed = myTasks.filter((tk) => tk.status === "completed").length;
-        const failed = myTasks.filter((tk) => tk.status === "failed").length;
-        const pending = myTasks.filter((tk) => tk.status === "not_started" || tk.status === "in_progress").length;
-        const overdue = myTasks.filter((tk) => tk.status !== "completed" && tk.deadline && new Date(tk.deadline) < new Date()).length;
-        const taskPct = myTasks.length ? Math.round((completed / myTasks.length) * 100) : 0;
-
-        const myReports = reports?.filter((r) => r.user_id === e.id) ?? [];
-        const approved = myReports.filter((r) => r.status === "approved").length;
-        const rejected = myReports.filter((r) => r.status === "rejected").length;
-        const lateReports = myReports.filter((r) => {
-          if (!r.created_at || !r.report_date) return false;
-          const submitted = new Date(r.created_at);
-          const due = new Date(r.report_date + "T23:59:59");
-          return submitted.getTime() - due.getTime() > 86400000;
-        }).length;
-        const submittedDates = new Set(myReports.map((r) => r.report_date));
-        const missing = workdaySet.filter((d) => !submittedDates.has(d)).length;
-        const approvalPct = myReports.length ? Math.round((approved / myReports.length) * 100) : 0;
-
-        const villages = new Set(myReports.map((r) => (r.village || "").trim()).filter(Boolean));
-        const fieldVisits = myReports.filter((r) => r.activity_type === "field_visit" || r.activity_type === "survey").length;
-        const meetings = myReports.filter((r) => r.activity_type === "meeting").length;
-        const beneficiaries = myReports.reduce((s, r) => s + (r.beneficiaries_reached ?? 0), 0);
-
-        const reportPct = workdaySet.length ? Math.round((myReports.length / workdaySet.length) * 100) : 0;
-        const impactPct = Math.min(100, Math.round((villages.size * 10 + fieldVisits * 5 + meetings * 4 + Math.min(beneficiaries, 200) / 4)));
-
-        const overall = Math.round(attendancePct * 0.25 + taskPct * 0.3 + approvalPct * 0.2 + reportPct * 0.15 + impactPct * 0.1);
-        const category =
-          overall >= 90 ? "excellent" :
-          overall >= 75 ? "good" :
-          overall >= 60 ? "average" : "needs_improvement";
-        const managerRating = Math.max(1, Math.min(5, Number((overall / 20).toFixed(1))));
-
-        return {
-          id: e.id, name: e.full_name, department: e.department ?? "—",
-          attendancePct, present, absent, leaveDays, totalWorkdays,
-          totalTasks: myTasks.length, completed, pending, failed, overdue, taskPct,
-          totalReports: myReports.length, approved, rejected, lateReports, missing, approvalPct,
-          villages: villages.size, fieldVisits, meetings, beneficiaries,
-          reportPct, impactPct,
-          overall, category, managerRating,
-        };
-      }).sort((a, b) => b.overall - a.overall);
-    },
-  });
-
-  const summary = useMemo(() => {
-    const list = perf ?? [];
-    const employeesReported = list.filter((p) => p.totalReports > 0).length;
-    const totalReports = list.reduce((s, p) => s + p.totalReports, 0);
-    const totalTasksDone = list.reduce((s, p) => s + p.completed, 0);
-    const totalBeneficiaries = list.reduce((s, p) => s + p.beneficiaries, 0);
-    return { employeesReported, totalReports, totalTasksDone, totalBeneficiaries };
-  }, [perf]);
-
-  const selected = useMemo(
-    () => (employeeId === "all" ? null : (perf ?? []).find((p) => p.id === employeeId) ?? null),
-    [perf, employeeId],
+  const departments = useMemo(
+    () => Array.from(new Set(employees.map((e) => e.department).filter(Boolean))) as string[],
+    [employees],
   );
 
-  const categoryLabel = (c: string) =>
-    c === "excellent" ? t("rep_excellent") :
-    c === "good" ? t("rep_good") :
-    c === "average" ? t("rep_average") : t("rep_needs_improvement");
+  const { data: projectsList = [] } = useQuery({
+    queryKey: ["rg-projects"],
+    queryFn: async () => {
+      const { data } = await supabase.from("daily_reports").select("project").not("project", "is", null).limit(1000);
+      return Array.from(new Set((data ?? []).map((r: any) => r.project).filter(Boolean))) as string[];
+    },
+    staleTime: 60_000,
+  });
+  const { data: villagesList = [] } = useQuery({
+    queryKey: ["rg-villages"],
+    queryFn: async () => {
+      const { data } = await supabase.from("daily_reports").select("village").not("village", "is", null).limit(1000);
+      return Array.from(new Set((data ?? []).map((r: any) => r.village).filter(Boolean))) as string[];
+    },
+    staleTime: 60_000,
+  });
 
-  const categoryColor = (c: string) =>
-    c === "excellent" ? "bg-success/15 text-success border-success/30" :
-    c === "good" ? "bg-info/15 text-info border-info/30" :
-    c === "average" ? "bg-warning/15 text-warning border-warning/30" :
-    "bg-destructive/15 text-destructive border-destructive/30";
+  // Determine actual date range from filters
+  const range = useMemo(() => {
+    if (reportType === "monthly") {
+      const d = new Date(filters.month + "-01");
+      if (filters.period === "quarterly")
+        return { start: format(startOfQuarter(d), "yyyy-MM-dd"), end: format(endOfQuarter(d), "yyyy-MM-dd"), label: `Q${Math.floor(d.getMonth() / 3) + 1} ${d.getFullYear()}` };
+      if (filters.period === "yearly")
+        return { start: format(startOfYear(d), "yyyy-MM-dd"), end: format(endOfYear(d), "yyyy-MM-dd"), label: `${d.getFullYear()}` };
+      return { start: format(startOfMonth(d), "yyyy-MM-dd"), end: format(endOfMonth(d), "yyyy-MM-dd"), label: format(d, "MMMM yyyy") };
+    }
+    if (filters.start && filters.end)
+      return { start: filters.start, end: filters.end, label: `${format(new Date(filters.start), "d MMM")} – ${format(new Date(filters.end), "d MMM yyyy")}` };
+    const d = new Date(filters.month + "-01");
+    return { start: format(startOfMonth(d), "yyyy-MM-dd"), end: format(endOfMonth(d), "yyyy-MM-dd"), label: format(d, "MMMM yyyy") };
+  }, [reportType, filters]);
 
-  const generateSummary = (p: NonNullable<typeof selected>) => {
-    const strengths: string[] = [];
-    const improvements: string[] = [];
-    if (p.attendancePct >= 90) strengths.push(`Excellent attendance at ${p.attendancePct}%.`);
-    if (p.taskPct >= 80) strengths.push(`Strong task completion rate (${p.taskPct}%).`);
-    if (p.approvalPct >= 85 && p.totalReports > 0) strengths.push(`High-quality reporting — ${p.approvalPct}% approval rate.`);
-    if (p.villages >= 5) strengths.push(`Wide field coverage across ${p.villages} villages.`);
-    if (p.beneficiaries >= 100) strengths.push(`Reached ${p.beneficiaries} beneficiaries during this period.`);
-
-    if (p.attendancePct < 75) improvements.push(`Improve attendance (currently ${p.attendancePct}%).`);
-    if (p.overdue > 0) improvements.push(`Clear ${p.overdue} overdue task(s).`);
-    if (p.missing > 2) improvements.push(`Submit daily reports more regularly — ${p.missing} missing days.`);
-    if (p.rejected > 0) improvements.push(`Address ${p.rejected} rejected report(s) with the supervisor.`);
-    if (p.approvalPct < 70 && p.totalReports > 0) improvements.push(`Raise report quality — approval rate is ${p.approvalPct}%.`);
-
-    if (strengths.length === 0) strengths.push("Consistent baseline activity recorded for the period.");
-    if (improvements.length === 0) improvements.push("No major issues — keep up the current pace.");
-
-    const assessment =
-      p.overall >= 90 ? `${p.name} is an outstanding performer with strong results across attendance, tasks and field impact.` :
-      p.overall >= 75 ? `${p.name} is performing well overall, with a few focused areas to refine.` :
-      p.overall >= 60 ? `${p.name} shows acceptable performance; targeted improvements will lift impact.` :
-      `${p.name} needs structured support to meet expectations across multiple areas.`;
-    return { strengths, improvements, assessment };
+  // Visible filter set per type
+  const showFilter = (key: keyof Filters) => {
+    const v: Record<ReportType, (keyof Filters)[]> = {
+      performance: ["employeeId", "department", "start", "end"],
+      attendance: ["employeeId", "department", "status", "start", "end"],
+      task: ["employeeId", "department", "status", "start", "end"],
+      daily: ["employeeId", "department", "project", "village", "activity", "status", "start", "end"],
+      monthly: ["department", "project", "period", "month"],
+      donor: ["project", "village", "start", "end"],
+    };
+    return v[reportType].includes(key);
   };
 
-  const HEAD = [
-    t("rep_employee"), t("rep_department"), t("rep_period"),
-    "Att%", "Tasks%", "Approval%", "Reports", "Beneficiaries",
-    t("rep_overall_score"), t("rep_performance_category"),
-  ];
-  const buildRows = () => (perf ?? []).map((p) => [
-    p.name, p.department, label,
-    `${p.attendancePct}%`, `${p.taskPct}%`, `${p.approvalPct}%`,
-    p.totalReports, p.beneficiaries,
-    `${p.overall}/100`, categoryLabel(p.category),
-  ]);
+  const targetEmployees = useMemo(() => {
+    return employees.filter((e) => {
+      if (filters.department !== "all" && e.department !== filters.department) return false;
+      if (filters.employeeId !== "all" && e.id !== filters.employeeId) return false;
+      return true;
+    });
+  }, [employees, filters.department, filters.employeeId]);
 
-  const exportListPdf = async () => {
+  // ---------- Report builders ----------
+  const buildPerformance = async (): Promise<PreviewData> => {
+    const ids = targetEmployees.map((e) => e.id);
+    if (!ids.length) return { type: "performance", title: t("rg_employee_performance"), head: [], rows: [], rangeLabel: range.label };
+    const [{ data: att }, { data: tasks }, { data: reps }] = await Promise.all([
+      supabase.from("attendance").select("user_id,status").gte("date", range.start).lte("date", range.end).in("user_id", ids),
+      supabase.from("tasks").select("assigned_to,status").gte("created_at", range.start).lte("created_at", range.end + "T23:59:59").in("assigned_to", ids),
+      supabase.from("daily_reports").select("user_id,status,beneficiaries_reached").gte("report_date", range.start).lte("report_date", range.end).in("user_id", ids),
+    ]);
+    const totalWorkdays = Math.max(1, differenceInBusinessDays(addDays(new Date(range.end), 1), new Date(range.start)));
+    const rows = targetEmployees.map((e) => {
+      const a = (att ?? []).filter((x) => x.user_id === e.id);
+      const present = a.filter((x) => x.status === "present" || x.status === "late").length;
+      const tk = (tasks ?? []).filter((x) => x.assigned_to === e.id);
+      const done = tk.filter((x) => x.status === "completed").length;
+      const r = (reps ?? []).filter((x) => x.user_id === e.id);
+      const ben = r.reduce((s, x) => s + (x.beneficiaries_reached ?? 0), 0);
+      const attPct = Math.round((present / totalWorkdays) * 100);
+      const taskPct = tk.length ? Math.round((done / tk.length) * 100) : 0;
+      const score = Math.round(attPct * 0.4 + taskPct * 0.4 + Math.min(100, r.length * 5) * 0.2);
+      return [e.full_name, e.department ?? "—", `${attPct}%`, `${done}/${tk.length}`, r.length, ben, `${score}/100`];
+    });
+    return {
+      type: "performance",
+      title: t("rg_employee_performance"),
+      head: [t("rep_employee"), t("rep_department"), t("rep_attendance_pct"), t("rep_tasks_completed"), t("rep_total_reports"), t("rep_beneficiaries"), t("rep_overall_score")],
+      rows, rangeLabel: range.label,
+    };
+  };
+
+  const buildAttendance = async (): Promise<PreviewData> => {
+    const ids = targetEmployees.map((e) => e.id);
+    let q = supabase.from("attendance").select("user_id,date,status,check_in_at").gte("date", range.start).lte("date", range.end);
+    if (ids.length) q = q.in("user_id", ids);
+    if (filters.status !== "all") q = q.eq("status", filters.status as any);
+    const { data } = await q.order("date", { ascending: false });
+    const map = new Map(employees.map((e) => [e.id, e]));
+    const rows = (data ?? []).map((r: any) => {
+      const e = map.get(r.user_id);
+      return [e?.full_name ?? "—", e?.department ?? "—", r.date, r.status, r.check_in_at ? format(new Date(r.check_in_at), "HH:mm") : "—"];
+    });
+    return {
+      type: "attendance", title: t("rg_attendance"),
+      head: [t("rep_employee"), t("rep_department"), "Date", "Status", "Check-in"],
+      rows, rangeLabel: range.label,
+    };
+  };
+
+  const buildTask = async (): Promise<PreviewData> => {
+    const ids = targetEmployees.map((e) => e.id);
+    let q = supabase.from("tasks").select("title,assigned_to,status,priority,deadline,created_at").gte("created_at", range.start).lte("created_at", range.end + "T23:59:59");
+    if (ids.length) q = q.in("assigned_to", ids);
+    if (filters.status !== "all") q = q.eq("status", filters.status as any);
+    const { data } = await q.order("created_at", { ascending: false });
+    const map = new Map(employees.map((e) => [e.id, e]));
+    const rows = (data ?? []).map((r: any) => {
+      const e = r.assigned_to ? map.get(r.assigned_to) : null;
+      return [r.title, e?.full_name ?? "—", e?.department ?? "—", r.priority, r.status, r.deadline ? format(new Date(r.deadline), "d MMM yyyy") : "—"];
+    });
+    return {
+      type: "task", title: t("rg_task"),
+      head: ["Title", t("rep_employee"), t("rep_department"), "Priority", "Status", t("deadline")],
+      rows, rangeLabel: range.label,
+    };
+  };
+
+  const buildDaily = async (): Promise<PreviewData> => {
+    const ids = targetEmployees.map((e) => e.id);
+    let q = supabase.from("daily_reports").select("user_id,report_date,activity_type,village,project,beneficiaries_reached,status").gte("report_date", range.start).lte("report_date", range.end);
+    if (ids.length) q = q.in("user_id", ids);
+    if (filters.status !== "all") q = q.eq("status", filters.status as any);
+    if (filters.project !== "all") q = q.eq("project", filters.project);
+    if (filters.village !== "all") q = q.eq("village", filters.village);
+    if (filters.activity !== "all") q = q.eq("activity_type", filters.activity as any);
+    const { data } = await q.order("report_date", { ascending: false });
+    const map = new Map(employees.map((e) => [e.id, e]));
+    const rows = (data ?? []).map((r: any) => {
+      const e = map.get(r.user_id);
+      return [e?.full_name ?? "—", r.report_date, r.activity_type ?? "—", r.village ?? "—", r.project ?? "—", r.beneficiaries_reached ?? 0, r.status];
+    });
+    return {
+      type: "daily", title: t("rg_daily_work"),
+      head: [t("rep_employee"), "Date", "Activity", "Village", t("dr_project"), t("rep_beneficiaries"), "Status"],
+      rows, rangeLabel: range.label,
+    };
+  };
+
+  const buildMonthly = async (): Promise<PreviewData> => {
+    const ids = targetEmployees.map((e) => e.id);
+    const [{ data: att }, { data: tasks }, { data: reps }] = await Promise.all([
+      supabase.from("attendance").select("status").gte("date", range.start).lte("date", range.end).in("user_id", ids.length ? ids : ["00000000-0000-0000-0000-000000000000"]),
+      supabase.from("tasks").select("status,assigned_to").gte("created_at", range.start).lte("created_at", range.end + "T23:59:59"),
+      (async () => {
+        let q = supabase.from("daily_reports").select("village,beneficiaries_reached,project,activity_type,status").gte("report_date", range.start).lte("report_date", range.end);
+        if (filters.project !== "all") q = q.eq("project", filters.project);
+        return q;
+      })(),
+    ]);
+    const villages = new Set((reps ?? []).map((r: any) => r.village).filter(Boolean));
+    const beneficiaries = (reps ?? []).reduce((s, r: any) => s + (r.beneficiaries_reached ?? 0), 0);
+    const tasksDone = (tasks ?? []).filter((x: any) => x.status === "completed").length;
+    const approvedReps = (reps ?? []).filter((r: any) => r.status === "approved").length;
+    const presentDays = (att ?? []).filter((a: any) => a.status === "present" || a.status === "late").length;
+    return {
+      type: "monthly", title: t("rg_monthly_progress"),
+      head: ["Metric", "Value"],
+      rows: [
+        ["Active Employees", targetEmployees.length],
+        ["Present Day-marks", presentDays],
+        ["Tasks Completed", tasksDone],
+        ["Daily Reports", reps?.length ?? 0],
+        ["Approved Reports", approvedReps],
+        ["Villages Covered", villages.size],
+        ["Beneficiaries Reached", beneficiaries],
+      ],
+      rangeLabel: range.label,
+    };
+  };
+
+  const buildDonor = async (): Promise<PreviewData> => {
+    let q = supabase.from("daily_reports").select("project,village,activity_type,beneficiaries_reached,report_date").gte("report_date", range.start).lte("report_date", range.end);
+    if (filters.project !== "all") q = q.eq("project", filters.project);
+    if (filters.village !== "all") q = q.eq("village", filters.village);
+    const { data } = await q;
+    const groups = new Map<string, { visits: number; beneficiaries: number; villages: Set<string> }>();
+    (data ?? []).forEach((r: any) => {
+      const key = r.project ?? "—";
+      const g = groups.get(key) ?? { visits: 0, beneficiaries: 0, villages: new Set() };
+      g.visits += 1;
+      g.beneficiaries += r.beneficiaries_reached ?? 0;
+      if (r.village) g.villages.add(r.village);
+      groups.set(key, g);
+    });
+    const rows = Array.from(groups.entries()).map(([proj, g]) => [proj, g.visits, g.villages.size, g.beneficiaries]);
+    return {
+      type: "donor", title: t("rg_donor"),
+      head: [t("dr_project"), "Field Visits", "Villages", t("rep_beneficiaries")],
+      rows, rangeLabel: range.label,
+    };
+  };
+
+  const generate = async () => {
+    setGenerating(true);
+    try {
+      const builders: Record<ReportType, () => Promise<PreviewData>> = {
+        performance: buildPerformance,
+        attendance: buildAttendance,
+        task: buildTask,
+        daily: buildDaily,
+        monthly: buildMonthly,
+        donor: buildDonor,
+      };
+      setPreview(await builders[reportType]());
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to generate");
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const exportPdf = async () => {
+    if (!preview) return;
     await downloadPdf({
-      title: `Performance Report — ${label}`,
-      subtitle: employeeId === "all" ? `All employees (${perf?.length ?? 0})` : selected?.name,
-      filename: `performance-${start}_to_${end}.pdf`,
-      head: HEAD,
-      body: buildRows(),
+      title: `${preview.title} — ${preview.rangeLabel}`,
+      filename: `${preview.type}-${range.start}_to_${range.end}.pdf`,
+      head: preview.head, body: preview.rows,
     });
   };
-
-  const exportEmployeePdf = async () => {
-    if (!selected) return;
-    const sum = generateSummary(selected);
-    await downloadEmployeePerfPdf({
-      filename: `performance-${selected.name.replace(/\s+/g, "_")}-${start}_to_${end}.pdf`,
-      employeeName: selected.name,
-      department: selected.department,
-      period: label,
-      overallScore: selected.overall,
-      category: categoryLabel(selected.category),
-      kpis: [
-        { label: "Attendance %", value: `${selected.attendancePct}%` },
-        { label: "Tasks Completed", value: selected.completed },
-        { label: "Reports Submitted", value: selected.totalReports },
-        { label: "Beneficiaries", value: selected.beneficiaries },
-      ],
-      sections: [
-        {
-          title: "Work Impact",
-          rows: [
-            { label: "Villages Visited", value: selected.villages },
-            { label: "Field Visits", value: selected.fieldVisits },
-            { label: "Meetings Conducted", value: selected.meetings },
-            { label: "Beneficiaries Reached", value: selected.beneficiaries },
-          ],
-        },
-        {
-          title: "Task Performance",
-          rows: [
-            { label: "Assigned Tasks", value: selected.totalTasks },
-            { label: "Completed Tasks", value: selected.completed },
-            { label: "Pending Tasks", value: selected.pending },
-            { label: "Failed Tasks", value: selected.failed },
-            { label: "Overdue Tasks", value: selected.overdue },
-            { label: "Completion Rate", value: `${selected.taskPct}%` },
-          ],
-        },
-        {
-          title: "Daily Report Performance",
-          rows: [
-            { label: "Reports Submitted", value: selected.totalReports },
-            { label: "Approved Reports", value: selected.approved },
-            { label: "Rejected Reports", value: selected.rejected },
-            { label: "Late Reports", value: selected.lateReports },
-            { label: "Missing Reports", value: selected.missing },
-            { label: "Approval Rate", value: `${selected.approvalPct}%` },
-          ],
-        },
-        {
-          title: "Attendance Details",
-          rows: [
-            { label: "Present Days", value: selected.present },
-            { label: "Absent Days", value: selected.absent },
-            { label: "Leave Days", value: selected.leaveDays },
-            { label: "Attendance %", value: `${selected.attendancePct}%` },
-          ],
-        },
-      ],
-      breakdown: [
-        { label: "Attendance", pct: selected.attendancePct },
-        { label: "Tasks", pct: selected.taskPct },
-        { label: "Reports", pct: selected.approvalPct },
-        { label: "Field Impact", pct: selected.impactPct },
-      ],
-      feedback: {
-        rating: selected.managerRating,
-        comment: sum.assessment,
-      },
-      summary: sum,
-    });
-  };
-
   const exportExcel = () => {
-    downloadExcel(`performance-${start}_to_${end}.xlsx`, [
-      { name: "Performance", header: HEAD, rows: buildRows() },
-      {
-        name: "Detail",
-        header: ["Employee", "Present", "Absent", "Leave", "Tasks", "Completed", "Overdue", "Reports", "Approved", "Rejected", "Villages", "Beneficiaries"],
-        rows: (perf ?? []).map((p) => [
-          p.name, p.present, p.absent, p.leaveDays,
-          p.totalTasks, p.completed, p.overdue,
-          p.totalReports, p.approved, p.rejected,
-          p.villages, p.beneficiaries,
-        ]),
-      },
+    if (!preview) return;
+    downloadExcel(`${preview.type}-${range.start}_to_${range.end}.xlsx`, [
+      { name: preview.title.slice(0, 30), header: preview.head, rows: preview.rows },
     ]);
   };
+
+  // ============ DOCUMENTS ============
+  const { data: documents = [], isLoading: docsLoading } = useQuery({
+    queryKey: ["rg-docs"],
+    queryFn: async () => (await supabase.from("report_documents").select("*").order("created_at", { ascending: false })).data ?? [],
+  });
+
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [docTitle, setDocTitle] = useState("");
+  const [docCategory, setDocCategory] = useState<"monthly_ppt" | "monthly_activity" | "budget" | "other">("monthly_ppt");
+  const [docFile, setDocFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const upload = async () => {
+    if (!docFile || !docTitle) { toast.error("Title and file required"); return; }
+    setUploading(true);
+    try {
+      const path = `${docCategory}/${Date.now()}_${docFile.name}`;
+      const { error: upErr } = await supabase.storage.from("documents").upload(path, docFile);
+      if (upErr) throw upErr;
+      const { data: user } = await supabase.auth.getUser();
+      const { error: insErr } = await supabase.from("report_documents").insert({
+        title: docTitle, category: docCategory, file_path: path,
+        mime_type: docFile.type, size_bytes: docFile.size, uploaded_by: user.user?.id,
+      });
+      if (insErr) throw insErr;
+      toast.success(t("rg_doc_uploaded"));
+      setDocTitle(""); setDocFile(null); if (fileRef.current) fileRef.current.value = "";
+      qc.invalidateQueries({ queryKey: ["rg-docs"] });
+    } catch (e: any) { toast.error(e?.message ?? "Upload failed"); }
+    finally { setUploading(false); }
+  };
+
+  const openDoc = useMutation({
+    mutationFn: async (path: string) => {
+      const { data, error } = await supabase.storage.from("documents").createSignedUrl(path, 3600);
+      if (error) throw error;
+      return data.signedUrl;
+    },
+    onSuccess: (url) => window.open(url, "_blank"),
+    onError: (e: any) => toast.error(e?.message ?? "Failed to open"),
+  });
+
+  const deleteDoc = async (id: string, path: string) => {
+    if (!confirm(t("rg_confirm_delete"))) return;
+    try {
+      await supabase.storage.from("documents").remove([path]);
+      const { error } = await supabase.from("report_documents").delete().eq("id", id);
+      if (error) throw error;
+      toast.success(t("rg_doc_deleted"));
+      qc.invalidateQueries({ queryKey: ["rg-docs"] });
+    } catch (e: any) { toast.error(e?.message ?? "Delete failed"); }
+  };
+
+  const catLabel = (c: string) =>
+    c === "monthly_ppt" ? t("rg_doc_monthly_ppt") :
+    c === "monthly_activity" ? t("rg_doc_monthly_activity") :
+    c === "budget" ? t("rg_doc_budget") : t("rg_doc_other");
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h1 className="text-2xl font-extrabold">{t("reports")}</h1>
-        <span className="text-sm text-muted-foreground">{label}</span>
+        <span className="text-sm text-muted-foreground">{range.label}</span>
       </div>
 
-      {/* Filters */}
+      {/* ===== Report builder ===== */}
       <Card className="p-4">
-        <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-3">
-          <div>
-            <Label className="text-xs">{t("rep_employee")}</Label>
-            <Select value={employeeId} onValueChange={setEmployeeId}>
-              <SelectTrigger className="tap-lg mt-1"><SelectValue /></SelectTrigger>
+        <div className="grid gap-3 md:grid-cols-3 lg:grid-cols-4">
+          <div className="md:col-span-1">
+            <Label className="text-xs">{t("rg_report_type")}</Label>
+            <Select value={reportType} onValueChange={(v: ReportType) => { setReportType(v); setPreview(null); }}>
+              <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">{t("rep_all_employees")}</SelectItem>
-                {employees?.map((e) => <SelectItem key={e.id} value={e.id}>{e.full_name}</SelectItem>)}
+                <SelectItem value="performance">{t("rg_employee_performance")}</SelectItem>
+                <SelectItem value="attendance">{t("rg_attendance")}</SelectItem>
+                <SelectItem value="task">{t("rg_task")}</SelectItem>
+                <SelectItem value="daily">{t("rg_daily_work")}</SelectItem>
+                <SelectItem value="monthly">{t("rg_monthly_progress")}</SelectItem>
+                <SelectItem value="donor">{t("rg_donor")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          <div>
-            <Label className="text-xs">{t("rep_filters")}</Label>
-            <Select value={mode} onValueChange={(v: any) => setMode(v)}>
-              <SelectTrigger className="tap-lg mt-1"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="month">{t("rep_month")}</SelectItem>
-                <SelectItem value="custom">{t("rep_date_range")}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          {mode === "month" ? (
+
+          {showFilter("employeeId") && (
+            <div>
+              <Label className="text-xs">{t("rep_employee")}</Label>
+              <Select value={filters.employeeId} onValueChange={(v) => setF({ employeeId: v })}>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t("rep_all_employees")}</SelectItem>
+                  {employees.map((e) => <SelectItem key={e.id} value={e.id}>{e.full_name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {showFilter("department") && (
+            <div>
+              <Label className="text-xs">{t("rep_department")}</Label>
+              <Select value={filters.department} onValueChange={(v) => setF({ department: v })}>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t("rg_all_departments")}</SelectItem>
+                  {departments.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {showFilter("project") && (
+            <div>
+              <Label className="text-xs">{t("dr_project")}</Label>
+              <Select value={filters.project} onValueChange={(v) => setF({ project: v })}>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t("rg_all_projects")}</SelectItem>
+                  {projectsList.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {showFilter("village") && (
+            <div>
+              <Label className="text-xs">Village</Label>
+              <Select value={filters.village} onValueChange={(v) => setF({ village: v })}>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t("rg_all_villages")}</SelectItem>
+                  {villagesList.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {showFilter("activity") && (
+            <div>
+              <Label className="text-xs">Activity</Label>
+              <Select value={filters.activity} onValueChange={(v) => setF({ activity: v })}>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t("rg_all_activities")}</SelectItem>
+                  <SelectItem value="field_visit">Field Visit</SelectItem>
+                  <SelectItem value="meeting">Meeting</SelectItem>
+                  <SelectItem value="training">Training</SelectItem>
+                  <SelectItem value="survey">Survey</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {showFilter("status") && (
+            <div>
+              <Label className="text-xs">Status</Label>
+              <Select value={filters.status} onValueChange={(v) => setF({ status: v })}>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t("rg_all_status")}</SelectItem>
+                  {reportType === "attendance" && <>
+                    <SelectItem value="present">Present</SelectItem>
+                    <SelectItem value="absent">Absent</SelectItem>
+                    <SelectItem value="late">Late</SelectItem>
+                  </>}
+                  {reportType === "task" && <>
+                    <SelectItem value="not_started">Not Started</SelectItem>
+                    <SelectItem value="in_progress">In Progress</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="failed">Failed</SelectItem>
+                  </>}
+                  {reportType === "daily" && <>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="approved">Approved</SelectItem>
+                    <SelectItem value="rejected">Rejected</SelectItem>
+                  </>}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {showFilter("period") && (
+            <div>
+              <Label className="text-xs">{t("rg_period")}</Label>
+              <Select value={filters.period} onValueChange={(v: Period) => setF({ period: v })}>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="monthly">{t("rg_monthly")}</SelectItem>
+                  <SelectItem value="quarterly">{t("rg_quarterly")}</SelectItem>
+                  <SelectItem value="yearly">{t("rg_yearly")}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {showFilter("month") && (
             <div>
               <Label className="text-xs">{t("rep_month")}</Label>
-              <Input type="month" className="tap-lg mt-1" value={month} onChange={(e) => setMonth(e.target.value)} />
+              <Input type="month" className="mt-1" value={filters.month} onChange={(e) => setF({ month: e.target.value })} />
             </div>
-          ) : (
+          )}
+
+          {showFilter("start") && (
+            <div>
+              <Label className="text-xs">{t("rep_from")}</Label>
+              <Input type="date" className="mt-1" value={filters.start} onChange={(e) => setF({ start: e.target.value })} />
+            </div>
+          )}
+          {showFilter("end") && (
+            <div>
+              <Label className="text-xs">{t("rep_to")}</Label>
+              <Input type="date" className="mt-1" value={filters.end} onChange={(e) => setF({ end: e.target.value })} />
+            </div>
+          )}
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <Button onClick={generate} disabled={generating} className="gap-2">
+            {generating ? <Loader2 className="size-4 animate-spin" /> : <Play className="size-4" />}
+            {t("rg_generate")}
+          </Button>
+          {preview && (
             <>
-              <div>
-                <Label className="text-xs">{t("rep_from")}</Label>
-                <Input type="date" className="tap-lg mt-1" value={customStart} onChange={(e) => setCustomStart(e.target.value)} />
-              </div>
-              <div>
-                <Label className="text-xs">{t("rep_to")}</Label>
-                <Input type="date" className="tap-lg mt-1" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} />
-              </div>
+              <Button variant="outline" onClick={exportPdf} className="gap-2">
+                <FileDown className="size-4" />{t("rep_download_pdf")}
+              </Button>
+              <Button variant="outline" onClick={exportExcel} className="gap-2">
+                <FileSpreadsheet className="size-4" />{t("rep_download_excel")}
+              </Button>
+              <Badge variant="outline" className="ml-auto">{preview.rows.length} {t("rg_rows")}</Badge>
             </>
           )}
-          <div className="flex items-end gap-2 flex-wrap">
-            {selected ? (
-              <Button onClick={exportEmployeePdf} className="tap-lg gap-2 flex-1">
-                <FileDown className="size-4" />{t("rep_download_pdf")}
-              </Button>
-            ) : (
-              <Button onClick={exportListPdf} className="tap-lg gap-2 flex-1">
-                <FileDown className="size-4" />{t("rep_download_pdf")}
-              </Button>
-            )}
-            <Button onClick={exportExcel} variant="outline" className="tap-lg gap-2">
-              <FileSpreadsheet className="size-4" />
-            </Button>
-          </div>
         </div>
       </Card>
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <SummaryCard icon={<Users className="size-5" />} label={t("rep_employees_reported")} value={summary.employeesReported} accent="text-info" />
-        <SummaryCard icon={<FileText className="size-5" />} label={t("rep_total_reports")} value={summary.totalReports} accent="text-primary" />
-        <SummaryCard icon={<CheckCircle2 className="size-5" />} label={t("rep_total_tasks_done")} value={summary.totalTasksDone} accent="text-success" />
-        <SummaryCard icon={<HeartHandshake className="size-5" />} label={t("rep_total_beneficiaries")} value={summary.totalBeneficiaries} accent="text-warning" />
-      </div>
-
-      {/* Single-employee performance report */}
-      {selected ? (
-        <EmployeeReport p={selected} label={label} categoryLabel={categoryLabel} categoryColor={categoryColor} summary={generateSummary(selected)} />
-      ) : (
-        <Card className="p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <TrendingUp className="size-5 text-primary" />
-            <h2 className="font-bold">{t("rep_summary")} — {label}</h2>
-            <span className="text-xs text-muted-foreground ml-auto">{t("rep_select_employee_hint")}</span>
+      {/* ===== Preview ===== */}
+      <Card className="p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-bold">{t("rg_preview")}</h2>
+          {preview && <span className="text-xs text-muted-foreground">{preview.title} · {preview.rangeLabel}</span>}
+        </div>
+        {!preview ? (
+          <div className="py-12 text-center text-sm text-muted-foreground">{t("rg_no_preview")}</div>
+        ) : preview.rows.length === 0 ? (
+          <div className="py-12 text-center text-sm text-muted-foreground">{t("rep_no_data")}</div>
+        ) : (
+          <div className="overflow-x-auto max-h-[60vh]">
+            <table className="w-full text-sm">
+              <thead className="bg-muted text-xs uppercase sticky top-0">
+                <tr>{preview.head.map((h) => <th key={h} className="text-left p-2 font-bold">{h}</th>)}</tr>
+              </thead>
+              <tbody>
+                {preview.rows.map((r, i) => (
+                  <tr key={i} className="border-t hover:bg-muted/30">
+                    {r.map((c, j) => <td key={j} className="p-2">{String(c)}</td>)}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
+        )}
+      </Card>
+
+      {/* ===== Documents ===== */}
+      <Card className="p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <FileText className="size-5 text-primary" />
+            <h2 className="font-bold">{t("rg_documents")}</h2>
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-4 gap-3 mb-4 p-3 rounded-lg border bg-muted/30">
+          <div>
+            <Label className="text-xs">{t("rg_doc_title")}</Label>
+            <Input className="mt-1" value={docTitle} onChange={(e) => setDocTitle(e.target.value)} placeholder="e.g. June 2026 PPT" />
+          </div>
+          <div>
+            <Label className="text-xs">{t("rg_doc_category")}</Label>
+            <Select value={docCategory} onValueChange={(v: any) => setDocCategory(v)}>
+              <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="monthly_ppt">{t("rg_doc_monthly_ppt")}</SelectItem>
+                <SelectItem value="monthly_activity">{t("rg_doc_monthly_activity")}</SelectItem>
+                <SelectItem value="budget">{t("rg_doc_budget")}</SelectItem>
+                <SelectItem value="other">{t("rg_doc_other")}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs">{t("rg_choose_file")}</Label>
+            <Input ref={fileRef} type="file" className="mt-1" onChange={(e) => setDocFile(e.target.files?.[0] ?? null)} />
+          </div>
+          <div className="flex items-end">
+            <Button onClick={upload} disabled={uploading || !docFile || !docTitle} className="gap-2 w-full">
+              {uploading ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
+              {t("rg_upload")}
+            </Button>
+          </div>
+        </div>
+
+        {docsLoading ? (
+          <div className="py-6 text-center text-sm text-muted-foreground">{t("loading")}</div>
+        ) : documents.length === 0 ? (
+          <div className="py-8 text-center text-sm text-muted-foreground">{t("rg_no_documents")}</div>
+        ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-muted text-xs uppercase">
                 <tr>
-                  <th className="text-left p-2">{t("rep_employee")}</th>
-                  <th className="text-left p-2 hidden md:table-cell">{t("rep_department")}</th>
-                  <th className="text-right p-2">Att%</th>
-                  <th className="text-right p-2 hidden sm:table-cell">Tasks%</th>
-                  <th className="text-right p-2 hidden sm:table-cell">Approval%</th>
-                  <th className="text-right p-2 hidden md:table-cell">{t("rep_total_reports")}</th>
-                  <th className="text-right p-2 hidden md:table-cell">{t("rep_beneficiaries")}</th>
-                  <th className="text-right p-2">{t("rep_overall_score")}</th>
-                  <th className="text-right p-2">{t("rep_performance_category")}</th>
+                  <th className="text-left p-2">{t("rg_doc_title")}</th>
+                  <th className="text-left p-2 hidden md:table-cell">{t("rg_doc_category")}</th>
+                  <th className="text-left p-2 hidden md:table-cell">{t("rg_uploaded")}</th>
                   <th className="p-2"></th>
                 </tr>
               </thead>
               <tbody>
-                {perf?.map((p) => (
-                  <tr key={p.id} className="border-t hover:bg-muted/30">
-                    <td className="p-2 font-semibold">{p.name}</td>
-                    <td className="p-2 hidden md:table-cell text-muted-foreground">{p.department}</td>
-                    <td className="p-2 text-right">{p.attendancePct}%</td>
-                    <td className="p-2 text-right hidden sm:table-cell">{p.taskPct}%</td>
-                    <td className="p-2 text-right hidden sm:table-cell">{p.approvalPct}%</td>
-                    <td className="p-2 text-right hidden md:table-cell">{p.totalReports}</td>
-                    <td className="p-2 text-right hidden md:table-cell">{p.beneficiaries}</td>
-                    <td className={`p-2 text-right font-extrabold ${p.overall >= 90 ? "text-success" : p.overall >= 75 ? "text-info" : p.overall >= 60 ? "text-warning" : "text-destructive"}`}>{p.overall}</td>
+                {documents.map((d: any) => (
+                  <tr key={d.id} className="border-t hover:bg-muted/30">
+                    <td className="p-2 font-medium">{d.title}</td>
+                    <td className="p-2 hidden md:table-cell"><Badge variant="outline">{catLabel(d.category)}</Badge></td>
+                    <td className="p-2 hidden md:table-cell text-muted-foreground text-xs">{format(new Date(d.created_at), "d MMM yyyy")}</td>
                     <td className="p-2 text-right">
-                      <Badge variant="outline" className={`text-[10px] uppercase font-bold ${categoryColor(p.category)}`}>
-                        {categoryLabel(p.category)}
-                      </Badge>
-                    </td>
-                    <td className="p-2 text-right">
-                      <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setEmployeeId(p.id)}>
-                        {t("rep_view_report")}
-                      </Button>
+                      <div className="flex justify-end gap-1">
+                        <Button size="icon" variant="ghost" className="size-8" title={t("rg_preview_action")} onClick={() => openDoc.mutate(d.file_path)}>
+                          <Eye className="size-4" />
+                        </Button>
+                        <Button size="icon" variant="ghost" className="size-8" title={t("rg_download")} onClick={() => openDoc.mutate(d.file_path)}>
+                          <Download className="size-4" />
+                        </Button>
+                        <Button size="icon" variant="ghost" className="size-8 text-destructive" title={t("rg_delete")} onClick={() => deleteDoc(d.id, d.file_path)}>
+                          <Trash2 className="size-4" />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
-                {!perf?.length && <tr><td className="p-6 text-center text-muted-foreground" colSpan={10}>{t("rep_no_data")}</td></tr>}
               </tbody>
             </table>
           </div>
-        </Card>
-      )}
-    </div>
-  );
-}
-
-function SummaryCard({ icon, label, value, accent }: { icon: React.ReactNode; label: string; value: number; accent: string }) {
-  return (
-    <Card className="p-4">
-      <div className="flex items-center justify-between">
-        <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">{label}</span>
-        <span className={accent}>{icon}</span>
-      </div>
-      <div className="text-2xl sm:text-3xl font-extrabold mt-1">{value.toLocaleString()}</div>
-    </Card>
-  );
-}
-
-function StatRow({ label, value, accent }: { label: string; value: number | string; accent?: string }) {
-  return (
-    <div className="flex items-baseline justify-between border-b border-dashed last:border-0 py-1.5">
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <span className={`font-bold text-sm ${accent ?? ""}`}>{value}</span>
-    </div>
-  );
-}
-
-function SectionCard({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
-  return (
-    <Card className="p-4">
-      <div className="flex items-center gap-2 mb-2">
-        <span className="text-primary">{icon}</span>
-        <h3 className="font-bold text-sm uppercase tracking-wide">{title}</h3>
-      </div>
-      <div className="space-y-0.5">{children}</div>
-    </Card>
-  );
-}
-
-function EmployeeReport({
-  p, label, categoryLabel, categoryColor, summary,
-}: {
-  p: any; label: string;
-  categoryLabel: (c: string) => string;
-  categoryColor: (c: string) => string;
-  summary: { strengths: string[]; improvements: string[]; assessment: string };
-}) {
-  const { t } = useI18n();
-
-  return (
-    <div className="space-y-4">
-      {/* Header */}
-      <Card className="p-5">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h2 className="text-xl font-extrabold">{p.name}</h2>
-            <div className="text-sm text-muted-foreground mt-0.5">
-              {p.department} · {label}
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="text-right">
-              <div className="text-[10px] uppercase tracking-wide text-muted-foreground">{t("rep_overall_score")}</div>
-              <div className={`text-3xl font-extrabold leading-none ${p.overall >= 90 ? "text-success" : p.overall >= 75 ? "text-info" : p.overall >= 60 ? "text-warning" : "text-destructive"}`}>
-                {p.overall}<span className="text-base text-muted-foreground">/100</span>
-              </div>
-            </div>
-            <Badge variant="outline" className={`text-xs uppercase font-bold ${categoryColor(p.category)}`}>
-              {categoryLabel(p.category)}
-            </Badge>
-          </div>
-        </div>
-      </Card>
-
-      {/* KPI cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <SummaryCard icon={<CalendarCheck className="size-5" />} label={t("rep_attendance_pct")} value={p.attendancePct} accent="text-info" />
-        <SummaryCard icon={<CheckCircle2 className="size-5" />} label={t("rep_tasks_completed")} value={p.completed} accent="text-success" />
-        <SummaryCard icon={<FileText className="size-5" />} label={t("rep_reports_submitted")} value={p.totalReports} accent="text-primary" />
-        <SummaryCard icon={<HeartHandshake className="size-5" />} label={t("rep_beneficiaries")} value={p.beneficiaries} accent="text-warning" />
-      </div>
-
-      {/* Section grids */}
-      <div className="grid md:grid-cols-2 gap-3">
-        <SectionCard icon={<MapPin className="size-4" />} title={t("rep_work_impact")}>
-          <StatRow label={t("rep_villages_visited")} value={p.villages} />
-          <StatRow label={t("rep_field_visits")} value={p.fieldVisits} />
-          <StatRow label={t("rep_meetings")} value={p.meetings} />
-          <StatRow label={t("rep_beneficiaries")} value={p.beneficiaries} />
-        </SectionCard>
-
-        <SectionCard icon={<Briefcase className="size-4" />} title={t("rep_task_performance")}>
-          <StatRow label={t("rep_assigned")} value={p.totalTasks} />
-          <StatRow label={t("rep_completed")} value={p.completed} accent="text-success" />
-          <StatRow label={t("rep_pending")} value={p.pending} accent="text-info" />
-          <StatRow label={t("rep_failed")} value={p.failed} accent="text-destructive" />
-          <StatRow label={t("rep_overdue")} value={p.overdue} accent="text-warning" />
-          <StatRow label={t("rep_completion_rate")} value={`${p.taskPct}%`} />
-        </SectionCard>
-
-        <SectionCard icon={<FileText className="size-4" />} title={t("rep_dr_performance")}>
-          <StatRow label={t("rep_reports_submitted")} value={p.totalReports} />
-          <StatRow label={t("rep_approved")} value={p.approved} accent="text-success" />
-          <StatRow label={t("rep_rejected")} value={p.rejected} accent="text-destructive" />
-          <StatRow label={t("rep_late")} value={p.lateReports} accent="text-warning" />
-          <StatRow label={t("rep_missing")} value={p.missing} accent="text-muted-foreground" />
-          <StatRow label={t("rep_approval_rate")} value={`${p.approvalPct}%`} />
-        </SectionCard>
-
-        <SectionCard icon={<CalendarCheck className="size-4" />} title={t("rep_attendance_details")}>
-          <StatRow label={t("rep_present_days")} value={p.present} accent="text-success" />
-          <StatRow label={t("rep_absent_days")} value={p.absent} accent="text-destructive" />
-          <StatRow label={t("rep_leave_days")} value={p.leaveDays} accent="text-info" />
-          <StatRow label={t("rep_attendance_pct")} value={`${p.attendancePct}%`} />
-        </SectionCard>
-      </div>
-
-      {/* Breakdown */}
-      <Card className="p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <TrendingUp className="size-4 text-primary" />
-          <h3 className="font-bold text-sm uppercase tracking-wide">{t("rep_breakdown")}</h3>
-        </div>
-        <div className="space-y-3">
-          {[
-            { label: t("rep_attendance_pct"), pct: p.attendancePct },
-            { label: t("rep_task_performance"), pct: p.taskPct },
-            { label: t("rep_dr_performance"), pct: p.approvalPct },
-            { label: t("rep_work_impact"), pct: p.impactPct },
-          ].map((b) => (
-            <div key={b.label}>
-              <div className="flex justify-between text-xs mb-1">
-                <span className="text-muted-foreground">{b.label}</span>
-                <span className="font-bold">{b.pct}%</span>
-              </div>
-              <Progress value={b.pct} className="h-2" />
-            </div>
-          ))}
-        </div>
-      </Card>
-
-      {/* Feedback */}
-      <Card className="p-4">
-        <div className="flex items-center gap-2 mb-2">
-          <MessageSquareQuote className="size-4 text-primary" />
-          <h3 className="font-bold text-sm uppercase tracking-wide">{t("rep_manager_feedback")}</h3>
-        </div>
-        <div className="flex items-center gap-1 mb-2">
-          {[1, 2, 3, 4, 5].map((s) => (
-            <span key={s} className={s <= Math.round(p.managerRating) ? "text-warning" : "text-muted-foreground/30"}>★</span>
-          ))}
-          <span className="ml-2 text-sm font-bold">{p.managerRating}/5</span>
-        </div>
-        <p className="text-sm text-muted-foreground">{summary.assessment}</p>
-      </Card>
-
-      {/* Summary */}
-      <Card className="p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <TrendingUp className="size-4 text-primary" />
-          <h3 className="font-bold text-sm uppercase tracking-wide">{t("rep_summary")}</h3>
-        </div>
-        <div className="grid md:grid-cols-3 gap-4">
-          <div>
-            <div className="text-xs uppercase font-bold text-success mb-1">{t("rep_strengths")}</div>
-            <ul className="text-sm space-y-1 list-disc pl-4">
-              {summary.strengths.map((s, i) => <li key={i}>{s}</li>)}
-            </ul>
-          </div>
-          <div>
-            <div className="text-xs uppercase font-bold text-warning mb-1">{t("rep_improvements")}</div>
-            <ul className="text-sm space-y-1 list-disc pl-4">
-              {summary.improvements.map((s, i) => <li key={i}>{s}</li>)}
-            </ul>
-          </div>
-          <div>
-            <div className="text-xs uppercase font-bold text-info mb-1">{t("rep_assessment")}</div>
-            <p className="text-sm">{summary.assessment}</p>
-          </div>
-        </div>
+        )}
       </Card>
     </div>
   );
