@@ -363,6 +363,21 @@ export const dict = {
   lv_apply_leave: { en: "Apply Leave", hi: "छुट्टी मांगें" },
   lv_no_requests: { en: "No leave requests", hi: "कोई अर्ज़ी नहीं" },
   lv_clear_filters: { en: "Clear filters", hi: "फ़िल्टर हटाएं" },
+
+  // daily reports module
+  dr_case_study: { en: "Case Study", hi: "केस स्टडी" },
+  dr_planning_details: { en: "Planning Details", hi: "योजना विवरण" },
+  dr_planned_work: { en: "Planned Work", hi: "नियोजित कार्य" },
+  dr_pending_work: { en: "Pending Work", hi: "लंबित कार्य" },
+  dr_replan_tomorrow: { en: "Replan for Tomorrow", hi: "कल की पुनः योजना" },
+  dr_my_recent_reports: { en: "My Recent Reports", hi: "मेरी हाल की रिपोर्ट" },
+  dr_project: { en: "Project", hi: "परियोजना" },
+  dr_all_projects: { en: "All Projects", hi: "सभी परियोजनाएँ" },
+  dr_videos: { en: "Videos", hi: "वीडियो" },
+  dr_view_details: { en: "View Details", hi: "विवरण देखें" },
+  dr_export_pdf: { en: "Export PDF", hi: "PDF निर्यात" },
+  dr_export_excel: { en: "Export Excel", hi: "Excel निर्यात" },
+  dr_optional: { en: "Optional", hi: "वैकल्पिक" },
 } satisfies Dict;
 
 

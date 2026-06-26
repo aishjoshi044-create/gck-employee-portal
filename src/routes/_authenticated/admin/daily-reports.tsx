@@ -14,8 +14,9 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { CheckCircle2, Clock, XCircle, FileText, Loader2, Search, AlertCircle } from "lucide-react";
+import { CheckCircle2, Clock, XCircle, FileText, Loader2, Search, AlertCircle, Download, FileSpreadsheet } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import { downloadPdf, downloadExcel } from "@/lib/exports";
 
 export const Route = createFileRoute("/_authenticated/admin/daily-reports")({
   component: AdminDailyReportsPage,
@@ -31,15 +32,22 @@ interface DailyReport {
   activity_type: ActivityType;
   activity_other: string | null;
   village: string | null;
+  project: string | null;
   beneficiaries_reached: number;
   work_done: string;
   issues: string | null;
+  case_study: string | null;
+  planned_work: string | null;
+  pending_work: string | null;
+  replan_tomorrow: string | null;
   photo_urls: string[];
+  video_urls: string[];
   lat: number | null;
   lng: number | null;
   status: Status;
   admin_note: string | null;
 }
+
 
 const ACTIVITY_KEYS: Record<ActivityType, DictKey> = {
   survey: "activity_survey",
@@ -62,6 +70,8 @@ function AdminDailyReportsPage() {
   const [empFilter, setEmpFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [villageFilter, setVillageFilter] = useState<string>("all");
+  const [projectFilter, setProjectFilter] = useState<string>("all");
+  const [activityFilter, setActivityFilter] = useState<string>("all");
   const [dateFilter, setDateFilter] = useState<string>("");
   const [search, setSearch] = useState("");
   const [detail, setDetail] = useState<DailyReport | null>(null);
@@ -96,21 +106,24 @@ function AdminDailyReportsPage() {
   }, [qc]);
 
   const villages = useMemo(() => Array.from(new Set(reports.map((r) => r.village).filter(Boolean))) as string[], [reports]);
+  const projects = useMemo(() => Array.from(new Set(reports.map((r) => r.project).filter(Boolean))) as string[], [reports]);
 
   const today = format(new Date(), "yyyy-MM-dd");
   const filtered = useMemo(() => reports.filter((r) => {
     if (empFilter !== "all" && r.user_id !== empFilter) return false;
     if (statusFilter !== "all" && r.status !== statusFilter) return false;
     if (villageFilter !== "all" && r.village !== villageFilter) return false;
+    if (projectFilter !== "all" && r.project !== projectFilter) return false;
+    if (activityFilter !== "all" && r.activity_type !== activityFilter) return false;
     if (dateFilter && r.report_date !== dateFilter) return false;
     if (search.trim()) {
       const q = search.toLowerCase();
       const p = pmap.get(r.user_id);
-      const hay = `${r.work_done} ${r.village ?? ""} ${p?.full_name ?? ""}`.toLowerCase();
+      const hay = `${r.work_done} ${r.village ?? ""} ${r.project ?? ""} ${p?.full_name ?? ""}`.toLowerCase();
       if (!hay.includes(q)) return false;
     }
     return true;
-  }), [reports, empFilter, statusFilter, villageFilter, dateFilter, search, pmap]);
+  }), [reports, empFilter, statusFilter, villageFilter, projectFilter, activityFilter, dateFilter, search, pmap]);
 
   const todayReports = reports.filter((r) => r.report_date === today);
   const stats = {
@@ -133,11 +146,42 @@ function AdminDailyReportsPage() {
     setDetail(null);
   };
 
+  const exportRows = () => filtered.map((r) => {
+    const p = pmap.get(r.user_id);
+    return [
+      p?.full_name ?? "—",
+      format(new Date(r.report_date), "d MMM yyyy"),
+      t(ACTIVITY_KEYS[r.activity_type]),
+      r.village ?? "—",
+      r.project ?? "—",
+      r.beneficiaries_reached,
+      t(STATUS_META[r.status].key),
+    ];
+  });
+  const exportHead = [
+    t("full_name"), t("today"), t("activity_type"), t("village"), t("dr_project"), t("beneficiaries_reached"), t("pending"),
+  ];
+  const exportPdf = () => downloadPdf({
+    title: t("daily_reports"),
+    subtitle: `${filtered.length} ${t("reports_submitted")}`,
+    filename: `daily-reports-${format(new Date(), "yyyy-MM-dd")}.pdf`,
+    head: exportHead, body: exportRows(), orientation: "landscape",
+  });
+  const exportExcel = () => downloadExcel(`daily-reports-${format(new Date(), "yyyy-MM-dd")}.xlsx`, [
+    { name: "Reports", header: exportHead, rows: exportRows() },
+  ]);
+
   return (
     <div className="space-y-4">
-      <header>
-        <h1 className="text-xl sm:text-2xl font-bold tracking-tight">{t("daily_reports")}</h1>
-        <p className="text-sm text-muted-foreground">{t("performance_summary")}</p>
+      <header className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight">{t("daily_reports")}</h1>
+          <p className="text-sm text-muted-foreground">{t("performance_summary")}</p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={exportPdf} className="gap-1"><Download className="size-4" />{t("dr_export_pdf")}</Button>
+          <Button variant="outline" size="sm" onClick={exportExcel} className="gap-1"><FileSpreadsheet className="size-4" />{t("dr_export_excel")}</Button>
+        </div>
       </header>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -147,7 +191,7 @@ function AdminDailyReportsPage() {
         <StatCard label={t("missing_reports")} value={stats.missing} Icon={AlertCircle} tone="red" />
       </div>
 
-      <Card className="p-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-6">
+      <Card className="p-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-7">
         <div className="lg:col-span-2">
           <Label className="text-xs">{t("search")}</Label>
           <div className="relative">
@@ -166,12 +210,32 @@ function AdminDailyReportsPage() {
           </Select>
         </div>
         <div>
+          <Label className="text-xs">{t("dr_project")}</Label>
+          <Select value={projectFilter} onValueChange={setProjectFilter}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t("dr_all_projects")}</SelectItem>
+              {projects.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
           <Label className="text-xs">{t("village")}</Label>
           <Select value={villageFilter} onValueChange={setVillageFilter}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{t("any_date")}</SelectItem>
               {villages.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label className="text-xs">{t("activity_type")}</Label>
+          <Select value={activityFilter} onValueChange={setActivityFilter}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t("activity_type")}</SelectItem>
+              {(Object.keys(ACTIVITY_KEYS) as ActivityType[]).map((a) => <SelectItem key={a} value={a}>{t(ACTIVITY_KEYS[a])}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
@@ -270,22 +334,17 @@ function AdminReportDetail({ report, profileName, onClose, onDecide }: { report:
           <Row label={t("today")} value={format(new Date(report.report_date), "d MMM yyyy")} />
           <Row label={t("activity_type")} value={`${t(ACTIVITY_KEYS[report.activity_type])}${report.activity_other ? `: ${report.activity_other}` : ""}`} />
           {report.village && <Row label={t("village_location")} value={report.village} />}
+          {report.project && <Row label={t("dr_project")} value={report.project} />}
           <Row label={t("beneficiaries_reached")} value={String(report.beneficiaries_reached)} />
           {report.lat != null && report.lng != null && (
-            <Row label={t("gps_location")} value={
-              `${report.lat.toFixed(5)}, ${report.lng.toFixed(5)}`
-            } />
+            <Row label={t("gps_location")} value={`${report.lat.toFixed(5)}, ${report.lng.toFixed(5)}`} />
           )}
-          <div>
-            <div className="text-xs text-muted-foreground">{t("work_done_today")}</div>
-            <p className="whitespace-pre-wrap">{report.work_done}</p>
-          </div>
-          {report.issues && (
-            <div>
-              <div className="text-xs text-muted-foreground">{t("issues_faced")}</div>
-              <p className="whitespace-pre-wrap">{report.issues}</p>
-            </div>
-          )}
+          <Block label={t("work_done_today")} value={report.work_done} />
+          {report.issues && <Block label={t("issues_faced")} value={report.issues} />}
+          {report.case_study && <Block label={t("dr_case_study")} value={report.case_study} />}
+          {report.planned_work && <Block label={t("dr_planned_work")} value={report.planned_work} />}
+          {report.pending_work && <Block label={t("dr_pending_work")} value={report.pending_work} />}
+          {report.replan_tomorrow && <Block label={t("dr_replan_tomorrow")} value={report.replan_tomorrow} />}
           {report.photo_urls.length > 0 && (
             <div>
               <div className="text-xs text-muted-foreground mb-1">{t("photos")}</div>
@@ -294,6 +353,16 @@ function AdminReportDetail({ report, profileName, onClose, onDecide }: { report:
                   <a key={i} href={u} target="_blank" rel="noreferrer" className="aspect-square rounded-md overflow-hidden border">
                     <img src={u} alt="" className="w-full h-full object-cover" />
                   </a>
+                ))}
+              </div>
+            </div>
+          )}
+          {report.video_urls && report.video_urls.length > 0 && (
+            <div>
+              <div className="text-xs text-muted-foreground mb-1">{t("dr_videos")}</div>
+              <div className="grid gap-2">
+                {report.video_urls.map((u, i) => (
+                  <video key={i} src={u} controls className="w-full rounded-md border" />
                 ))}
               </div>
             </div>
@@ -317,6 +386,15 @@ function Row({ label, value }: { label: string; value: string }) {
     <div className="flex justify-between gap-3 border-b pb-1">
       <span className="text-xs text-muted-foreground">{label}</span>
       <span className="font-medium text-right">{value}</span>
+    </div>
+  );
+}
+
+function Block({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <p className="whitespace-pre-wrap">{value}</p>
     </div>
   );
 }

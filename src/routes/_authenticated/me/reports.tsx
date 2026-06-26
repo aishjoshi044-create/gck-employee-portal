@@ -13,9 +13,10 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
 import { format, startOfWeek, startOfMonth, endOfMonth, subMonths, startOfDay } from "date-fns";
-import { Plus, MapPin, ImagePlus, X, Search, FileText, CheckCircle2, Clock, XCircle, Loader2 } from "lucide-react";
+import { Plus, MapPin, ImagePlus, X, Search, FileText, CheckCircle2, Clock, XCircle, Loader2, ChevronDown } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/me/reports")({
   component: EmployeeReportsPage,
@@ -31,10 +32,16 @@ interface DailyReport {
   activity_type: ActivityType;
   activity_other: string | null;
   village: string | null;
+  project: string | null;
   beneficiaries_reached: number;
   work_done: string;
   issues: string | null;
+  case_study: string | null;
+  planned_work: string | null;
+  pending_work: string | null;
+  replan_tomorrow: string | null;
   photo_urls: string[];
+  video_urls: string[];
   lat: number | null;
   lng: number | null;
   status: Status;
@@ -180,7 +187,8 @@ function EmployeeReportsPage() {
         )}
       </Card>
 
-      {/* List */}
+      {/* Recent reports */}
+      <h2 className="text-sm font-semibold text-muted-foreground pt-2">{t("dr_my_recent_reports")}</h2>
       <div className="grid gap-2">
         {isLoading && <div className="flex justify-center p-8"><Loader2 className="size-6 animate-spin text-muted-foreground" /></div>}
         {!isLoading && filtered.length === 0 && (
@@ -238,9 +246,15 @@ function ReportForm({ open, onOpenChange }: { open: boolean; onOpenChange: (v: b
   const [activity, setActivity] = useState<ActivityType>("field_visit");
   const [activityOther, setActivityOther] = useState("");
   const [village, setVillage] = useState("");
+  const [project, setProject] = useState("");
   const [beneficiaries, setBeneficiaries] = useState<number>(0);
   const [workDone, setWorkDone] = useState("");
   const [issues, setIssues] = useState("");
+  const [caseStudy, setCaseStudy] = useState("");
+  const [plannedWork, setPlannedWork] = useState("");
+  const [pendingWork, setPendingWork] = useState("");
+  const [replanTomorrow, setReplanTomorrow] = useState("");
+  const [planningOpen, setPlanningOpen] = useState(false);
   const [photos, setPhotos] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
@@ -265,8 +279,9 @@ function ReportForm({ open, onOpenChange }: { open: boolean; onOpenChange: (v: b
   }, [photos]);
 
   const reset = () => {
-    setActivity("field_visit"); setActivityOther(""); setVillage(""); setBeneficiaries(0);
-    setWorkDone(""); setIssues(""); setPhotos([]); setCoords(null);
+    setActivity("field_visit"); setActivityOther(""); setVillage(""); setProject(""); setBeneficiaries(0);
+    setWorkDone(""); setIssues(""); setCaseStudy(""); setPlannedWork(""); setPendingWork(""); setReplanTomorrow("");
+    setPlanningOpen(false); setPhotos([]); setCoords(null);
   };
 
   const onFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -282,6 +297,7 @@ function ReportForm({ open, onOpenChange }: { open: boolean; onOpenChange: (v: b
   const submit = async () => {
     if (!user) return;
     if (!workDone.trim()) { toast.error(t("work_done_today")); return; }
+    if (!village.trim()) { toast.error(t("village_location")); return; }
     if (activity === "other" && !activityOther.trim()) { toast.error(t("specify_activity")); return; }
     setSubmitting(true);
     try {
@@ -300,9 +316,14 @@ function ReportForm({ open, onOpenChange }: { open: boolean; onOpenChange: (v: b
         activity_type: activity,
         activity_other: activity === "other" ? activityOther.trim() : null,
         village: village.trim() || null,
+        project: project.trim() || null,
         beneficiaries_reached: Number(beneficiaries) || 0,
         work_done: workDone.trim(),
         issues: issues.trim() || null,
+        case_study: caseStudy.trim() || null,
+        planned_work: plannedWork.trim() || null,
+        pending_work: pendingWork.trim() || null,
+        replan_tomorrow: replanTomorrow.trim() || null,
         photo_urls: uploaded,
         lat: coords?.lat ?? null,
         lng: coords?.lng ?? null,
@@ -363,10 +384,18 @@ function ReportForm({ open, onOpenChange }: { open: boolean; onOpenChange: (v: b
               <Label className="text-xs">{t("beneficiaries_reached")}</Label>
               <Input type="number" min={0} value={beneficiaries} onChange={(e) => setBeneficiaries(Number(e.target.value))} />
             </div>
+            <div>
+              <Label className="text-xs">{t("dr_project")} <span className="text-muted-foreground">({t("dr_optional")})</span></Label>
+              <Input value={project} onChange={(e) => setProject(e.target.value)} />
+            </div>
           </div>
           <div>
-            <Label className="text-xs">{t("issues_faced")}</Label>
+            <Label className="text-xs">{t("issues_faced")} <span className="text-muted-foreground">({t("dr_optional")})</span></Label>
             <Textarea rows={2} value={issues} onChange={(e) => setIssues(e.target.value)} />
+          </div>
+          <div>
+            <Label className="text-xs">{t("dr_case_study")} <span className="text-muted-foreground">({t("dr_optional")})</span></Label>
+            <Textarea rows={2} value={caseStudy} onChange={(e) => setCaseStudy(e.target.value)} />
           </div>
           <div>
             <Label className="text-xs">{t("upload_photos")}</Label>
@@ -385,6 +414,28 @@ function ReportForm({ open, onOpenChange }: { open: boolean; onOpenChange: (v: b
               )}
             </div>
           </div>
+          <Collapsible open={planningOpen} onOpenChange={setPlanningOpen} className="rounded-md border">
+            <CollapsibleTrigger asChild>
+              <button type="button" className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium hover:bg-accent/40">
+                <span>{t("dr_planning_details")} <span className="text-xs text-muted-foreground font-normal">({t("dr_optional")})</span></span>
+                <ChevronDown className={`size-4 transition-transform ${planningOpen ? "rotate-180" : ""}`} />
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="px-3 pb-3 grid gap-3">
+              <div>
+                <Label className="text-xs">{t("dr_planned_work")}</Label>
+                <Textarea rows={2} value={plannedWork} onChange={(e) => setPlannedWork(e.target.value)} />
+              </div>
+              <div>
+                <Label className="text-xs">{t("dr_pending_work")}</Label>
+                <Textarea rows={2} value={pendingWork} onChange={(e) => setPendingWork(e.target.value)} />
+              </div>
+              <div>
+                <Label className="text-xs">{t("dr_replan_tomorrow")}</Label>
+                <Textarea rows={2} value={replanTomorrow} onChange={(e) => setReplanTomorrow(e.target.value)} />
+              </div>
+            </CollapsibleContent>
+          </Collapsible>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>{t("cancel")}</Button>
@@ -410,18 +461,15 @@ function ReportDetail({ report, onClose }: { report: DailyReport | null; onClose
           </div>
           <Row label={t("activity_type")} value={`${t(ACTIVITY_KEYS[report.activity_type])}${report.activity_other ? `: ${report.activity_other}` : ""}`} />
           {report.village && <Row label={t("village_location")} value={report.village} />}
+          {report.project && <Row label={t("dr_project")} value={report.project} />}
           <Row label={t("beneficiaries_reached")} value={String(report.beneficiaries_reached)} />
           {report.lat != null && report.lng != null && <Row label={t("gps_location")} value={`${report.lat.toFixed(5)}, ${report.lng.toFixed(5)}`} />}
-          <div>
-            <div className="text-xs text-muted-foreground">{t("work_done_today")}</div>
-            <p className="whitespace-pre-wrap">{report.work_done}</p>
-          </div>
-          {report.issues && (
-            <div>
-              <div className="text-xs text-muted-foreground">{t("issues_faced")}</div>
-              <p className="whitespace-pre-wrap">{report.issues}</p>
-            </div>
-          )}
+          <Block label={t("work_done_today")} value={report.work_done} />
+          {report.issues && <Block label={t("issues_faced")} value={report.issues} />}
+          {report.case_study && <Block label={t("dr_case_study")} value={report.case_study} />}
+          {report.planned_work && <Block label={t("dr_planned_work")} value={report.planned_work} />}
+          {report.pending_work && <Block label={t("dr_pending_work")} value={report.pending_work} />}
+          {report.replan_tomorrow && <Block label={t("dr_replan_tomorrow")} value={report.replan_tomorrow} />}
           {report.photo_urls.length > 0 && (
             <div>
               <div className="text-xs text-muted-foreground mb-1">{t("photos")}</div>
@@ -451,6 +499,15 @@ function Row({ label, value }: { label: string; value: string }) {
     <div className="flex justify-between gap-3 border-b pb-1">
       <span className="text-xs text-muted-foreground">{label}</span>
       <span className="font-medium text-right">{value}</span>
+    </div>
+  );
+}
+
+function Block({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <p className="whitespace-pre-wrap">{value}</p>
     </div>
   );
 }
