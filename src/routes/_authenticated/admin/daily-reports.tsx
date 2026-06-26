@@ -14,8 +14,9 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { CheckCircle2, Clock, XCircle, FileText, Loader2, Search, AlertCircle } from "lucide-react";
+import { CheckCircle2, Clock, XCircle, FileText, Loader2, Search, AlertCircle, Download, FileSpreadsheet } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import { downloadPdf, downloadExcel } from "@/lib/exports";
 
 export const Route = createFileRoute("/_authenticated/admin/daily-reports")({
   component: AdminDailyReportsPage,
