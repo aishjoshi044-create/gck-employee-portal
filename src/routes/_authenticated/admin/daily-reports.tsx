@@ -48,25 +48,6 @@ interface DailyReport {
   admin_note: string | null;
 }
 
-type ActivityType = "survey" | "meeting" | "training" | "field_visit" | "documentation" | "other";
-type Status = "pending" | "approved" | "rejected";
-
-interface DailyReport {
-  id: string;
-  user_id: string;
-  report_date: string;
-  activity_type: ActivityType;
-  activity_other: string | null;
-  village: string | null;
-  beneficiaries_reached: number;
-  work_done: string;
-  issues: string | null;
-  photo_urls: string[];
-  lat: number | null;
-  lng: number | null;
-  status: Status;
-  admin_note: string | null;
-}
 
 const ACTIVITY_KEYS: Record<ActivityType, DictKey> = {
   survey: "activity_survey",
