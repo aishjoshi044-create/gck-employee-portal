@@ -245,9 +245,15 @@ function ReportForm({ open, onOpenChange }: { open: boolean; onOpenChange: (v: b
   const [activity, setActivity] = useState<ActivityType>("field_visit");
   const [activityOther, setActivityOther] = useState("");
   const [village, setVillage] = useState("");
+  const [project, setProject] = useState("");
   const [beneficiaries, setBeneficiaries] = useState<number>(0);
   const [workDone, setWorkDone] = useState("");
   const [issues, setIssues] = useState("");
+  const [caseStudy, setCaseStudy] = useState("");
+  const [plannedWork, setPlannedWork] = useState("");
+  const [pendingWork, setPendingWork] = useState("");
+  const [replanTomorrow, setReplanTomorrow] = useState("");
+  const [planningOpen, setPlanningOpen] = useState(false);
   const [photos, setPhotos] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
