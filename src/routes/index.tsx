@@ -13,6 +13,24 @@ function IndexPage() {
   const { user, role, signOut } = useAuth();
   const { lang } = useI18n();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const handleLogout = async () => {
+    await queryClient.cancelQueries();
+    queryClient.clear();
+    await signOut();
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.removeItem("gck-remember");
+        sessionStorage.removeItem("gck-tab-alive");
+        Object.keys(localStorage)
+          .filter((k) => k.startsWith("sb-") || k.includes("pin"))
+          .forEach((k) => localStorage.removeItem(k));
+      } catch {}
+    }
+    navigate({ to: "/", replace: true });
+  };
+
 
   const go = async (as: "employee" | "admin") => {
     if (user && ((as === "admin" && role !== "admin") || (as === "employee" && role === "admin"))) {
