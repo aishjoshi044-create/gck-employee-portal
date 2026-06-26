@@ -337,6 +337,32 @@ export const dict = {
   rep_select_employee_hint: { en: "Select an employee to see the full performance report.", hi: "पूर्ण प्रदर्शन रिपोर्ट देखने के लिए कर्मचारी चुनें।" },
   rep_no_data: { en: "No data for this period", hi: "इस अवधि के लिए कोई डेटा नहीं" },
   rep_view_report: { en: "View Report", hi: "रिपोर्ट देखें" },
+
+  // leaves module
+  lv_pending_requests: { en: "Pending Requests", hi: "लंबित अर्ज़ी" },
+  lv_approved_this_month: { en: "Approved This Month", hi: "इस माह मंज़ूर" },
+  lv_rejected_this_month: { en: "Rejected This Month", hi: "इस माह अस्वीकार" },
+  lv_on_leave_today: { en: "On Leave Today", hi: "आज छुट्टी पर" },
+  lv_search_employee: { en: "Search employee…", hi: "कर्मचारी खोजें…" },
+  lv_status: { en: "Status", hi: "स्थिति" },
+  lv_all_status: { en: "All Status", hi: "सभी स्थिति" },
+  lv_leave_type: { en: "Leave Type", hi: "छुट्टी प्रकार" },
+  lv_all_types: { en: "All Types", hi: "सभी प्रकार" },
+  lv_total_days: { en: "Total Days", hi: "कुल दिन" },
+  lv_days: { en: "days", hi: "दिन" },
+  lv_day: { en: "day", hi: "दिन" },
+  lv_applied_on: { en: "Applied", hi: "अर्ज़ी दी" },
+  lv_admin_remarks: { en: "Admin Remarks", hi: "प्रशासक टिप्पणी" },
+  lv_add_remark: { en: "Add remark (optional)", hi: "टिप्पणी जोड़ें (वैकल्पिक)" },
+  lv_details: { en: "Leave Details", hi: "छुट्टी विवरण" },
+  lv_employee_id: { en: "Employee ID", hi: "कर्मचारी ID" },
+  lv_current_status: { en: "Current Status", hi: "वर्तमान स्थिति" },
+  lv_leave_balance: { en: "Leave Balance", hi: "छुट्टी शेष" },
+  lv_used_this_year: { en: "Used this year", hi: "इस वर्ष ली गई" },
+  lv_history: { en: "Leave History", hi: "छुट्टी इतिहास" },
+  lv_apply_leave: { en: "Apply Leave", hi: "छुट्टी मांगें" },
+  lv_no_requests: { en: "No leave requests", hi: "कोई अर्ज़ी नहीं" },
+  lv_clear_filters: { en: "Clear filters", hi: "फ़िल्टर हटाएं" },
 } satisfies Dict;
 
 
