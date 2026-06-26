@@ -180,3 +180,23 @@
 
 /* Leaflet sizing */
 .leaflet-container { width: 100%; height: 100%; border-radius: var(--radius); }
+
+/* Calmer skeleton pulse — subtle, enterprise feel */
+@keyframes gck-skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.75; }
+}
+.gck-skeleton { animation: gck-skeleton-pulse 1.6s ease-in-out infinite; }
+
+/* Smoother scrolling */
+html { scroll-behavior: smooth; }
+
+/* Respect users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
