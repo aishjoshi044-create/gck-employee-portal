@@ -92,18 +92,24 @@ export type Database = {
           activity_type: Database["public"]["Enums"]["daily_activity_type"]
           admin_note: string | null
           beneficiaries_reached: number
+          case_study: string | null
           created_at: string
           id: string
           issues: string | null
           lat: number | null
           lng: number | null
+          pending_work: string | null
           photo_urls: string[]
+          planned_work: string | null
+          project: string | null
+          replan_tomorrow: string | null
           report_date: string
           reviewed_at: string | null
           reviewed_by: string | null
           status: Database["public"]["Enums"]["daily_report_status"]
           updated_at: string
           user_id: string
+          video_urls: string[]
           village: string | null
           work_done: string
         }
@@ -112,18 +118,24 @@ export type Database = {
           activity_type: Database["public"]["Enums"]["daily_activity_type"]
           admin_note?: string | null
           beneficiaries_reached?: number
+          case_study?: string | null
           created_at?: string
           id?: string
           issues?: string | null
           lat?: number | null
           lng?: number | null
+          pending_work?: string | null
           photo_urls?: string[]
+          planned_work?: string | null
+          project?: string | null
+          replan_tomorrow?: string | null
           report_date?: string
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: Database["public"]["Enums"]["daily_report_status"]
           updated_at?: string
           user_id: string
+          video_urls?: string[]
           village?: string | null
           work_done: string
         }
@@ -132,18 +144,24 @@ export type Database = {
           activity_type?: Database["public"]["Enums"]["daily_activity_type"]
           admin_note?: string | null
           beneficiaries_reached?: number
+          case_study?: string | null
           created_at?: string
           id?: string
           issues?: string | null
           lat?: number | null
           lng?: number | null
+          pending_work?: string | null
           photo_urls?: string[]
+          planned_work?: string | null
+          project?: string | null
+          replan_tomorrow?: string | null
           report_date?: string
           reviewed_at?: string | null
           reviewed_by?: string | null
           status?: Database["public"]["Enums"]["daily_report_status"]
           updated_at?: string
           user_id?: string
+          video_urls?: string[]
           village?: string | null
           work_done?: string
         }
