@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -186,9 +187,15 @@ function LeavesPage() {
               ))}
             </SelectContent>
           </Select>
-          <div className="flex gap-2">
-            <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} aria-label={t("from_date")} />
-            <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} aria-label={t("to_date")} />
+          <div className="grid grid-cols-2 gap-2">
+            <div className="flex flex-col gap-1">
+              <Label className="text-[11px] text-muted-foreground">{t("from_date")}</Label>
+              <Input type="date" value={from} max={to || undefined} onChange={(e) => setFrom(e.target.value)} aria-label={t("from_date")} />
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label className="text-[11px] text-muted-foreground">{t("to_date")}</Label>
+              <Input type="date" value={to} min={from || undefined} onChange={(e) => setTo(e.target.value)} aria-label={t("to_date")} />
+            </div>
           </div>
         </div>
         {(q || statusF !== "all" || typeF !== "all" || from || to) && (
