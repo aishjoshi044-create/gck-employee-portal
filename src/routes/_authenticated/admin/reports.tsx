@@ -500,7 +500,7 @@ function ReportsPage() {
         ) : preview.rows.length === 0 ? (
           <div className="py-12 text-center text-sm text-muted-foreground">{t("rep_no_data")}</div>
         ) : (
-          <div className="overflow-x-auto max-h-[60vh]">
+          <div className="overflow-x-auto max-h-[calc(100vh-320px)]">
             <table className="w-full text-sm">
               <thead className="bg-muted text-xs uppercase sticky top-0">
                 <tr>{preview.head.map((h) => <th key={h} className="text-left p-2 font-bold">{h}</th>)}</tr>
