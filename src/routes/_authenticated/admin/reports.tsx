@@ -310,63 +310,8 @@ function ReportsPage() {
     ]);
   };
 
-  // ============ DOCUMENTS ============
-  const { data: documents = [], isLoading: docsLoading } = useQuery({
-    queryKey: ["rg-docs"],
-    queryFn: async () => (await supabase.from("report_documents").select("*").order("created_at", { ascending: false })).data ?? [],
-  });
 
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [docTitle, setDocTitle] = useState("");
-  const [docCategory, setDocCategory] = useState<"monthly_ppt" | "monthly_activity" | "budget" | "other">("monthly_ppt");
-  const [docFile, setDocFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
 
-  const upload = async () => {
-    if (!docFile || !docTitle) { toast.error("Title and file required"); return; }
-    setUploading(true);
-    try {
-      const path = `${docCategory}/${Date.now()}_${docFile.name}`;
-      const { error: upErr } = await supabase.storage.from("documents").upload(path, docFile);
-      if (upErr) throw upErr;
-      const { data: user } = await supabase.auth.getUser();
-      const { error: insErr } = await supabase.from("report_documents").insert({
-        title: docTitle, category: docCategory, file_path: path,
-        mime_type: docFile.type, size_bytes: docFile.size, uploaded_by: user.user?.id,
-      });
-      if (insErr) throw insErr;
-      toast.success(t("rg_doc_uploaded"));
-      setDocTitle(""); setDocFile(null); if (fileRef.current) fileRef.current.value = "";
-      qc.invalidateQueries({ queryKey: ["rg-docs"] });
-    } catch (e: any) { toast.error(e?.message ?? "Upload failed"); }
-    finally { setUploading(false); }
-  };
-
-  const openDoc = useMutation({
-    mutationFn: async (path: string) => {
-      const { data, error } = await supabase.storage.from("documents").createSignedUrl(path, 3600);
-      if (error) throw error;
-      return data.signedUrl;
-    },
-    onSuccess: (url) => window.open(url, "_blank"),
-    onError: (e: any) => toast.error(e?.message ?? "Failed to open"),
-  });
-
-  const deleteDoc = async (id: string, path: string) => {
-    if (!confirm(t("rg_confirm_delete"))) return;
-    try {
-      await supabase.storage.from("documents").remove([path]);
-      const { error } = await supabase.from("report_documents").delete().eq("id", id);
-      if (error) throw error;
-      toast.success(t("rg_doc_deleted"));
-      qc.invalidateQueries({ queryKey: ["rg-docs"] });
-    } catch (e: any) { toast.error(e?.message ?? "Delete failed"); }
-  };
-
-  const catLabel = (c: string) =>
-    c === "monthly_ppt" ? t("rg_doc_monthly_ppt") :
-    c === "monthly_activity" ? t("rg_doc_monthly_activity") :
-    c === "budget" ? t("rg_doc_budget") : t("rg_doc_other");
 
   return (
     <div className="space-y-4">
