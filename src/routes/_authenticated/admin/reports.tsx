@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useI18n } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,11 +10,9 @@ import { Badge } from "@/components/ui/badge";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { useMemo, useState, useRef } from "react";
+import { useMemo, useState } from "react";
 import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, differenceInBusinessDays, addDays } from "date-fns";
-import {
-  FileDown, FileSpreadsheet, Play, Upload, Download, Trash2, Eye, FileText, Loader2,
-} from "lucide-react";
+import { FileDown, FileSpreadsheet, Play, Loader2 } from "lucide-react";
 import { downloadPdf, downloadExcel } from "@/lib/exports";
 import { toast } from "sonner";
 
