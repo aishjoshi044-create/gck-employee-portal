@@ -46,7 +46,8 @@ interface PreviewData {
 
 function ReportsPage() {
   const { t } = useI18n();
-  const qc = useQueryClient();
+
+
 
   const [reportType, setReportType] = useState<ReportType>("performance");
   const today = new Date();
