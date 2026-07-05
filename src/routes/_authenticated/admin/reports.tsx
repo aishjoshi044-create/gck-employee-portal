@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useI18n } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,11 +10,9 @@ import { Badge } from "@/components/ui/badge";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { useMemo, useState, useRef } from "react";
+import { useMemo, useState } from "react";
 import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, differenceInBusinessDays, addDays } from "date-fns";
-import {
-  FileDown, FileSpreadsheet, Play, Upload, Download, Trash2, Eye, FileText, Loader2,
-} from "lucide-react";
+import { FileDown, FileSpreadsheet, Play, Loader2 } from "lucide-react";
 import { downloadPdf, downloadExcel } from "@/lib/exports";
 import { toast } from "sonner";
 
@@ -48,7 +46,8 @@ interface PreviewData {
 
 function ReportsPage() {
   const { t } = useI18n();
-  const qc = useQueryClient();
+
+
 
   const [reportType, setReportType] = useState<ReportType>("performance");
   const today = new Date();
@@ -310,63 +309,8 @@ function ReportsPage() {
     ]);
   };
 
-  // ============ DOCUMENTS ============
-  const { data: documents = [], isLoading: docsLoading } = useQuery({
-    queryKey: ["rg-docs"],
-    queryFn: async () => (await supabase.from("report_documents").select("*").order("created_at", { ascending: false })).data ?? [],
-  });
 
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [docTitle, setDocTitle] = useState("");
-  const [docCategory, setDocCategory] = useState<"monthly_ppt" | "monthly_activity" | "budget" | "other">("monthly_ppt");
-  const [docFile, setDocFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
 
-  const upload = async () => {
-    if (!docFile || !docTitle) { toast.error("Title and file required"); return; }
-    setUploading(true);
-    try {
-      const path = `${docCategory}/${Date.now()}_${docFile.name}`;
-      const { error: upErr } = await supabase.storage.from("documents").upload(path, docFile);
-      if (upErr) throw upErr;
-      const { data: user } = await supabase.auth.getUser();
-      const { error: insErr } = await supabase.from("report_documents").insert({
-        title: docTitle, category: docCategory, file_path: path,
-        mime_type: docFile.type, size_bytes: docFile.size, uploaded_by: user.user?.id,
-      });
-      if (insErr) throw insErr;
-      toast.success(t("rg_doc_uploaded"));
-      setDocTitle(""); setDocFile(null); if (fileRef.current) fileRef.current.value = "";
-      qc.invalidateQueries({ queryKey: ["rg-docs"] });
-    } catch (e: any) { toast.error(e?.message ?? "Upload failed"); }
-    finally { setUploading(false); }
-  };
-
-  const openDoc = useMutation({
-    mutationFn: async (path: string) => {
-      const { data, error } = await supabase.storage.from("documents").createSignedUrl(path, 3600);
-      if (error) throw error;
-      return data.signedUrl;
-    },
-    onSuccess: (url) => window.open(url, "_blank"),
-    onError: (e: any) => toast.error(e?.message ?? "Failed to open"),
-  });
-
-  const deleteDoc = async (id: string, path: string) => {
-    if (!confirm(t("rg_confirm_delete"))) return;
-    try {
-      await supabase.storage.from("documents").remove([path]);
-      const { error } = await supabase.from("report_documents").delete().eq("id", id);
-      if (error) throw error;
-      toast.success(t("rg_doc_deleted"));
-      qc.invalidateQueries({ queryKey: ["rg-docs"] });
-    } catch (e: any) { toast.error(e?.message ?? "Delete failed"); }
-  };
-
-  const catLabel = (c: string) =>
-    c === "monthly_ppt" ? t("rg_doc_monthly_ppt") :
-    c === "monthly_activity" ? t("rg_doc_monthly_activity") :
-    c === "budget" ? t("rg_doc_budget") : t("rg_doc_other");
 
   return (
     <div className="space-y-4">
@@ -555,7 +499,7 @@ function ReportsPage() {
         ) : preview.rows.length === 0 ? (
           <div className="py-12 text-center text-sm text-muted-foreground">{t("rep_no_data")}</div>
         ) : (
-          <div className="overflow-x-auto max-h-[60vh]">
+          <div className="overflow-x-auto max-h-[calc(100vh-320px)]">
             <table className="w-full text-sm">
               <thead className="bg-muted text-xs uppercase sticky top-0">
                 <tr>{preview.head.map((h) => <th key={h} className="text-left p-2 font-bold">{h}</th>)}</tr>
@@ -572,85 +516,6 @@ function ReportsPage() {
         )}
       </Card>
 
-      {/* ===== Documents ===== */}
-      <Card className="p-4">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <FileText className="size-5 text-primary" />
-            <h2 className="font-bold">{t("rg_documents")}</h2>
-          </div>
-        </div>
-
-        <div className="grid md:grid-cols-4 gap-3 mb-4 p-3 rounded-lg border bg-muted/30">
-          <div>
-            <Label className="text-xs">{t("rg_doc_title")}</Label>
-            <Input className="mt-1" value={docTitle} onChange={(e) => setDocTitle(e.target.value)} placeholder="e.g. June 2026 PPT" />
-          </div>
-          <div>
-            <Label className="text-xs">{t("rg_doc_category")}</Label>
-            <Select value={docCategory} onValueChange={(v: any) => setDocCategory(v)}>
-              <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="monthly_ppt">{t("rg_doc_monthly_ppt")}</SelectItem>
-                <SelectItem value="monthly_activity">{t("rg_doc_monthly_activity")}</SelectItem>
-                <SelectItem value="budget">{t("rg_doc_budget")}</SelectItem>
-                <SelectItem value="other">{t("rg_doc_other")}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label className="text-xs">{t("rg_choose_file")}</Label>
-            <Input ref={fileRef} type="file" className="mt-1" onChange={(e) => setDocFile(e.target.files?.[0] ?? null)} />
-          </div>
-          <div className="flex items-end">
-            <Button onClick={upload} disabled={uploading || !docFile || !docTitle} className="gap-2 w-full">
-              {uploading ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
-              {t("rg_upload")}
-            </Button>
-          </div>
-        </div>
-
-        {docsLoading ? (
-          <div className="py-6 text-center text-sm text-muted-foreground">{t("loading")}</div>
-        ) : documents.length === 0 ? (
-          <div className="py-8 text-center text-sm text-muted-foreground">{t("rg_no_documents")}</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-muted text-xs uppercase">
-                <tr>
-                  <th className="text-left p-2">{t("rg_doc_title")}</th>
-                  <th className="text-left p-2 hidden md:table-cell">{t("rg_doc_category")}</th>
-                  <th className="text-left p-2 hidden md:table-cell">{t("rg_uploaded")}</th>
-                  <th className="p-2"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {documents.map((d: any) => (
-                  <tr key={d.id} className="border-t hover:bg-muted/30">
-                    <td className="p-2 font-medium">{d.title}</td>
-                    <td className="p-2 hidden md:table-cell"><Badge variant="outline">{catLabel(d.category)}</Badge></td>
-                    <td className="p-2 hidden md:table-cell text-muted-foreground text-xs">{format(new Date(d.created_at), "d MMM yyyy")}</td>
-                    <td className="p-2 text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button size="icon" variant="ghost" className="size-8" title={t("rg_preview_action")} onClick={() => openDoc.mutate(d.file_path)}>
-                          <Eye className="size-4" />
-                        </Button>
-                        <Button size="icon" variant="ghost" className="size-8" title={t("rg_download")} onClick={() => openDoc.mutate(d.file_path)}>
-                          <Download className="size-4" />
-                        </Button>
-                        <Button size="icon" variant="ghost" className="size-8 text-destructive" title={t("rg_delete")} onClick={() => deleteDoc(d.id, d.file_path)}>
-                          <Trash2 className="size-4" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </Card>
     </div>
   );
 }
