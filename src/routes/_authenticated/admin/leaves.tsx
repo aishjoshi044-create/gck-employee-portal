@@ -138,6 +138,10 @@ function LeavesPage() {
     });
   }, [list, q, statusF, typeF, from, to]);
 
+  const [visibleCount, setVisibleCount] = useState(50);
+  useEffect(() => { setVisibleCount(50); }, [q, statusF, typeF, from, to]);
+  const visible = filtered.slice(0, visibleCount);
+
   const decide = async (id: string, status: "approved" | "rejected", note?: string) => {
     const patch = { status, decided_by: user!.id, decided_at: new Date().toISOString(), admin_note: note ?? null };
     const { error } = await supabase.from("leave_requests").update(patch).eq("id", id);
@@ -221,7 +225,7 @@ function LeavesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((l) => {
+              {visible.map((l) => {
                 const { type, note } = parseLeave(l.reason);
                 const days = daysBetween(l.start_date, l.end_date);
                 return (
@@ -254,6 +258,13 @@ function LeavesPage() {
             </TableBody>
           </Table>
         </div>
+        {filtered.length > visible.length && (
+          <div className="p-3 border-t">
+            <Button variant="outline" size="sm" className="w-full" onClick={() => setVisibleCount((n) => n + 50)}>
+              Load more ({filtered.length - visible.length})
+            </Button>
+          </div>
+        )}
       </Card>
 
       {/* Drawer */}

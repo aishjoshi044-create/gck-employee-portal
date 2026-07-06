@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Plus, Search, KeyRound, Power, Printer, Loader2, ScanFace } from "lucide-react";
 import logo from "@/assets/gck-logo.jpeg.asset.json";
@@ -51,6 +51,10 @@ function EmployeesPage() {
     return e.full_name?.toLowerCase().includes(s) || e.username?.toLowerCase().includes(s) || e.department?.toLowerCase().includes(s);
   });
 
+  const [visibleCount, setVisibleCount] = useState(50);
+  useEffect(() => { setVisibleCount(50); }, [q]);
+  const visible = filtered.slice(0, visibleCount);
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -70,7 +74,7 @@ function EmployeesPage() {
       </div>
 
       <div className="grid gap-2">
-        {filtered.map((e: any) => (
+        {visible.map((e: any) => (
           <Card key={e.id} className="p-3 flex items-center gap-3">
             <div className="size-10 rounded-full bg-primary-soft text-primary flex items-center justify-center font-bold">{e.full_name?.[0]}</div>
             <div className="flex-1 min-w-0">
@@ -98,6 +102,11 @@ function EmployeesPage() {
             }}><Power className={`size-4 ${e.active ? "text-success" : "text-destructive"}`} /></Button>
           </Card>
         ))}
+        {filtered.length > visible.length && (
+          <Button variant="outline" onClick={() => setVisibleCount((n) => n + 50)}>
+            Load more ({filtered.length - visible.length})
+          </Button>
+        )}
       </div>
 
       {created && <CredentialCard data={created} onClose={() => setCreated(null)} />}
