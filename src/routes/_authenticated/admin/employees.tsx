@@ -51,6 +51,10 @@ function EmployeesPage() {
     return e.full_name?.toLowerCase().includes(s) || e.username?.toLowerCase().includes(s) || e.department?.toLowerCase().includes(s);
   });
 
+  const [visibleCount, setVisibleCount] = useState(50);
+  useEffect(() => { setVisibleCount(50); }, [q]);
+  const visible = filtered.slice(0, visibleCount);
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2 flex-wrap">
