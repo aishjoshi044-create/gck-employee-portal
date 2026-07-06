@@ -434,8 +434,11 @@ function UpdateComposer({ taskId, onSent, L }: { taskId: string; onSent: () => v
     try {
       const photoPaths: string[] = [];
       for (const f of photos) {
-        const pp = `${user.id}/${taskId}/${Date.now()}-${f.name.replace(/[^a-z0-9.]/gi, "_")}`;
-        const { error } = await supabase.storage.from("task-media").upload(pp, f, { contentType: f.type });
+        const optimized = f.type.startsWith("image/")
+          ? await compressImage(f, "task")
+          : { blob: f, ext: (f.name.split(".").pop() ?? "bin"), contentType: f.type };
+        const pp = `${user.id}/${taskId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${optimized.ext}`;
+        const { error } = await supabase.storage.from("task-media").upload(pp, optimized.blob, { contentType: optimized.contentType });
         if (error) throw error;
         photoPaths.push(pp);
       }
