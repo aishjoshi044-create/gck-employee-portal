@@ -353,8 +353,9 @@ function CaptureFlow({
     setBusy(true);
     try {
       const today = format(new Date(), "yyyy-MM-dd");
-      const path = `${user.id}/${today}-${kind}-${Date.now()}.jpg`;
-      const { error: upErr } = await supabase.storage.from("selfies").upload(path, photoBlob, { contentType: "image/jpeg" });
+      const optimized = await compressImage(photoBlob, "attendance");
+      const path = `${user.id}/${today}-${kind}-${Date.now()}.${optimized.ext}`;
+      const { error: upErr } = await supabase.storage.from("selfies").upload(path, optimized.blob, { contentType: optimized.contentType });
       if (upErr) throw upErr;
 
       if (kind === "checkin") {
