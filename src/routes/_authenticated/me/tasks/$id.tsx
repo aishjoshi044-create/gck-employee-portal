@@ -10,6 +10,7 @@ import { ArrowLeft, Mic, Square, Play, Camera, Send, Loader2, MapPin } from "luc
 import { format } from "date-fns";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { compressImage } from "@/lib/image-compress";
 
 export const Route = createFileRoute("/_authenticated/me/tasks/$id")({
   component: TaskDetail,
@@ -237,8 +238,11 @@ function UpdateComposer({ taskId, onSent }: { taskId: string; onSent: () => void
       }
       const photoPaths: string[] = [];
       for (const f of photos) {
-        const pp = `${user.id}/${taskId}/${Date.now()}-${f.name.replace(/[^a-z0-9.]/gi, "_")}`;
-        const { error } = await supabase.storage.from("task-media").upload(pp, f, { contentType: f.type });
+        const optimized = f.type.startsWith("image/")
+          ? await compressImage(f, "task")
+          : { blob: f, ext: (f.name.split(".").pop() ?? "bin"), contentType: f.type };
+        const pp = `${user.id}/${taskId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${optimized.ext}`;
+        const { error } = await supabase.storage.from("task-media").upload(pp, optimized.blob, { contentType: optimized.contentType });
         if (error) throw error;
         photoPaths.push(pp);
       }

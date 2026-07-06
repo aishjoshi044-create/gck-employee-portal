@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { compressImage } from "@/lib/image-compress";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
 import { format, startOfWeek, startOfMonth, endOfMonth, subMonths, startOfDay } from "date-fns";
@@ -303,9 +304,11 @@ function ReportForm({ open, onOpenChange }: { open: boolean; onOpenChange: (v: b
     try {
       const uploaded: string[] = [];
       for (const file of photos) {
-        const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
-        const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-        const { error: upErr } = await supabase.storage.from("daily-reports").upload(path, file, { contentType: file.type });
+        const optimized = file.type.startsWith("image/")
+          ? await compressImage(file, "report")
+          : { blob: file, ext: (file.name.split(".").pop()?.toLowerCase() ?? "jpg"), contentType: file.type };
+        const path = `${user.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${optimized.ext}`;
+        const { error: upErr } = await supabase.storage.from("daily-reports").upload(path, optimized.blob, { contentType: optimized.contentType });
         if (upErr) throw upErr;
         const { data: signed } = await supabase.storage.from("daily-reports").createSignedUrl(path, 60 * 60 * 24 * 365);
         if (signed?.signedUrl) uploaded.push(signed.signedUrl);
