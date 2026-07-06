@@ -225,7 +225,7 @@ function LeavesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((l) => {
+              {visible.map((l) => {
                 const { type, note } = parseLeave(l.reason);
                 const days = daysBetween(l.start_date, l.end_date);
                 return (
