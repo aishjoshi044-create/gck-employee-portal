@@ -206,33 +206,55 @@ function LeavesPage() {
         )}
       </Card>
 
-      {/* List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-        {filtered.map((l) => {
-          const { type, note } = parseLeave(l.reason);
-          const days = daysBetween(l.start_date, l.end_date);
-          return (
-            <Card key={l.id} className="p-3 hover:border-primary/50 cursor-pointer transition-colors" onClick={() => { setOpen(l); setRemark(l.admin_note ?? ""); }}>
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="font-semibold truncate">{l.profiles?.full_name ?? "—"}</div>
-                  <div className="text-xs text-muted-foreground truncate">{l.profiles?.department ?? "—"}</div>
-                </div>
-                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${statusClass(l.status)}`}>{t(l.status as DictKey)}</span>
-              </div>
-              <div className="mt-2 flex items-center gap-2 text-xs">
-                <span className="px-1.5 py-0.5 rounded bg-muted font-medium">{t(`leave_${type}` as DictKey)}</span>
-                <span className="text-muted-foreground flex items-center gap-1"><Calendar className="size-3" />{format(parseISO(l.start_date), "d MMM")} → {format(parseISO(l.end_date), "d MMM")}</span>
-                <span className="ml-auto font-bold">{days} {t(days === 1 ? "lv_day" : "lv_days")}</span>
-              </div>
-              {note && <div className="mt-1 text-xs text-muted-foreground line-clamp-1">{note}</div>}
-            </Card>
-          );
-        })}
-        {!filtered.length && (
-          <Card className="p-6 text-center text-muted-foreground md:col-span-2 xl:col-span-3">{t("lv_no_requests")}</Card>
-        )}
-      </div>
+      {/* Table */}
+      <Card className="overflow-hidden">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t("lv_employee_id")}</TableHead>
+                <TableHead className="hidden md:table-cell">{t("lv_leave_type")}</TableHead>
+                <TableHead className="hidden sm:table-cell">{t("start_date")} → {t("end_date")}</TableHead>
+                <TableHead className="text-center">{t("lv_total_days")}</TableHead>
+                <TableHead className="hidden lg:table-cell">{t("reason")}</TableHead>
+                <TableHead>{t("lv_status")}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.map((l) => {
+                const { type, note } = parseLeave(l.reason);
+                const days = daysBetween(l.start_date, l.end_date);
+                return (
+                  <TableRow key={l.id} className="cursor-pointer" onClick={() => { setOpen(l); setRemark(l.admin_note ?? ""); }}>
+                    <TableCell>
+                      <div className="font-semibold truncate max-w-[180px]">{l.profiles?.full_name ?? "—"}</div>
+                      <div className="text-xs text-muted-foreground truncate max-w-[180px]">{l.profiles?.department ?? l.profiles?.username ?? "—"}</div>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      <span className="text-xs px-1.5 py-0.5 rounded bg-muted font-medium">{t(`leave_${type}` as DictKey)}</span>
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell text-xs whitespace-nowrap">
+                      <span className="inline-flex items-center gap-1"><Calendar className="size-3" />{format(parseISO(l.start_date), "d MMM")} → {format(parseISO(l.end_date), "d MMM")}</span>
+                    </TableCell>
+                    <TableCell className="text-center font-bold whitespace-nowrap">{days} {t(days === 1 ? "lv_day" : "lv_days")}</TableCell>
+                    <TableCell className="hidden lg:table-cell max-w-[260px]">
+                      <div className="text-xs text-muted-foreground truncate">{note || "—"}</div>
+                    </TableCell>
+                    <TableCell>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${statusClass(l.status)}`}>{t(l.status as DictKey)}</span>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+              {!filtered.length && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">{t("lv_no_requests")}</TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </Card>
 
       {/* Drawer */}
       <Sheet open={!!open} onOpenChange={(o) => { if (!o) { setOpen(null); setRemark(""); } }}>
