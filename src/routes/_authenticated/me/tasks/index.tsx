@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { compressImage } from "@/lib/image-compress";
+import { validateVideos, VIDEO_LIMITS } from "@/lib/video-validate";
 
 export const Route = createFileRoute("/_authenticated/me/tasks/")({
   component: MyTasksList,
@@ -419,10 +420,15 @@ function UpdateComposer({ taskId, onSent, L }: { taskId: string; onSent: () => v
     setPhotos((prev) => [...prev, ...files].slice(0, 5));
     if (photoRef.current) photoRef.current.value = "";
   };
-  const onVideos = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onVideos = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
-    setVideos((prev) => [...prev, ...files].slice(0, 2));
     if (videoRef.current) videoRef.current.value = "";
+    const { accepted, rejected } = await validateVideos(files, videos.length);
+    if (rejected.length) {
+      const first = rejected[0];
+      toast.error(`${first.file.name}: ${first.reason}`);
+    }
+    if (accepted.length) setVideos((prev) => [...prev, ...accepted].slice(0, VIDEO_LIMITS.maxCount));
   };
 
   const send = async () => {
