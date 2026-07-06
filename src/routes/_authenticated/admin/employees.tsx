@@ -13,6 +13,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Plus, Search, KeyRound, Power, Printer, Loader2, ScanFace } from "lucide-react";
 import logo from "@/assets/gck-logo.jpeg.asset.json";
+import { compressImage } from "@/lib/image-compress";
 import { FaceCapture } from "@/components/FaceCapture";
 
 export const Route = createFileRoute("/_authenticated/admin/employees")({
