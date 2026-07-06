@@ -15,6 +15,7 @@ import {
 import { toast } from "sonner";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, differenceInSeconds } from "date-fns";
 import { getFaceDescriptor, loadFaceModels, similarityPct } from "@/lib/face";
+import { compressImage } from "@/lib/image-compress";
 
 export const Route = createFileRoute("/_authenticated/me/attendance")({
   component: AttendancePage,
