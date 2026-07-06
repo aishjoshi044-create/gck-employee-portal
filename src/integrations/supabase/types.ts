@@ -402,6 +402,7 @@ export type Database = {
           task_id: string
           update_type: string
           user_id: string
+          video_urls: string[]
         }
         Insert: {
           admin_comment?: string | null
@@ -413,6 +414,7 @@ export type Database = {
           task_id: string
           update_type?: string
           user_id: string
+          video_urls?: string[]
         }
         Update: {
           admin_comment?: string | null
@@ -424,6 +426,7 @@ export type Database = {
           task_id?: string
           update_type?: string
           user_id?: string
+          video_urls?: string[]
         }
         Relationships: [
           {
