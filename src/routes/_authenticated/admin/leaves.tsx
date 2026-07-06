@@ -258,6 +258,13 @@ function LeavesPage() {
             </TableBody>
           </Table>
         </div>
+        {filtered.length > visible.length && (
+          <div className="p-3 border-t">
+            <Button variant="outline" size="sm" className="w-full" onClick={() => setVisibleCount((n) => n + 50)}>
+              Load more ({filtered.length - visible.length})
+            </Button>
+          </div>
+        )}
       </Card>
 
       {/* Drawer */}
