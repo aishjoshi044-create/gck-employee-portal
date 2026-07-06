@@ -363,6 +363,16 @@ export const dict = {
   lv_apply_leave: { en: "Apply Leave", hi: "छुट्टी मांगें" },
   lv_no_requests: { en: "No leave requests", hi: "कोई अर्ज़ी नहीं" },
   lv_clear_filters: { en: "Clear filters", hi: "फ़िल्टर हटाएं" },
+  lv_available_leave: { en: "Available Leave", hi: "उपलब्ध छुट्टी" },
+  lv_total_leave: { en: "Total Leave", hi: "कुल छुट्टी" },
+  lv_breakdown: { en: "Leave Breakdown", hi: "छुट्टी का विवरण" },
+  lv_current_leave: { en: "Current Leave", hi: "वर्तमान छुट्टी" },
+  lv_no_active_leave: { en: "No Active or Upcoming Leave", hi: "कोई सक्रिय या आगामी छुट्टी नहीं" },
+  lv_reason: { en: "Reason", hi: "कारण" },
+  lv_applied_date: { en: "Applied Date", hi: "अर्ज़ी की तिथि" },
+  lv_search_placeholder: { en: "Search reason or type…", hi: "कारण या प्रकार खोजें…" },
+  lv_year: { en: "Year", hi: "वर्ष" },
+  lv_all_years: { en: "All Years", hi: "सभी वर्ष" },
 
   // daily reports module
   dr_case_study: { en: "Case Study", hi: "केस स्टडी" },
