@@ -8,12 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useMemo, useState } from "react";
-import { format, differenceInMinutes } from "date-fns";
+import { Switch } from "@/components/ui/switch";
+import { useEffect, useMemo, useState } from "react";
+import { format } from "date-fns";
 import { toast } from "sonner";
 import {
-  Check, X, FileDown, FileSpreadsheet, Search, Users, UserCheck, UserX, Clock,
-  MapPin, ScanFace, Eye, ExternalLink,
+  FileDown, FileSpreadsheet, Search, Users, UserCheck, UserX, Clock,
+  MapPin, ScanFace, Eye, ExternalLink, Flag,
 } from "lucide-react";
 import { downloadPdf, downloadExcel } from "@/lib/exports";
 
@@ -21,9 +22,23 @@ export const Route = createFileRoute("/_authenticated/admin/attendance")({
   component: AdminAttendance,
 });
 
-// 10:00 AM local cutoff for "Late".
 const LATE_HOUR = 10;
 const LATE_MIN = 0;
+
+type Att = {
+  id: string;
+  status: "present" | "absent" | "leave";
+  check_in_at: string | null;
+  check_out_at: string | null;
+  selfie_url: string | null;
+  check_out_selfie_url: string | null;
+  lat: number | null;
+  lng: number | null;
+  check_out_lat: number | null;
+  check_out_lng: number | null;
+  flagged: boolean;
+  notes: string | null;
+};
 
 type Row = {
   id: string;
@@ -31,21 +46,21 @@ type Row = {
   username: string;
   department: string | null;
   photo_url: string | null;
-  attendance: {
-    status: "present" | "absent" | "leave";
-    check_in_at: string | null;
-    selfie_url: string | null;
-    lat: number | null;
-    lng: number | null;
-    notes: string | null;
-  } | null;
+  attendance: Att | null;
 };
 
-function statusOf(r: Row): "present" | "absent" | "late" | "leave" | "unmarked" {
+type S = "present" | "checkout_pending" | "absent" | "late" | "leave" | "unmarked";
+
+function statusOf(r: Row): S {
   const a = r.attendance;
   if (!a) return "unmarked";
   if (a.status === "absent") return "absent";
   if (a.status === "leave") return "leave";
+  if (a.check_in_at && !a.check_out_at) {
+    const d = new Date(a.check_in_at);
+    if (d.getHours() > LATE_HOUR || (d.getHours() === LATE_HOUR && d.getMinutes() > LATE_MIN)) return "checkout_pending";
+    return "checkout_pending";
+  }
   if (a.check_in_at) {
     const d = new Date(a.check_in_at);
     if (d.getHours() > LATE_HOUR || (d.getHours() === LATE_HOUR && d.getMinutes() > LATE_MIN)) return "late";
@@ -53,14 +68,33 @@ function statusOf(r: Row): "present" | "absent" | "late" | "leave" | "unmarked" 
   return "present";
 }
 
-function statusClass(s: ReturnType<typeof statusOf>) {
+function statusClass(s: S) {
   switch (s) {
     case "present": return "bg-success/15 text-success border-success/20";
-    case "late":    return "bg-warning/15 text-warning border-warning/20";
-    case "absent":  return "bg-destructive/15 text-destructive border-destructive/20";
-    case "leave":   return "bg-info/15 text-info border-info/20";
-    default:        return "bg-muted text-muted-foreground border-border";
+    case "checkout_pending": return "bg-warning/15 text-warning border-warning/20";
+    case "late": return "bg-warning/15 text-warning border-warning/20";
+    case "absent": return "bg-destructive/15 text-destructive border-destructive/20";
+    case "leave": return "bg-info/15 text-info border-info/20";
+    default: return "bg-muted text-muted-foreground border-border";
   }
+}
+
+function statusLabel(s: S, L: (en: string, hi: string) => string) {
+  switch (s) {
+    case "present": return L("Present", "उपस्थित");
+    case "checkout_pending": return L("Checkout Pending", "चेकआउट बाकी");
+    case "late": return L("Late", "देर से");
+    case "absent": return L("Absent", "अनुपस्थित");
+    case "leave": return L("Leave", "अवकाश");
+    default: return L("Unmarked", "अचिह्नित");
+  }
+}
+
+function workingHours(a: Att | null): { mins: number; label: string } {
+  if (!a?.check_in_at) return { mins: 0, label: "—" };
+  const end = a.check_out_at ? new Date(a.check_out_at) : new Date();
+  const mins = Math.max(0, Math.round((end.getTime() - new Date(a.check_in_at).getTime()) / 60000));
+  return { mins, label: `${Math.floor(mins / 60)}h ${mins % 60}m` };
 }
 
 function AdminAttendance() {
@@ -71,6 +105,7 @@ function AdminAttendance() {
   const [dept, setDept] = useState<string>("all");
   const [statusF, setStatusF] = useState<string>("all");
   const [openId, setOpenId] = useState<string | null>(null);
+  const [visibleCount, setVisibleCount] = useState(50);
 
   const L = (en: string, hi: string) => (lang === "hi" ? hi : en);
 
@@ -103,63 +138,57 @@ function AdminAttendance() {
     });
   }, [rows, q, dept, statusF]);
 
+  useEffect(() => { setVisibleCount(50); }, [q, dept, statusF, date]);
+
   const totals = useMemo(() => {
-    const t = { total: rows.length, present: 0, absent: 0, late: 0 };
+    const t = { total: rows.length, present: 0, absent: 0, pending: 0 };
     rows.forEach((r) => {
       const s = statusOf(r);
-      if (s === "present") t.present++;
-      else if (s === "late") { t.late++; t.present++; }
+      if (s === "present" || s === "late") t.present++;
+      else if (s === "checkout_pending") { t.pending++; t.present++; }
       else if (s === "absent") t.absent++;
     });
     return t;
   }, [rows]);
 
-  const mark = async (user_id: string, status: "present" | "absent" | "leave") => {
-    const payload: any = { user_id, date, status };
-    if (status === "present") payload.check_in_at = new Date().toISOString();
-    const { error } = await supabase.from("attendance").upsert(payload, { onConflict: "user_id,date" });
-    if (error) toast.error(error.message);
-    else { qc.invalidateQueries({ queryKey: ["admin-attendance"] }); toast.success(L("Saved", "सहेजा गया")); }
-  };
-
   const HEAD = [
     L("Name", "नाम"), L("Department", "विभाग"), L("Check-in", "चेक-इन"),
-    L("Status", "स्थिति"), L("GPS", "GPS"), L("Face", "चेहरा"),
+    L("Check-out", "चेक-आउट"), L("Hours", "घंटे"), L("Status", "स्थिति"),
+    L("GPS", "GPS"), L("Face", "चेहरा"),
   ];
   const buildExport = () => filtered.map((r) => {
     const s = statusOf(r);
+    const a = r.attendance;
     return [
       r.full_name,
       r.department ?? "—",
-      r.attendance?.check_in_at ? format(new Date(r.attendance.check_in_at), "h:mm a") : "—",
-      s,
-      r.attendance?.lat && r.attendance?.lng ? `${r.attendance.lat.toFixed(4)}, ${r.attendance.lng.toFixed(4)}` : "—",
-      r.attendance?.selfie_url ? L("Yes", "हाँ") : L("No", "नहीं"),
+      a?.check_in_at ? format(new Date(a.check_in_at), "h:mm a") : "—",
+      a?.check_out_at ? format(new Date(a.check_out_at), "h:mm a") : "—",
+      workingHours(a).label,
+      statusLabel(s, L),
+      a?.lat && a?.lng ? `${a.lat.toFixed(4)}, ${a.lng.toFixed(4)}` : "—",
+      a?.selfie_url ? L("Yes", "हाँ") : L("No", "नहीं"),
     ];
   });
 
   const open = openId ? rows.find((r) => r.id === openId) ?? null : null;
+  const visible = filtered.slice(0, visibleCount);
 
   return (
     <div className="space-y-4">
-      {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-extrabold tracking-tight">{t("attendance")}</h1>
-          <p className="text-sm text-muted-foreground">
-            {format(new Date(date), "EEEE, d MMM yyyy")}
-          </p>
+          <p className="text-sm text-muted-foreground">{format(new Date(date), "EEEE, d MMM yyyy")}</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline" size="sm" className="gap-2"
+          <Button variant="outline" size="sm" className="gap-2"
             onClick={() => downloadPdf({
               title: `${L("Attendance", "हाज़िरी")} — ${format(new Date(date), "d MMM yyyy")}`,
               filename: `attendance-${date}.pdf`, head: HEAD, body: buildExport(),
             })}
           ><FileDown className="size-4" /> PDF</Button>
-          <Button
-            variant="outline" size="sm" className="gap-2"
+          <Button variant="outline" size="sm" className="gap-2"
             onClick={() => downloadExcel(`attendance-${date}.xlsx`, [{ name: date, header: HEAD, rows: buildExport() }])}
           ><FileSpreadsheet className="size-4" /> Excel</Button>
         </div>
@@ -169,8 +198,8 @@ function AdminAttendance() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <SummaryCard icon={<Users className="size-5" />} label={L("Total Employees", "कुल कर्मचारी")} value={totals.total} tone="muted" />
         <SummaryCard icon={<UserCheck className="size-5" />} label={L("Present Today", "आज हाज़िर")} value={totals.present} tone="success" />
+        <SummaryCard icon={<Clock className="size-5" />} label={L("Checkout Pending", "चेकआउट बाकी")} value={totals.pending} tone="warning" />
         <SummaryCard icon={<UserX className="size-5" />} label={L("Absent Today", "आज अनुपस्थित")} value={totals.absent} tone="destructive" />
-        <SummaryCard icon={<Clock className="size-5" />} label={L("Late Today", "आज देर से")} value={totals.late} tone="warning" />
       </div>
 
       {/* Filters */}
@@ -178,11 +207,7 @@ function AdminAttendance() {
         <div className="grid gap-2 md:grid-cols-[1fr_auto_auto_auto]">
           <div className="relative">
             <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder={L("Search employee…", "कर्मचारी खोजें…")}
-              value={q} onChange={(e) => setQ(e.target.value)}
-              className="pl-9"
-            />
+            <Input placeholder={L("Search employee…", "कर्मचारी खोजें…")} value={q} onChange={(e) => setQ(e.target.value)} className="pl-9" />
           </div>
           <Select value={dept} onValueChange={setDept}>
             <SelectTrigger className="md:w-44"><SelectValue placeholder={L("Department", "विभाग")} /></SelectTrigger>
@@ -192,12 +217,13 @@ function AdminAttendance() {
             </SelectContent>
           </Select>
           <Select value={statusF} onValueChange={setStatusF}>
-            <SelectTrigger className="md:w-40"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="md:w-44"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{L("All Status", "सभी स्थिति")}</SelectItem>
-              <SelectItem value="present">{t("present")}</SelectItem>
-              <SelectItem value="late">{t("late")}</SelectItem>
-              <SelectItem value="absent">{t("absent")}</SelectItem>
+              <SelectItem value="present">{L("Present", "उपस्थित")}</SelectItem>
+              <SelectItem value="checkout_pending">{L("Checkout Pending", "चेकआउट बाकी")}</SelectItem>
+              <SelectItem value="late">{L("Late", "देर से")}</SelectItem>
+              <SelectItem value="absent">{L("Absent", "अनुपस्थित")}</SelectItem>
               <SelectItem value="unmarked">{L("Unmarked", "अचिह्नित")}</SelectItem>
             </SelectContent>
           </Select>
@@ -214,14 +240,16 @@ function AdminAttendance() {
                 <th className="text-left p-3 font-semibold">{L("Employee", "कर्मचारी")}</th>
                 <th className="text-left p-3 font-semibold">{t("department")}</th>
                 <th className="text-left p-3 font-semibold">{L("Check-in", "चेक-इन")}</th>
+                <th className="text-left p-3 font-semibold">{L("Check-out", "चेक-आउट")}</th>
+                <th className="text-left p-3 font-semibold">{L("Hours", "घंटे")}</th>
                 <th className="text-left p-3 font-semibold">{L("Status", "स्थिति")}</th>
                 <th className="text-center p-3 font-semibold">GPS</th>
                 <th className="text-center p-3 font-semibold">{L("Face", "चेहरा")}</th>
-                <th className="p-3 text-right font-semibold">{L("Actions", "क्रियाएँ")}</th>
+                <th className="p-3 text-right font-semibold">{L("Details", "विवरण")}</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((r) => {
+              {visible.map((r) => {
                 const s = statusOf(r);
                 const a = r.attendance;
                 return (
@@ -233,59 +261,59 @@ function AdminAttendance() {
                           <AvatarFallback>{r.full_name.slice(0, 1)}</AvatarFallback>
                         </Avatar>
                         <div className="min-w-0">
-                          <div className="font-semibold truncate">{r.full_name}</div>
+                          <div className="font-semibold truncate flex items-center gap-1.5">
+                            {r.full_name}
+                            {a?.flagged && <Flag className="size-3 text-destructive" />}
+                          </div>
                           <div className="text-xs text-muted-foreground truncate">@{r.username}</div>
                         </div>
                       </div>
                     </td>
                     <td className="p-3 text-muted-foreground">{r.department ?? "—"}</td>
                     <td className="p-3 tabular-nums">{a?.check_in_at ? format(new Date(a.check_in_at), "h:mm a") : "—"}</td>
+                    <td className="p-3 tabular-nums">{a?.check_out_at ? format(new Date(a.check_out_at), "h:mm a") : "—"}</td>
+                    <td className="p-3 tabular-nums text-muted-foreground">{workingHours(a).label}</td>
                     <td className="p-3">
                       <span className={`inline-flex items-center text-xs px-2 py-0.5 rounded-full font-bold border ${statusClass(s)}`}>
-                        {s === "unmarked" ? L("Unmarked", "अचिह्नित") : t(s as any)}
+                        {statusLabel(s, L)}
                       </span>
                     </td>
                     <td className="p-3 text-center">
-                      {a?.lat && a?.lng
-                        ? <MapPin className="size-4 text-success inline" />
-                        : <span className="text-muted-foreground/50">—</span>}
+                      {a?.lat && a?.lng ? <MapPin className="size-4 text-success inline" /> : <span className="text-muted-foreground/50">—</span>}
                     </td>
                     <td className="p-3 text-center">
-                      {a?.selfie_url
-                        ? <ScanFace className="size-4 text-success inline" />
-                        : <span className="text-muted-foreground/50">—</span>}
+                      {a?.selfie_url ? <ScanFace className="size-4 text-success inline" /> : <span className="text-muted-foreground/50">—</span>}
                     </td>
-                    <td className="p-3">
-                      <div className="flex gap-1 justify-end">
-                        <Button size="sm" variant="ghost" onClick={() => setOpenId(r.id)} title={L("Details", "विवरण")}>
-                          <Eye className="size-4" />
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => mark(r.id, "present")} title={t("present")}>
-                          <Check className="size-4 text-success" />
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => mark(r.id, "absent")} title={t("absent")}>
-                          <X className="size-4 text-destructive" />
-                        </Button>
-                      </div>
+                    <td className="p-3 text-right">
+                      <Button size="sm" variant="ghost" onClick={() => setOpenId(r.id)}>
+                        <Eye className="size-4" />
+                      </Button>
                     </td>
                   </tr>
                 );
               })}
               {filtered.length === 0 && (
-                <tr><td colSpan={7} className="p-10 text-center text-muted-foreground text-sm">{L("No results", "कोई परिणाम नहीं")}</td></tr>
+                <tr><td colSpan={9} className="p-10 text-center text-muted-foreground text-sm">{L("No results", "कोई परिणाम नहीं")}</td></tr>
               )}
             </tbody>
           </table>
+          {visible.length < filtered.length && (
+            <div className="p-3 text-center border-t">
+              <Button variant="outline" size="sm" onClick={() => setVisibleCount((c) => c + 50)}>
+                {L("Load more", "और लोड करें")} ({filtered.length - visible.length})
+              </Button>
+            </div>
+          )}
         </div>
       </Card>
 
       {/* Mobile Cards */}
       <div className="grid gap-2 md:hidden">
-        {filtered.map((r) => {
+        {visible.map((r) => {
           const s = statusOf(r);
           const a = r.attendance;
           return (
-            <Card key={r.id} className="p-3">
+            <Card key={r.id} className="p-3" onClick={() => setOpenId(r.id)}>
               <div className="flex items-center gap-3 min-w-0">
                 <Avatar className="size-10 shrink-0">
                   <AvatarImage src={r.photo_url ?? undefined} />
@@ -293,35 +321,42 @@ function AdminAttendance() {
                 </Avatar>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 justify-between">
-                    <div className="font-semibold truncate">{r.full_name}</div>
+                    <div className="font-semibold truncate flex items-center gap-1.5">
+                      {r.full_name}
+                      {a?.flagged && <Flag className="size-3 text-destructive" />}
+                    </div>
                     <span className={`shrink-0 text-[10px] px-2 py-0.5 rounded-full font-bold border ${statusClass(s)}`}>
-                      {s === "unmarked" ? L("Unmarked", "अचिह्नित") : t(s as any)}
+                      {statusLabel(s, L)}
                     </span>
                   </div>
                   <div className="text-xs text-muted-foreground truncate">{r.department ?? "—"}</div>
                 </div>
               </div>
               <div className="mt-2 flex items-center justify-between text-xs">
-                <div className="flex items-center gap-3 text-muted-foreground">
-                  <span className="tabular-nums">{a?.check_in_at ? format(new Date(a.check_in_at), "h:mm a") : "—"}</span>
+                <div className="flex items-center gap-3 text-muted-foreground tabular-nums">
+                  <span>{a?.check_in_at ? format(new Date(a.check_in_at), "h:mm a") : "—"}</span>
+                  <span>→</span>
+                  <span>{a?.check_out_at ? format(new Date(a.check_out_at), "h:mm a") : "—"}</span>
+                  <span className="font-semibold text-foreground">{workingHours(a).label}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
                   {a?.lat && <MapPin className="size-3.5 text-success" />}
                   {a?.selfie_url && <ScanFace className="size-3.5 text-success" />}
-                </div>
-                <div className="flex gap-1">
-                  <Button size="sm" variant="ghost" onClick={() => setOpenId(r.id)}><Eye className="size-4" /></Button>
-                  <Button size="sm" variant="ghost" onClick={() => mark(r.id, "present")}><Check className="size-4 text-success" /></Button>
-                  <Button size="sm" variant="ghost" onClick={() => mark(r.id, "absent")}><X className="size-4 text-destructive" /></Button>
                 </div>
               </div>
             </Card>
           );
         })}
+        {visible.length < filtered.length && (
+          <Button variant="outline" size="sm" onClick={() => setVisibleCount((c) => c + 50)}>
+            {L("Load more", "और लोड करें")} ({filtered.length - visible.length})
+          </Button>
+        )}
       </div>
 
-      {/* Details Drawer */}
       <Sheet open={!!open} onOpenChange={(o) => !o && setOpenId(null)}>
-        <SheetContent className="w-full sm:max-w-md overflow-y-auto">
-          {open && <DetailsBody row={open} date={date} L={L} />}
+        <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+          {open && <DetailsBody row={open} date={date} L={L} onFlagged={() => qc.invalidateQueries({ queryKey: ["admin-attendance"] })} />}
         </SheetContent>
       </Sheet>
     </div>
@@ -350,15 +385,37 @@ function SummaryCard({
   );
 }
 
+function SignedImg({ path }: { path: string }) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    (async () => {
+      const { data } = await supabase.storage.from("selfies").createSignedUrl(path, 600);
+      setUrl(data?.signedUrl ?? null);
+    })();
+  }, [path]);
+  if (!url) return <div className="aspect-square bg-muted animate-pulse rounded-lg" />;
+  return <img src={url} loading="lazy" alt="" className="rounded-lg border w-full aspect-square object-cover" />;
+}
+
 function DetailsBody({
-  row, date, L,
-}: { row: Row; date: string; L: (en: string, hi: string) => string }) {
+  row, date, L, onFlagged,
+}: { row: Row; date: string; L: (en: string, hi: string) => string; onFlagged: () => void }) {
   const a = row.attendance;
   const s = statusOf(row);
-  const checkIn = a?.check_in_at ? new Date(a.check_in_at) : null;
-  // No check_out column yet — show as pending.
-  const workMin = checkIn ? differenceInMinutes(new Date(), checkIn) : 0;
-  const mapsUrl = a?.lat && a?.lng ? `https://www.google.com/maps?q=${a.lat},${a.lng}` : null;
+  const ci = a?.check_in_at ? new Date(a.check_in_at) : null;
+  const co = a?.check_out_at ? new Date(a.check_out_at) : null;
+  const wh = workingHours(a);
+  const mapsIn = a?.lat && a?.lng ? `https://www.google.com/maps?q=${a.lat},${a.lng}` : null;
+  const mapsOut = a?.check_out_lat && a?.check_out_lng ? `https://www.google.com/maps?q=${a.check_out_lat},${a.check_out_lng}` : null;
+  const [flag, setFlag] = useState(!!a?.flagged);
+
+  const toggleFlag = async (v: boolean) => {
+    if (!a) return;
+    setFlag(v);
+    const { error } = await supabase.from("attendance").update({ flagged: v }).eq("id", a.id);
+    if (error) { setFlag(!v); toast.error(error.message); }
+    else { toast.success(v ? L("Flagged for audit", "ऑडिट के लिए चिह्नित") : L("Flag removed", "चिह्न हटाया गया")); onFlagged(); }
+  };
 
   return (
     <>
@@ -371,56 +428,84 @@ function DetailsBody({
             <AvatarImage src={row.photo_url ?? undefined} />
             <AvatarFallback>{row.full_name.slice(0, 1)}</AvatarFallback>
           </Avatar>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <div className="font-extrabold truncate">{row.full_name}</div>
             <div className="text-xs text-muted-foreground truncate">{row.department ?? "—"} · @{row.username}</div>
             <div className="text-xs text-muted-foreground">{format(new Date(date), "EEEE, d MMM yyyy")}</div>
           </div>
+          <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full font-bold border ${statusClass(s)}`}>
+            {statusLabel(s, L)}
+          </span>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          <KV label={L("Check-in", "चेक-इन")} value={checkIn ? format(checkIn, "h:mm a") : "—"} />
-          <KV label={L("Check-out", "चेक-आउट")} value="—" />
-          <KV label={L("Working Hours", "कार्य घंटे")} value={checkIn ? `${Math.floor(workMin / 60)}h ${workMin % 60}m` : "—"} />
-          <KV label={L("Status", "स्थिति")} value={s === "unmarked" ? L("Unmarked", "अचिह्नित") : s} />
+        <div className="grid grid-cols-3 gap-2">
+          <KV label={L("Check-in", "चेक-इन")} value={ci ? format(ci, "h:mm a") : "—"} />
+          <KV label={L("Check-out", "चेक-आउट")} value={co ? format(co, "h:mm a") : "—"} />
+          <KV label={L("Hours", "घंटे")} value={wh.label} />
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          <div className="rounded-lg border p-3">
-            <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1"><ScanFace className="size-3.5" /> {L("Face Verified", "चेहरा सत्यापित")}</div>
-            <div className="font-bold">{a?.selfie_url ? L("Yes", "हाँ") : L("No", "नहीं")}</div>
+        <div className="grid grid-cols-2 gap-2 text-xs">
+          <div className="rounded-lg border p-2 flex items-center gap-2">
+            <ScanFace className={`size-4 ${a?.selfie_url ? "text-success" : "text-muted-foreground/50"}`} />
+            {L("Face Verified", "चेहरा सत्यापित")}
           </div>
-          <div className="rounded-lg border p-3">
-            <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1"><MapPin className="size-3.5" /> {L("GPS", "GPS")}</div>
-            <div className="font-bold">{a?.lat && a?.lng ? `${a.lat.toFixed(4)}, ${a.lng.toFixed(4)}` : "—"}</div>
-            {mapsUrl && (
-              <a href={mapsUrl} target="_blank" rel="noreferrer" className="text-xs text-primary inline-flex items-center gap-1 mt-1">
-                {L("View on Map", "नक्शे पर देखें")} <ExternalLink className="size-3" />
-              </a>
-            )}
+          <div className="rounded-lg border p-2 flex items-center gap-2">
+            <MapPin className={`size-4 ${a?.lat ? "text-success" : "text-muted-foreground/50"}`} />
+            {L("GPS Verified", "GPS सत्यापित")}
           </div>
         </div>
-
-        {a?.selfie_url && (
-          <div>
-            <div className="text-xs text-muted-foreground mb-1">{L("Check-in Photo", "चेक-इन फ़ोटो")}</div>
-            <img src={a.selfie_url} alt="" className="rounded-lg border w-full max-h-72 object-cover" />
-          </div>
-        )}
 
         <div>
-          <div className="text-xs text-muted-foreground mb-2">{L("Timeline", "समयरेखा")}</div>
+          <div className="text-xs font-bold mb-2">{L("Verification Photos", "सत्यापन फ़ोटो")}</div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <div className="text-[11px] text-muted-foreground">{L("Check-in", "चेक-इन")}</div>
+              {a?.selfie_url
+                ? <SignedImg path={a.selfie_url} />
+                : <div className="aspect-square bg-muted rounded-lg grid place-items-center text-muted-foreground text-xs">—</div>}
+              {mapsIn && <a href={mapsIn} target="_blank" rel="noreferrer" className="text-xs text-primary inline-flex items-center gap-1"><MapPin className="size-3" /> {L("Map", "मानचित्र")} <ExternalLink className="size-3" /></a>}
+            </div>
+            <div className="space-y-1">
+              <div className="text-[11px] text-muted-foreground">{L("Check-out", "चेक-आउट")}</div>
+              {a?.check_out_selfie_url
+                ? <SignedImg path={a.check_out_selfie_url} />
+                : <div className="aspect-square bg-muted rounded-lg grid place-items-center text-muted-foreground text-xs">—</div>}
+              {mapsOut && <a href={mapsOut} target="_blank" rel="noreferrer" className="text-xs text-primary inline-flex items-center gap-1"><MapPin className="size-3" /> {L("Map", "मानचित्र")} <ExternalLink className="size-3" /></a>}
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div className="text-xs font-bold mb-2">{L("Timeline", "समयरेखा")}</div>
           <ol className="space-y-2 text-sm">
-            {checkIn ? (
+            {ci && (
               <li className="flex items-start gap-2">
                 <div className="size-2 mt-1.5 rounded-full bg-success" />
-                <div><b>{format(checkIn, "h:mm a")}</b> — {L("Checked in", "चेक-इन हुआ")}</div>
+                <div><b className="tabular-nums">{format(ci, "h:mm a")}</b> — {L("Checked in", "चेक-इन हुआ")}</div>
               </li>
-            ) : (
-              <li className="text-muted-foreground">{L("No activity yet", "अभी कोई गतिविधि नहीं")}</li>
             )}
+            {co && (
+              <li className="flex items-start gap-2">
+                <div className="size-2 mt-1.5 rounded-full bg-primary" />
+                <div><b className="tabular-nums">{format(co, "h:mm a")}</b> — {L("Checked out", "चेक-आउट हुआ")}</div>
+              </li>
+            )}
+            {!ci && <li className="text-muted-foreground text-xs">{L("No activity yet", "अभी कोई गतिविधि नहीं")}</li>}
           </ol>
         </div>
+
+        {a && (
+          <div className="rounded-lg border p-3 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm">
+              <Flag className={`size-4 ${flag ? "text-destructive" : "text-muted-foreground"}`} />
+              <div>
+                <div className="font-semibold">{L("Flag for Audit", "ऑडिट के लिए चिह्नित करें")}</div>
+                <div className="text-[11px] text-muted-foreground">{L("Photos retained until unflagged", "चिह्न हटने तक फ़ोटो सुरक्षित")}</div>
+              </div>
+            </div>
+            <Switch checked={flag} onCheckedChange={toggleFlag} />
+          </div>
+        )}
 
         {a?.notes && (
           <div>
@@ -437,7 +522,7 @@ function KV({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg border p-3">
       <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="font-bold capitalize">{value}</div>
+      <div className="font-bold text-sm tabular-nums">{value}</div>
     </div>
   );
 }
