@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { compressImage } from "@/lib/image-compress";
+import { validateVideos, VIDEO_LIMITS } from "@/lib/video-validate";
 
 export const Route = createFileRoute("/_authenticated/me/tasks/")({
   component: MyTasksList,
