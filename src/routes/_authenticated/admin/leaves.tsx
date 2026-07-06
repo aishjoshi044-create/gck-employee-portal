@@ -138,6 +138,10 @@ function LeavesPage() {
     });
   }, [list, q, statusF, typeF, from, to]);
 
+  const [visibleCount, setVisibleCount] = useState(50);
+  useEffect(() => { setVisibleCount(50); }, [q, statusF, typeF, from, to]);
+  const visible = filtered.slice(0, visibleCount);
+
   const decide = async (id: string, status: "approved" | "rejected", note?: string) => {
     const patch = { status, decided_by: user!.id, decided_at: new Date().toISOString(), admin_note: note ?? null };
     const { error } = await supabase.from("leave_requests").update(patch).eq("id", id);
