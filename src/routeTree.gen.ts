@@ -28,6 +28,7 @@ import { Route as AuthenticatedAdminDailyReportsRouteImport } from './routes/_au
 import { Route as AuthenticatedAdminAttendanceRouteImport } from './routes/_authenticated/admin/attendance'
 import { Route as AuthenticatedAdminAnnouncementsRouteImport } from './routes/_authenticated/admin/announcements'
 import { Route as AuthenticatedMeTasksIndexRouteImport } from './routes/_authenticated/me/tasks/index'
+import { Route as ApiPublicHooksCleanupAttendancePhotosRouteImport } from './routes/api/public/hooks/cleanup-attendance-photos'
 import { Route as AuthenticatedMeTasksIdRouteImport } from './routes/_authenticated/me/tasks/$id'
 
 const AuthRoute = AuthRouteImport.update({
@@ -134,6 +135,12 @@ const AuthenticatedMeTasksIndexRoute =
     path: '/me/tasks/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const ApiPublicHooksCleanupAttendancePhotosRoute =
+  ApiPublicHooksCleanupAttendancePhotosRouteImport.update({
+    id: '/api/public/hooks/cleanup-attendance-photos',
+    path: '/api/public/hooks/cleanup-attendance-photos',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedMeTasksIdRoute = AuthenticatedMeTasksIdRouteImport.update({
   id: '/me/tasks/$id',
   path: '/me/tasks/$id',
@@ -159,6 +166,7 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/me/': typeof AuthenticatedMeIndexRoute
   '/me/tasks/$id': typeof AuthenticatedMeTasksIdRoute
+  '/api/public/hooks/cleanup-attendance-photos': typeof ApiPublicHooksCleanupAttendancePhotosRoute
   '/me/tasks/': typeof AuthenticatedMeTasksIndexRoute
 }
 export interface FileRoutesByTo {
@@ -180,6 +188,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/me': typeof AuthenticatedMeIndexRoute
   '/me/tasks/$id': typeof AuthenticatedMeTasksIdRoute
+  '/api/public/hooks/cleanup-attendance-photos': typeof ApiPublicHooksCleanupAttendancePhotosRoute
   '/me/tasks': typeof AuthenticatedMeTasksIndexRoute
 }
 export interface FileRoutesById {
@@ -203,6 +212,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/me/': typeof AuthenticatedMeIndexRoute
   '/_authenticated/me/tasks/$id': typeof AuthenticatedMeTasksIdRoute
+  '/api/public/hooks/cleanup-attendance-photos': typeof ApiPublicHooksCleanupAttendancePhotosRoute
   '/_authenticated/me/tasks/': typeof AuthenticatedMeTasksIndexRoute
 }
 export interface FileRouteTypes {
@@ -226,6 +236,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/me/'
     | '/me/tasks/$id'
+    | '/api/public/hooks/cleanup-attendance-photos'
     | '/me/tasks/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -247,6 +258,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/me'
     | '/me/tasks/$id'
+    | '/api/public/hooks/cleanup-attendance-photos'
     | '/me/tasks'
   id:
     | '__root__'
@@ -269,6 +281,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/'
     | '/_authenticated/me/'
     | '/_authenticated/me/tasks/$id'
+    | '/api/public/hooks/cleanup-attendance-photos'
     | '/_authenticated/me/tasks/'
   fileRoutesById: FileRoutesById
 }
@@ -276,6 +289,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ApiPublicHooksCleanupAttendancePhotosRoute: typeof ApiPublicHooksCleanupAttendancePhotosRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -413,6 +427,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMeTasksIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/hooks/cleanup-attendance-photos': {
+      id: '/api/public/hooks/cleanup-attendance-photos'
+      path: '/api/public/hooks/cleanup-attendance-photos'
+      fullPath: '/api/public/hooks/cleanup-attendance-photos'
+      preLoaderRoute: typeof ApiPublicHooksCleanupAttendancePhotosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/me/tasks/$id': {
       id: '/_authenticated/me/tasks/$id'
       path: '/me/tasks/$id'
@@ -470,6 +491,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  ApiPublicHooksCleanupAttendancePhotosRoute:
+    ApiPublicHooksCleanupAttendancePhotosRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
