@@ -10,6 +10,7 @@ import { ArrowLeft, Mic, Square, Play, Camera, Send, Loader2, MapPin } from "luc
 import { format } from "date-fns";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { compressImage } from "@/lib/image-compress";
 
 export const Route = createFileRoute("/_authenticated/me/tasks/$id")({
   component: TaskDetail,
