@@ -389,6 +389,23 @@ export const dict = {
   dr_export_excel: { en: "Export Excel", hi: "Excel निर्यात" },
   dr_optional: { en: "Optional", hi: "वैकल्पिक" },
 
+  // employee dashboard
+  dash_good_morning: { en: "Good morning", hi: "सुप्रभात" },
+  dash_good_afternoon: { en: "Good afternoon", hi: "नमस्कार" },
+  dash_good_evening: { en: "Good evening", hi: "शुभ संध्या" },
+  dash_todays_overview: { en: "Today's Overview", hi: "आज का सार" },
+  dash_attendance_status: { en: "Attendance", hi: "हाज़िरी" },
+  dash_present: { en: "Present", hi: "उपस्थित" },
+  dash_absent: { en: "Absent", hi: "अनुपस्थित" },
+  dash_pending_tasks: { en: "Pending Tasks", hi: "लंबित कार्य" },
+  dash_report_status: { en: "Daily Report", hi: "दैनिक रिपोर्ट" },
+  dash_submitted: { en: "Submitted", hi: "जमा" },
+  dash_pending: { en: "Pending", hi: "लंबित" },
+  dash_upcoming_leave: { en: "Upcoming Leave", hi: "आगामी छुट्टी" },
+  dash_no_upcoming_leave: { en: "No Upcoming Leave", hi: "कोई आगामी छुट्टी नहीं" },
+  dash_todays_tasks: { en: "Today's Tasks", hi: "आज के कार्य" },
+  dash_view_all: { en: "View All", hi: "सभी देखें" },
+
   // report generator
   rg_report_type: { en: "Report Type", hi: "रिपोर्ट प्रकार" },
   rg_employee_performance: { en: "Employee Performance", hi: "कर्मचारी प्रदर्शन" },
