@@ -16,6 +16,7 @@ import {
   X, AlertCircle, CheckCircle2, FileText,
 } from "lucide-react";
 import { toast } from "sonner";
+import { compressImage } from "@/lib/image-compress";
 
 export const Route = createFileRoute("/_authenticated/me/tasks/")({
   component: MyTasksList,
