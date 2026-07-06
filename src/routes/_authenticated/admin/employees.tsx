@@ -74,7 +74,7 @@ function EmployeesPage() {
       </div>
 
       <div className="grid gap-2">
-        {filtered.map((e: any) => (
+        {visible.map((e: any) => (
           <Card key={e.id} className="p-3 flex items-center gap-3">
             <div className="size-10 rounded-full bg-primary-soft text-primary flex items-center justify-center font-bold">{e.full_name?.[0]}</div>
             <div className="flex-1 min-w-0">
@@ -102,6 +102,11 @@ function EmployeesPage() {
             }}><Power className={`size-4 ${e.active ? "text-success" : "text-destructive"}`} /></Button>
           </Card>
         ))}
+        {filtered.length > visible.length && (
+          <Button variant="outline" onClick={() => setVisibleCount((n) => n + 50)}>
+            Load more ({filtered.length - visible.length})
+          </Button>
+        )}
       </div>
 
       {created && <CredentialCard data={created} onClose={() => setCreated(null)} />}
