@@ -122,8 +122,9 @@ function NewEmployeeForm({ onCreated, create }: { onCreated: (c: { username: str
 
       // Upload the reference photo to the avatars bucket and link it to the profile.
       if (faceBlob && r.user_id) {
-        const path = `${r.user_id}/face-${Date.now()}.jpg`;
-        const up = await supabase.storage.from("avatars").upload(path, faceBlob, { contentType: "image/jpeg", upsert: true });
+        const optimized = await compressImage(faceBlob, "profile");
+        const path = `${r.user_id}/face-${Date.now()}.${optimized.ext}`;
+        const up = await supabase.storage.from("avatars").upload(path, optimized.blob, { contentType: optimized.contentType, upsert: true });
         if (!up.error) {
           await supabase.from("profiles").update({ photo_url: path }).eq("id", r.user_id);
         }
