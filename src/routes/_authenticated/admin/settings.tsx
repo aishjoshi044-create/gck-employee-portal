@@ -84,7 +84,7 @@ function SettingsPage() {
 
   const accountFn = useServerFn(getMyAccountInfo);
   const updateProfileFn = useServerFn(updateMyProfile);
-  const changePinFn = useServerFn(changeMyPin);
+  const changePwFn = useServerFn(changeMyPassword);
 
   const { data: account, isLoading } = useQuery({
     queryKey: ["my-account-info"],
