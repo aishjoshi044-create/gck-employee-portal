@@ -6,12 +6,27 @@ import { useI18n } from "@/lib/i18n";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Bell, CheckCheck, ClipboardList, NotebookPen, CalendarDays, CalendarCheck, Megaphone, Settings as SettingsIcon, ExternalLink } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Bell, CheckCheck, ClipboardList, NotebookPen, CalendarDays, CalendarCheck, Megaphone, Settings as SettingsIcon, ExternalLink, CalendarRange, X, Search, SlidersHorizontal } from "lucide-react";
+import { formatDistanceToNow, format, subDays, startOfDay, endOfDay } from "date-fns";
+import type { DateRange } from "react-day-picker";
 import { Link } from "@tanstack/react-router";
+import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 20;
+
+function useDebounced<T>(value: T, ms = 300): T {
+  const [v, setV] = useState(value);
+  useEffect(() => {
+    const id = setTimeout(() => setV(value), ms);
+    return () => clearTimeout(id);
+  }, [value, ms]);
+  return v;
+}
+
 
 type Notif = {
   id: string;
