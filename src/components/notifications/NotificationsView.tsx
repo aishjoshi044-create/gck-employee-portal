@@ -67,7 +67,7 @@ export function NotificationsView({ isAdmin }: { isAdmin: boolean }) {
     queryKey: ["notifications", user?.id, kind, status, dateFrom, dateTo, q],
     enabled: !!user,
     initialPageParam: 0,
-    getNextPageParam: (last, pages) => (last.length < PAGE_SIZE ? undefined : pages.length),
+    getNextPageParam: (last: Notif[], pages) => (last.length < PAGE_SIZE ? undefined : pages.length),
     queryFn: async ({ pageParam }) => {
       const from = (pageParam as number) * PAGE_SIZE;
       const to = from + PAGE_SIZE - 1;
