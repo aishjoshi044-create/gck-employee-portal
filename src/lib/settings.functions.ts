@@ -56,6 +56,50 @@ export const changeMyPin = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/** Change my own password (admin), verifying the current one first. */
+export const changeMyPassword = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({
+      current_password: z.string().min(1, "Current password required"),
+      new_password: z
+        .string()
+        .min(8, "Minimum 8 characters")
+        .max(72)
+        .regex(/[a-z]/, "Must contain a lowercase letter")
+        .regex(/[A-Z]/, "Must contain an uppercase letter")
+        .regex(/\d/, "Must contain a number")
+        .regex(/[^A-Za-z0-9]/, "Must contain a special character"),
+    }).parse(input)
+  )
+  .handler(async ({ data, context }) => {
+    const { userId } = context;
+    if (data.current_password === data.new_password) {
+      throw new Error("New password must be different from current password");
+    }
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: userData, error: uErr } = await supabaseAdmin.auth.admin.getUserById(userId);
+    if (uErr || !userData.user?.email) throw new Error("User not found");
+
+    const { createClient } = await import("@supabase/supabase-js");
+    const verify = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_PUBLISHABLE_KEY!, {
+      auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
+    });
+    const { error: signErr } = await verify.auth.signInWithPassword({
+      email: userData.user.email,
+      password: data.current_password,
+    });
+    if (signErr) throw new Error("Current password is incorrect");
+
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+      password: data.new_password,
+    });
+    if (error) throw new Error(error.message);
+    await supabaseAdmin.from("profiles").update({ updated_at: new Date().toISOString() }).eq("id", userId);
+    return { ok: true };
+  });
+
+
 /** Update my own profile fields (name, phone, department, address, language). */
 export const updateMyProfile = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
