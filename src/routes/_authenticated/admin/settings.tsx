@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { useI18n, type Lang } from "@/lib/i18n";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { getMyAccountInfo, changeMyPin, updateMyProfile } from "@/lib/settings.functions";
+import { getMyAccountInfo, changeMyPassword, updateMyProfile } from "@/lib/settings.functions";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -84,7 +84,7 @@ function SettingsPage() {
 
   const accountFn = useServerFn(getMyAccountInfo);
   const updateProfileFn = useServerFn(updateMyProfile);
-  const changePinFn = useServerFn(changeMyPin);
+  const changePwFn = useServerFn(changeMyPassword);
 
   const { data: account, isLoading } = useQuery({
     queryKey: ["my-account-info"],
@@ -183,21 +183,21 @@ function SettingsPage() {
           <Shield className="size-4 text-primary" /> {t("security")}
         </h2>
         <SectionRow icon={<UserIcon className="size-4" />} label={t("username")} value={profile?.username ? `@${profile.username}` : "—"} />
-        <SectionRow icon={<KeyRound className="size-4" />} label={t("last_pin_changed")} value={formatDate(account?.updated_at ?? null, lang)} />
+        <SectionRow icon={<KeyRound className="size-4" />} label="Last password changed" value={formatDate(account?.updated_at ?? null, lang)} />
         <div className="flex flex-wrap gap-2 pt-3">
           <Dialog open={pinOpen} onOpenChange={setPinOpen}>
             <DialogTrigger asChild>
               <Button className="gap-2">
-                <KeyRound className="size-4" /> {t("change_pin")}
+                <KeyRound className="size-4" /> Change Password
               </Button>
             </DialogTrigger>
-            <ChangePinDialog
+            <ChangePasswordDialog
               onClose={() => setPinOpen(false)}
               onSaved={() => {
                 qc.invalidateQueries({ queryKey: ["my-account-info"] });
                 setPinOpen(false);
               }}
-              changePinFn={changePinFn}
+              changePwFn={changePwFn}
             />
           </Dialog>
           <Button variant="outline" className="gap-2" onClick={handleLogout}>
@@ -280,33 +280,44 @@ function EditProfileDialog({
   );
 }
 
-function ChangePinDialog({
+function ChangePasswordDialog({
   onClose,
   onSaved,
-  changePinFn,
+  changePwFn,
 }: {
   onClose: () => void;
   onSaved: () => void;
-  changePinFn: ReturnType<typeof useServerFn<typeof changeMyPin>>;
+  changePwFn: ReturnType<typeof useServerFn<typeof changeMyPassword>>;
 }) {
   const { t } = useI18n();
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
   const [confirm, setConfirm] = useState("");
-  const [show, setShow] = useState(false);
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNext, setShowNext] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [busy, setBusy] = useState(false);
+
+  const rules = [
+    { ok: next.length >= 8, label: "At least 8 characters" },
+    { ok: /[a-z]/.test(next), label: "One lowercase letter" },
+    { ok: /[A-Z]/.test(next), label: "One uppercase letter" },
+    { ok: /\d/.test(next), label: "One number" },
+    { ok: /[^A-Za-z0-9]/.test(next), label: "One special character" },
+    { ok: next.length > 0 && next !== current, label: "Different from current password" },
+  ];
+  const allOk = rules.every((r) => r.ok);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!/^\d{4}$/.test(current)) return toast.error(t("current_pin") + ": " + t("pin"));
-    if (!/^\d{4}$/.test(next)) return toast.error(t("new_pin") + ": " + t("pin"));
-    if (next === current) return toast.error("New PIN must be different from current PIN");
-    if (next !== confirm) return toast.error(t("pin_mismatch"));
+    if (!current) return toast.error("Current password is required");
+    if (!allOk) return toast.error("New password does not meet requirements");
+    if (next !== confirm) return toast.error("Passwords do not match");
 
     setBusy(true);
     try {
-      await changePinFn({ data: { current_pin: current, new_pin: next } });
-      toast.success(t("pin_changed_success"));
+      await changePwFn({ data: { current_password: current, new_password: next } });
+      toast.success("Password changed successfully");
       setCurrent(""); setNext(""); setConfirm("");
       onSaved();
     } catch (err: any) {
@@ -316,20 +327,34 @@ function ChangePinDialog({
     }
   };
 
-  const pinField = (label: string, value: string, onChange: (v: string) => void) => (
+  const pwField = (
+    label: string,
+    value: string,
+    onChange: (v: string) => void,
+    show: boolean,
+    setShow: (b: boolean) => void,
+    autoComplete: string,
+  ) => (
     <div>
       <Label>{label}</Label>
       <div className="relative mt-1">
         <Input
-          inputMode="numeric"
-          maxLength={4}
           type={show ? "text" : "password"}
-          className="text-center text-xl tracking-[0.5em] font-mono pr-10"
+          autoComplete={autoComplete}
           value={value}
-          onChange={(e) => onChange(e.target.value.replace(/\D/g, "").slice(0, 4))}
-          placeholder="••••"
+          onChange={(e) => onChange(e.target.value)}
+          className="pr-10"
           required
+          maxLength={72}
         />
+        <button
+          type="button"
+          onClick={() => setShow(!show)}
+          className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+          aria-label="Toggle visibility"
+        >
+          {show ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+        </button>
       </div>
     </div>
   );
@@ -337,22 +362,36 @@ function ChangePinDialog({
   return (
     <DialogContent className="max-w-sm">
       <DialogHeader>
-        <DialogTitle className="flex items-center justify-between gap-2">
-          <span>{t("change_pin")}</span>
-          <Button type="button" variant="ghost" size="icon" onClick={() => setShow((s) => !s)} aria-label="Toggle visibility">
-            {show ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-          </Button>
-        </DialogTitle>
+        <DialogTitle>Change Password</DialogTitle>
       </DialogHeader>
       <form onSubmit={submit} className="space-y-3">
-        {pinField(t("current_pin"), current, setCurrent)}
-        {pinField(t("new_pin"), next, setNext)}
-        {pinField(t("confirm_new_pin"), confirm, setConfirm)}
+        {pwField("Current Password", current, setCurrent, showCurrent, setShowCurrent, "current-password")}
+        {pwField("New Password", next, setNext, showNext, setShowNext, "new-password")}
+        {pwField("Confirm Password", confirm, setConfirm, showConfirm, setShowConfirm, "new-password")}
+
+        {next.length > 0 && (
+          <ul className="text-xs space-y-1 mt-1">
+            {rules.map((r) => (
+              <li key={r.label} className={r.ok ? "text-success" : "text-muted-foreground"}>
+                {r.ok ? "✓" : "•"} {r.label}
+              </li>
+            ))}
+            {confirm.length > 0 && (
+              <li className={next === confirm ? "text-success" : "text-destructive"}>
+                {next === confirm ? "✓" : "•"} Passwords match
+              </li>
+            )}
+          </ul>
+        )}
+
         <DialogFooter className="gap-2">
           <Button type="button" variant="outline" onClick={onClose} disabled={busy}>{t("cancel")}</Button>
-          <Button type="submit" disabled={busy}>{busy ? <Loader2 className="size-4 animate-spin" /> : t("save_changes")}</Button>
+          <Button type="submit" disabled={busy || !allOk || next !== confirm || !current}>
+            {busy ? <Loader2 className="size-4 animate-spin" /> : t("save_changes")}
+          </Button>
         </DialogFooter>
       </form>
     </DialogContent>
   );
 }
+
