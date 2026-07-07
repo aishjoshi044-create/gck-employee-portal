@@ -246,27 +246,36 @@ export type Database = {
         Row: {
           body: string | null
           created_at: string
+          expires_at: string
           id: string
           kind: string
+          priority: string
           read: boolean
+          reference_id: string | null
           title: string
           user_id: string
         }
         Insert: {
           body?: string | null
           created_at?: string
+          expires_at?: string
           id?: string
           kind?: string
+          priority?: string
           read?: boolean
+          reference_id?: string | null
           title: string
           user_id: string
         }
         Update: {
           body?: string | null
           created_at?: string
+          expires_at?: string
           id?: string
           kind?: string
+          priority?: string
           read?: boolean
+          reference_id?: string | null
           title?: string
           user_id?: string
         }
