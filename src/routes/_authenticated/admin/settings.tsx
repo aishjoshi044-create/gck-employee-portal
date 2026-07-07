@@ -183,21 +183,21 @@ function SettingsPage() {
           <Shield className="size-4 text-primary" /> {t("security")}
         </h2>
         <SectionRow icon={<UserIcon className="size-4" />} label={t("username")} value={profile?.username ? `@${profile.username}` : "—"} />
-        <SectionRow icon={<KeyRound className="size-4" />} label={t("last_pin_changed")} value={formatDate(account?.updated_at ?? null, lang)} />
+        <SectionRow icon={<KeyRound className="size-4" />} label="Last password changed" value={formatDate(account?.updated_at ?? null, lang)} />
         <div className="flex flex-wrap gap-2 pt-3">
           <Dialog open={pinOpen} onOpenChange={setPinOpen}>
             <DialogTrigger asChild>
               <Button className="gap-2">
-                <KeyRound className="size-4" /> {t("change_pin")}
+                <KeyRound className="size-4" /> Change Password
               </Button>
             </DialogTrigger>
-            <ChangePinDialog
+            <ChangePasswordDialog
               onClose={() => setPinOpen(false)}
               onSaved={() => {
                 qc.invalidateQueries({ queryKey: ["my-account-info"] });
                 setPinOpen(false);
               }}
-              changePinFn={changePinFn}
+              changePwFn={changePwFn}
             />
           </Dialog>
           <Button variant="outline" className="gap-2" onClick={handleLogout}>
