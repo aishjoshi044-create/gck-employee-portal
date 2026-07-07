@@ -182,7 +182,7 @@ export function NotificationsView({ isAdmin }: { isAdmin: boolean }) {
                   </div>
                   <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                     <span className="text-[11px] text-muted-foreground">{formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}</span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">{t(`notif_kind_${(KINDS as readonly string[]).includes(n.kind) ? n.kind : "system"}` as const)}</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">{t((`notif_kind_${(KINDS as readonly string[]).includes(n.kind) ? n.kind : "system"}`) as Parameters<typeof t>[0])}</span>
                     {!n.read && (
                       <button className="text-[11px] text-primary font-semibold" onClick={() => markRead.mutate(n.id)}>{t("mark_read")}</button>
                     )}
