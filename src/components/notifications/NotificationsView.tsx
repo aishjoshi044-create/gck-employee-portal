@@ -6,12 +6,27 @@ import { useI18n } from "@/lib/i18n";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Bell, CheckCheck, ClipboardList, NotebookPen, CalendarDays, CalendarCheck, Megaphone, Settings as SettingsIcon, ExternalLink } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Bell, CheckCheck, ClipboardList, NotebookPen, CalendarDays, CalendarCheck, Megaphone, Settings as SettingsIcon, ExternalLink, CalendarRange, X, Search, SlidersHorizontal } from "lucide-react";
+import { formatDistanceToNow, format, subDays, startOfDay, endOfDay } from "date-fns";
+import type { DateRange } from "react-day-picker";
 import { Link } from "@tanstack/react-router";
+import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 20;
+
+function useDebounced<T>(value: T, ms = 300): T {
+  const [v, setV] = useState(value);
+  useEffect(() => {
+    const id = setTimeout(() => setV(value), ms);
+    return () => clearTimeout(id);
+  }, [value, ms]);
+  return v;
+}
+
 
 type Notif = {
   id: string;
@@ -53,18 +68,37 @@ function linkFor(kind: string, refId: string | null, isAdmin: boolean): string |
   }
 }
 
+type DatePreset = "all" | "today" | "7d" | "30d" | "custom";
+
 export function NotificationsView({ isAdmin }: { isAdmin: boolean }) {
   const { user } = useAuth();
   const { t } = useI18n();
   const qc = useQueryClient();
   const [q, setQ] = useState("");
+  const debouncedQ = useDebounced(q, 300);
   const [kind, setKind] = useState<Kind>("all");
   const [status, setStatus] = useState<"all" | "unread" | "read">("all");
-  const [dateFrom, setDateFrom] = useState<string>("");
-  const [dateTo, setDateTo] = useState<string>("");
+  const [datePreset, setDatePreset] = useState<DatePreset>("all");
+  const [range, setRange] = useState<DateRange | undefined>();
+  const [dateOpen, setDateOpen] = useState(false);
+
+  // Derived ISO bounds from preset/range
+  const { fromISO, toISO } = useMemo(() => {
+    const now = new Date();
+    if (datePreset === "today") return { fromISO: startOfDay(now).toISOString(), toISO: endOfDay(now).toISOString() };
+    if (datePreset === "7d") return { fromISO: startOfDay(subDays(now, 6)).toISOString(), toISO: endOfDay(now).toISOString() };
+    if (datePreset === "30d") return { fromISO: startOfDay(subDays(now, 29)).toISOString(), toISO: endOfDay(now).toISOString() };
+    if (datePreset === "custom" && range?.from) {
+      return {
+        fromISO: startOfDay(range.from).toISOString(),
+        toISO: endOfDay(range.to ?? range.from).toISOString(),
+      };
+    }
+    return { fromISO: "", toISO: "" };
+  }, [datePreset, range]);
 
   const query = useInfiniteQuery({
-    queryKey: ["notifications", user?.id, kind, status, dateFrom, dateTo, q],
+    queryKey: ["notifications", user?.id, kind, status, fromISO, toISO, debouncedQ],
     enabled: !!user,
     initialPageParam: 0,
     getNextPageParam: (last: Notif[], pages) => (last.length < PAGE_SIZE ? undefined : pages.length),
@@ -80,9 +114,13 @@ export function NotificationsView({ isAdmin }: { isAdmin: boolean }) {
       if (kind !== "all") sel = sel.eq("kind", kind);
       if (status === "unread") sel = sel.eq("read", false);
       if (status === "read") sel = sel.eq("read", true);
-      if (dateFrom) sel = sel.gte("created_at", `${dateFrom}T00:00:00.000Z`);
-      if (dateTo) sel = sel.lte("created_at", `${dateTo}T23:59:59.999Z`);
-      if (q.trim()) sel = sel.or(`title.ilike.%${q}%,body.ilike.%${q}%`);
+      if (fromISO) sel = sel.gte("created_at", fromISO);
+      if (toISO) sel = sel.lte("created_at", toISO);
+      const term = debouncedQ.trim();
+      if (term) {
+        const safe = term.replace(/[%,()]/g, " ");
+        sel = sel.or(`title.ilike.%${safe}%,body.ilike.%${safe}%`);
+      }
       const { data, error } = await sel;
       if (error) throw error;
       return (data ?? []) as Notif[];
@@ -119,6 +157,23 @@ export function NotificationsView({ isAdmin }: { isAdmin: boolean }) {
     return () => { ch.unsubscribe(); };
   }, [user, qc]);
 
+  const dateLabel = useMemo(() => {
+    if (datePreset === "all") return t("notif_date_all");
+    if (datePreset === "today") return t("notif_date_today");
+    if (datePreset === "7d") return t("notif_date_7d");
+    if (datePreset === "30d") return t("notif_date_30d");
+    if (range?.from) {
+      const f = format(range.from, "d MMM");
+      const to = range.to ? format(range.to, "d MMM") : f;
+      return `${f} – ${to}`;
+    }
+    return t("notif_date_custom");
+  }, [datePreset, range, t]);
+
+  const clearDate = () => { setDatePreset("all"); setRange(undefined); };
+  const activeCount = (kind !== "all" ? 1 : 0) + (status !== "all" ? 1 : 0) + (datePreset !== "all" ? 1 : 0);
+  const clearAll = () => { setKind("all"); setStatus("all"); clearDate(); setQ(""); };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -131,27 +186,128 @@ export function NotificationsView({ isAdmin }: { isAdmin: boolean }) {
         </Button>
       </div>
 
-      <Card className="p-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
-        <Input placeholder={t("search")} value={q} onChange={(e) => setQ(e.target.value)} className="lg:col-span-2" />
-        <Select value={kind} onValueChange={(v) => setKind(v as Kind)}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>
-            {KINDS.map((k) => (<SelectItem key={k} value={k}>{t(`notif_kind_${k}` as const)}</SelectItem>))}
-          </SelectContent>
-        </Select>
-        <Select value={status} onValueChange={(v) => setStatus(v as "all" | "unread" | "read")}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{t("notif_status_all")}</SelectItem>
-            <SelectItem value="unread">{t("notif_status_unread")}</SelectItem>
-            <SelectItem value="read">{t("notif_status_read")}</SelectItem>
-          </SelectContent>
-        </Select>
-        <div className="flex gap-2">
-          <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} aria-label="From" />
-          <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} aria-label="To" />
+      <Card className="p-3 space-y-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_auto_auto_auto] gap-2">
+          {/* Search */}
+          <div className="relative">
+            <Search className="size-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder={t("search")}
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              className="pl-8 pr-8"
+            />
+            {q && (
+              <button
+                type="button"
+                onClick={() => setQ("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                aria-label={t("clear")}
+              >
+                <X className="size-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Category */}
+          <Select value={kind} onValueChange={(v) => setKind(v as Kind)}>
+            <SelectTrigger className="w-full sm:w-[160px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {KINDS.map((k) => (<SelectItem key={k} value={k}>{t(`notif_kind_${k}` as const)}</SelectItem>))}
+            </SelectContent>
+          </Select>
+
+          {/* Status */}
+          <Select value={status} onValueChange={(v) => setStatus(v as "all" | "unread" | "read")}>
+            <SelectTrigger className="w-full sm:w-[140px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t("notif_status_all")}</SelectItem>
+              <SelectItem value="unread">{t("notif_status_unread")}</SelectItem>
+              <SelectItem value="read">{t("notif_status_read")}</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Date with presets + custom range */}
+          <Popover open={dateOpen} onOpenChange={setDateOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn("w-full sm:w-[220px] justify-start font-normal", datePreset === "all" && "text-muted-foreground")}
+              >
+                <CalendarRange className="size-4 mr-2" />
+                <span className="truncate">{dateLabel}</span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-auto p-0">
+              <div className="flex flex-col sm:flex-row">
+                <div className="flex sm:flex-col gap-1 p-2 border-b sm:border-b-0 sm:border-r min-w-[130px]">
+                  {([
+                    ["all", "notif_date_all"],
+                    ["today", "notif_date_today"],
+                    ["7d", "notif_date_7d"],
+                    ["30d", "notif_date_30d"],
+                    ["custom", "notif_date_custom"],
+                  ] as const).map(([key, k]) => (
+                    <Button
+                      key={key}
+                      variant={datePreset === key ? "default" : "ghost"}
+                      size="sm"
+                      className="justify-start text-xs"
+                      onClick={() => {
+                        setDatePreset(key);
+                        if (key !== "custom") { setRange(undefined); setDateOpen(false); }
+                      }}
+                    >
+                      {t(k)}
+                    </Button>
+                  ))}
+                </div>
+                {datePreset === "custom" && (
+                  <Calendar
+                    mode="range"
+                    numberOfMonths={1}
+                    selected={range}
+                    onSelect={(r) => {
+                      setRange(r);
+                      if (r?.from && r?.to) setDateOpen(false);
+                    }}
+                    initialFocus
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                )}
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
+
+        {/* Active filter chips */}
+        {activeCount > 0 && (
+          <div className="flex items-center gap-1.5 flex-wrap pt-1">
+            <SlidersHorizontal className="size-3.5 text-muted-foreground" />
+            {kind !== "all" && (
+              <Badge variant="secondary" className="gap-1">
+                {t(`notif_kind_${kind}` as const)}
+                <button onClick={() => setKind("all")} aria-label={t("clear")}><X className="size-3" /></button>
+              </Badge>
+            )}
+            {status !== "all" && (
+              <Badge variant="secondary" className="gap-1">
+                {t(status === "unread" ? "notif_status_unread" : "notif_status_read")}
+                <button onClick={() => setStatus("all")} aria-label={t("clear")}><X className="size-3" /></button>
+              </Badge>
+            )}
+            {datePreset !== "all" && (
+              <Badge variant="secondary" className="gap-1">
+                {dateLabel}
+                <button onClick={clearDate} aria-label={t("clear")}><X className="size-3" /></button>
+              </Badge>
+            )}
+            <button className="text-[11px] text-muted-foreground hover:text-foreground ml-1" onClick={clearAll}>{t("clear_all")}</button>
+          </div>
+        )}
       </Card>
+
+
 
       {query.isLoading ? (
         <Card className="p-6 text-center text-muted-foreground text-sm">{t("loading")}</Card>
