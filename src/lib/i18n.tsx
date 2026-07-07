@@ -278,6 +278,25 @@ export const dict = {
   activity_announcement: { en: "posted an announcement", hi: "ने घोषणा की" },
   all_clear: { en: "All clear — nothing pending", hi: "सब ठीक — कुछ बाकी नहीं" },
 
+  // settings
+  settings: { en: "Settings", hi: "सेटिंग्स" },
+  personal_information: { en: "Personal Information", hi: "व्यक्तिगत जानकारी" },
+  account_information: { en: "Account Information", hi: "खाता जानकारी" },
+  security: { en: "Security", hi: "सुरक्षा" },
+  edit_profile: { en: "Edit Profile", hi: "प्रोफ़ाइल संपादित करें" },
+  email: { en: "Email", hi: "ईमेल" },
+  role: { en: "Role", hi: "भूमिका" },
+  account_status: { en: "Account Status", hi: "खाता स्थिति" },
+  created_date: { en: "Created Date", hi: "बनाने की तारीख़" },
+  last_login: { en: "Last Login", hi: "पिछला लॉगिन" },
+  language_preference: { en: "Language Preference", hi: "भाषा वरीयता" },
+  last_pin_changed: { en: "Last PIN Changed", hi: "अंतिम PIN बदलाव" },
+  confirm_new_pin: { en: "Confirm New PIN", hi: "नया PIN दोबारा" },
+  save_changes: { en: "Save Changes", hi: "बदलाव सहेजें" },
+  pin_changed_success: { en: "PIN changed successfully", hi: "PIN सफलतापूर्वक बदल दिया" },
+  profile_updated: { en: "Profile updated", hi: "प्रोफ़ाइल अपडेट हो गई" },
+  never: { en: "Never", hi: "कभी नहीं" },
+
   // reports module
   rep_filters: { en: "Filters", hi: "फ़िल्टर" },
   rep_employee: { en: "Employee", hi: "कर्मचारी" },

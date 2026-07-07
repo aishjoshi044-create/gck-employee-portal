@@ -7,7 +7,7 @@ import { useTheme } from "@/lib/theme";
 import { LangToggle } from "@/components/LangToggle";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from "@/components/ui/sheet";
-import { LogOut, Moon, Sun, Home, ClipboardList, CalendarCheck, User, CalendarDays, Megaphone, Users, FileText, MapPin, Inbox, Menu, NotebookPen } from "lucide-react";
+import { LogOut, Moon, Sun, Home, ClipboardList, CalendarCheck, User, CalendarDays, Megaphone, Users, FileText, MapPin, Inbox, Menu, NotebookPen, Settings } from "lucide-react";
 import logo from "@/assets/gck-logo.jpeg.asset.json";
 
 interface NavItem { to: string; labelKey: Parameters<ReturnType<typeof useI18n>["t"]>[0]; icon: any; }
@@ -32,6 +32,7 @@ const adminNav: NavItem[] = [
   { to: "/admin/locations", labelKey: "locations", icon: MapPin },
   { to: "/admin/announcements", labelKey: "announcements", icon: Megaphone },
   { to: "/admin/reports", labelKey: "reports", icon: FileText },
+  { to: "/admin/settings", labelKey: "settings", icon: Settings },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
