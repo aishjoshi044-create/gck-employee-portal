@@ -316,7 +316,7 @@ function ChangePinDialog({
     }
   };
 
-  const PinField = ({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) => (
+  const pinField = (label: string, value: string, onChange: (v: string) => void) => (
     <div>
       <Label>{label}</Label>
       <div className="relative mt-1">
@@ -345,9 +345,9 @@ function ChangePinDialog({
         </DialogTitle>
       </DialogHeader>
       <form onSubmit={submit} className="space-y-3">
-        <PinField label={t("current_pin")} value={current} onChange={setCurrent} />
-        <PinField label={t("new_pin")} value={next} onChange={setNext} />
-        <PinField label={t("confirm_new_pin")} value={confirm} onChange={setConfirm} />
+        {pinField(t("current_pin"), current, setCurrent)}
+        {pinField(t("new_pin"), next, setNext)}
+        {pinField(t("confirm_new_pin"), confirm, setConfirm)}
         <DialogFooter className="gap-2">
           <Button type="button" variant="outline" onClick={onClose} disabled={busy}>{t("cancel")}</Button>
           <Button type="submit" disabled={busy}>{busy ? <Loader2 className="size-4 animate-spin" /> : t("save_changes")}</Button>
