@@ -316,7 +316,7 @@ function ChangePinDialog({
     }
   };
 
-  const PinField = ({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) => (
+  const pinField = (label: string, value: string, onChange: (v: string) => void) => (
     <div>
       <Label>{label}</Label>
       <div className="relative mt-1">
