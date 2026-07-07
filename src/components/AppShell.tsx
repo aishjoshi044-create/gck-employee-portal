@@ -32,6 +32,7 @@ const adminNav: NavItem[] = [
   { to: "/admin/locations", labelKey: "locations", icon: MapPin },
   { to: "/admin/announcements", labelKey: "announcements", icon: Megaphone },
   { to: "/admin/reports", labelKey: "reports", icon: FileText },
+  { to: "/admin/settings", labelKey: "settings", icon: Settings },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
