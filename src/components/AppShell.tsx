@@ -118,6 +118,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </div>
           </Link>
           <div className="flex-1" />
+          <NotificationBell isAdmin={role === "admin"} />
           <LangToggle />
           <Button variant="outline" size="icon" onClick={toggleDark} aria-label={t("dark_mode")}>
             {dark ? <Sun className="size-4" /> : <Moon className="size-4" />}
