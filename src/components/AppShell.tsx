@@ -7,8 +7,9 @@ import { useTheme } from "@/lib/theme";
 import { LangToggle } from "@/components/LangToggle";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from "@/components/ui/sheet";
-import { LogOut, Moon, Sun, Home, ClipboardList, CalendarCheck, User, CalendarDays, Megaphone, Users, FileText, MapPin, Inbox, Menu, NotebookPen, Settings } from "lucide-react";
+import { LogOut, Moon, Sun, Home, ClipboardList, CalendarCheck, User, CalendarDays, Megaphone, Users, FileText, MapPin, Inbox, Menu, NotebookPen, Settings, Bell } from "lucide-react";
 import logo from "@/assets/gck-logo.jpeg.asset.json";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 interface NavItem { to: string; labelKey: Parameters<ReturnType<typeof useI18n>["t"]>[0]; icon: any; }
 
@@ -18,6 +19,7 @@ const employeeNav: NavItem[] = [
   { to: "/me/tasks", labelKey: "my_tasks", icon: ClipboardList },
   { to: "/me/reports", labelKey: "daily_reports", icon: NotebookPen },
   { to: "/me/leave", labelKey: "leave_request", icon: CalendarDays },
+  { to: "/me/notifications", labelKey: "notifications", icon: Bell },
   { to: "/me/profile", labelKey: "my_profile", icon: User },
 ];
 
