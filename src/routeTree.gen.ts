@@ -16,12 +16,14 @@ import { Route as AuthenticatedMeIndexRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
 import { Route as AuthenticatedMeReportsRouteImport } from './routes/_authenticated/me/reports'
 import { Route as AuthenticatedMeProfileRouteImport } from './routes/_authenticated/me/profile'
+import { Route as AuthenticatedMeNotificationsRouteImport } from './routes/_authenticated/me/notifications'
 import { Route as AuthenticatedMeLeaveRouteImport } from './routes/_authenticated/me/leave'
 import { Route as AuthenticatedMeAttendanceRouteImport } from './routes/_authenticated/me/attendance'
 import { Route as AuthenticatedAdminUpdatesRouteImport } from './routes/_authenticated/admin/updates'
 import { Route as AuthenticatedAdminTasksRouteImport } from './routes/_authenticated/admin/tasks'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin/settings'
 import { Route as AuthenticatedAdminReportsRouteImport } from './routes/_authenticated/admin/reports'
+import { Route as AuthenticatedAdminNotificationsRouteImport } from './routes/_authenticated/admin/notifications'
 import { Route as AuthenticatedAdminLocationsRouteImport } from './routes/_authenticated/admin/locations'
 import { Route as AuthenticatedAdminLeavesRouteImport } from './routes/_authenticated/admin/leaves'
 import { Route as AuthenticatedAdminEmployeesRouteImport } from './routes/_authenticated/admin/employees'
@@ -66,6 +68,12 @@ const AuthenticatedMeProfileRoute = AuthenticatedMeProfileRouteImport.update({
   path: '/me/profile',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedMeNotificationsRoute =
+  AuthenticatedMeNotificationsRouteImport.update({
+    id: '/me/notifications',
+    path: '/me/notifications',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedMeLeaveRoute = AuthenticatedMeLeaveRouteImport.update({
   id: '/me/leave',
   path: '/me/leave',
@@ -98,6 +106,12 @@ const AuthenticatedAdminReportsRoute =
   AuthenticatedAdminReportsRouteImport.update({
     id: '/admin/reports',
     path: '/admin/reports',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminNotificationsRoute =
+  AuthenticatedAdminNotificationsRouteImport.update({
+    id: '/admin/notifications',
+    path: '/admin/notifications',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAdminLocationsRoute =
@@ -163,12 +177,14 @@ export interface FileRoutesByFullPath {
   '/admin/employees': typeof AuthenticatedAdminEmployeesRoute
   '/admin/leaves': typeof AuthenticatedAdminLeavesRoute
   '/admin/locations': typeof AuthenticatedAdminLocationsRoute
+  '/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
   '/admin/reports': typeof AuthenticatedAdminReportsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/tasks': typeof AuthenticatedAdminTasksRoute
   '/admin/updates': typeof AuthenticatedAdminUpdatesRoute
   '/me/attendance': typeof AuthenticatedMeAttendanceRoute
   '/me/leave': typeof AuthenticatedMeLeaveRoute
+  '/me/notifications': typeof AuthenticatedMeNotificationsRoute
   '/me/profile': typeof AuthenticatedMeProfileRoute
   '/me/reports': typeof AuthenticatedMeReportsRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
@@ -186,12 +202,14 @@ export interface FileRoutesByTo {
   '/admin/employees': typeof AuthenticatedAdminEmployeesRoute
   '/admin/leaves': typeof AuthenticatedAdminLeavesRoute
   '/admin/locations': typeof AuthenticatedAdminLocationsRoute
+  '/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
   '/admin/reports': typeof AuthenticatedAdminReportsRoute
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/tasks': typeof AuthenticatedAdminTasksRoute
   '/admin/updates': typeof AuthenticatedAdminUpdatesRoute
   '/me/attendance': typeof AuthenticatedMeAttendanceRoute
   '/me/leave': typeof AuthenticatedMeLeaveRoute
+  '/me/notifications': typeof AuthenticatedMeNotificationsRoute
   '/me/profile': typeof AuthenticatedMeProfileRoute
   '/me/reports': typeof AuthenticatedMeReportsRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
@@ -211,12 +229,14 @@ export interface FileRoutesById {
   '/_authenticated/admin/employees': typeof AuthenticatedAdminEmployeesRoute
   '/_authenticated/admin/leaves': typeof AuthenticatedAdminLeavesRoute
   '/_authenticated/admin/locations': typeof AuthenticatedAdminLocationsRoute
+  '/_authenticated/admin/notifications': typeof AuthenticatedAdminNotificationsRoute
   '/_authenticated/admin/reports': typeof AuthenticatedAdminReportsRoute
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/admin/tasks': typeof AuthenticatedAdminTasksRoute
   '/_authenticated/admin/updates': typeof AuthenticatedAdminUpdatesRoute
   '/_authenticated/me/attendance': typeof AuthenticatedMeAttendanceRoute
   '/_authenticated/me/leave': typeof AuthenticatedMeLeaveRoute
+  '/_authenticated/me/notifications': typeof AuthenticatedMeNotificationsRoute
   '/_authenticated/me/profile': typeof AuthenticatedMeProfileRoute
   '/_authenticated/me/reports': typeof AuthenticatedMeReportsRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
@@ -236,12 +256,14 @@ export interface FileRouteTypes {
     | '/admin/employees'
     | '/admin/leaves'
     | '/admin/locations'
+    | '/admin/notifications'
     | '/admin/reports'
     | '/admin/settings'
     | '/admin/tasks'
     | '/admin/updates'
     | '/me/attendance'
     | '/me/leave'
+    | '/me/notifications'
     | '/me/profile'
     | '/me/reports'
     | '/admin/'
@@ -259,12 +281,14 @@ export interface FileRouteTypes {
     | '/admin/employees'
     | '/admin/leaves'
     | '/admin/locations'
+    | '/admin/notifications'
     | '/admin/reports'
     | '/admin/settings'
     | '/admin/tasks'
     | '/admin/updates'
     | '/me/attendance'
     | '/me/leave'
+    | '/me/notifications'
     | '/me/profile'
     | '/me/reports'
     | '/admin'
@@ -283,12 +307,14 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/employees'
     | '/_authenticated/admin/leaves'
     | '/_authenticated/admin/locations'
+    | '/_authenticated/admin/notifications'
     | '/_authenticated/admin/reports'
     | '/_authenticated/admin/settings'
     | '/_authenticated/admin/tasks'
     | '/_authenticated/admin/updates'
     | '/_authenticated/me/attendance'
     | '/_authenticated/me/leave'
+    | '/_authenticated/me/notifications'
     | '/_authenticated/me/profile'
     | '/_authenticated/me/reports'
     | '/_authenticated/admin/'
@@ -356,6 +382,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMeProfileRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/me/notifications': {
+      id: '/_authenticated/me/notifications'
+      path: '/me/notifications'
+      fullPath: '/me/notifications'
+      preLoaderRoute: typeof AuthenticatedMeNotificationsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/me/leave': {
       id: '/_authenticated/me/leave'
       path: '/me/leave'
@@ -396,6 +429,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/reports'
       fullPath: '/admin/reports'
       preLoaderRoute: typeof AuthenticatedAdminReportsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/notifications': {
+      id: '/_authenticated/admin/notifications'
+      path: '/admin/notifications'
+      fullPath: '/admin/notifications'
+      preLoaderRoute: typeof AuthenticatedAdminNotificationsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/locations': {
@@ -471,12 +511,14 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminEmployeesRoute: typeof AuthenticatedAdminEmployeesRoute
   AuthenticatedAdminLeavesRoute: typeof AuthenticatedAdminLeavesRoute
   AuthenticatedAdminLocationsRoute: typeof AuthenticatedAdminLocationsRoute
+  AuthenticatedAdminNotificationsRoute: typeof AuthenticatedAdminNotificationsRoute
   AuthenticatedAdminReportsRoute: typeof AuthenticatedAdminReportsRoute
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
   AuthenticatedAdminTasksRoute: typeof AuthenticatedAdminTasksRoute
   AuthenticatedAdminUpdatesRoute: typeof AuthenticatedAdminUpdatesRoute
   AuthenticatedMeAttendanceRoute: typeof AuthenticatedMeAttendanceRoute
   AuthenticatedMeLeaveRoute: typeof AuthenticatedMeLeaveRoute
+  AuthenticatedMeNotificationsRoute: typeof AuthenticatedMeNotificationsRoute
   AuthenticatedMeProfileRoute: typeof AuthenticatedMeProfileRoute
   AuthenticatedMeReportsRoute: typeof AuthenticatedMeReportsRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
@@ -492,12 +534,14 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminEmployeesRoute: AuthenticatedAdminEmployeesRoute,
   AuthenticatedAdminLeavesRoute: AuthenticatedAdminLeavesRoute,
   AuthenticatedAdminLocationsRoute: AuthenticatedAdminLocationsRoute,
+  AuthenticatedAdminNotificationsRoute: AuthenticatedAdminNotificationsRoute,
   AuthenticatedAdminReportsRoute: AuthenticatedAdminReportsRoute,
   AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
   AuthenticatedAdminTasksRoute: AuthenticatedAdminTasksRoute,
   AuthenticatedAdminUpdatesRoute: AuthenticatedAdminUpdatesRoute,
   AuthenticatedMeAttendanceRoute: AuthenticatedMeAttendanceRoute,
   AuthenticatedMeLeaveRoute: AuthenticatedMeLeaveRoute,
+  AuthenticatedMeNotificationsRoute: AuthenticatedMeNotificationsRoute,
   AuthenticatedMeProfileRoute: AuthenticatedMeProfileRoute,
   AuthenticatedMeReportsRoute: AuthenticatedMeReportsRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
