@@ -20,6 +20,7 @@ import { Route as AuthenticatedMeLeaveRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedMeAttendanceRouteImport } from './routes/_authenticated/me/attendance'
 import { Route as AuthenticatedAdminUpdatesRouteImport } from './routes/_authenticated/admin/updates'
 import { Route as AuthenticatedAdminTasksRouteImport } from './routes/_authenticated/admin/tasks'
+import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin/settings'
 import { Route as AuthenticatedAdminReportsRouteImport } from './routes/_authenticated/admin/reports'
 import { Route as AuthenticatedAdminLocationsRouteImport } from './routes/_authenticated/admin/locations'
 import { Route as AuthenticatedAdminLeavesRouteImport } from './routes/_authenticated/admin/leaves'
@@ -87,6 +88,12 @@ const AuthenticatedAdminTasksRoute = AuthenticatedAdminTasksRouteImport.update({
   path: '/admin/tasks',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAdminSettingsRoute =
+  AuthenticatedAdminSettingsRouteImport.update({
+    id: '/admin/settings',
+    path: '/admin/settings',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAdminReportsRoute =
   AuthenticatedAdminReportsRouteImport.update({
     id: '/admin/reports',
@@ -157,6 +164,7 @@ export interface FileRoutesByFullPath {
   '/admin/leaves': typeof AuthenticatedAdminLeavesRoute
   '/admin/locations': typeof AuthenticatedAdminLocationsRoute
   '/admin/reports': typeof AuthenticatedAdminReportsRoute
+  '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/tasks': typeof AuthenticatedAdminTasksRoute
   '/admin/updates': typeof AuthenticatedAdminUpdatesRoute
   '/me/attendance': typeof AuthenticatedMeAttendanceRoute
@@ -179,6 +187,7 @@ export interface FileRoutesByTo {
   '/admin/leaves': typeof AuthenticatedAdminLeavesRoute
   '/admin/locations': typeof AuthenticatedAdminLocationsRoute
   '/admin/reports': typeof AuthenticatedAdminReportsRoute
+  '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/tasks': typeof AuthenticatedAdminTasksRoute
   '/admin/updates': typeof AuthenticatedAdminUpdatesRoute
   '/me/attendance': typeof AuthenticatedMeAttendanceRoute
@@ -203,6 +212,7 @@ export interface FileRoutesById {
   '/_authenticated/admin/leaves': typeof AuthenticatedAdminLeavesRoute
   '/_authenticated/admin/locations': typeof AuthenticatedAdminLocationsRoute
   '/_authenticated/admin/reports': typeof AuthenticatedAdminReportsRoute
+  '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/admin/tasks': typeof AuthenticatedAdminTasksRoute
   '/_authenticated/admin/updates': typeof AuthenticatedAdminUpdatesRoute
   '/_authenticated/me/attendance': typeof AuthenticatedMeAttendanceRoute
@@ -227,6 +237,7 @@ export interface FileRouteTypes {
     | '/admin/leaves'
     | '/admin/locations'
     | '/admin/reports'
+    | '/admin/settings'
     | '/admin/tasks'
     | '/admin/updates'
     | '/me/attendance'
@@ -249,6 +260,7 @@ export interface FileRouteTypes {
     | '/admin/leaves'
     | '/admin/locations'
     | '/admin/reports'
+    | '/admin/settings'
     | '/admin/tasks'
     | '/admin/updates'
     | '/me/attendance'
@@ -272,6 +284,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/leaves'
     | '/_authenticated/admin/locations'
     | '/_authenticated/admin/reports'
+    | '/_authenticated/admin/settings'
     | '/_authenticated/admin/tasks'
     | '/_authenticated/admin/updates'
     | '/_authenticated/me/attendance'
@@ -371,6 +384,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminTasksRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/admin/settings': {
+      id: '/_authenticated/admin/settings'
+      path: '/admin/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AuthenticatedAdminSettingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/admin/reports': {
       id: '/_authenticated/admin/reports'
       path: '/admin/reports'
@@ -452,6 +472,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminLeavesRoute: typeof AuthenticatedAdminLeavesRoute
   AuthenticatedAdminLocationsRoute: typeof AuthenticatedAdminLocationsRoute
   AuthenticatedAdminReportsRoute: typeof AuthenticatedAdminReportsRoute
+  AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
   AuthenticatedAdminTasksRoute: typeof AuthenticatedAdminTasksRoute
   AuthenticatedAdminUpdatesRoute: typeof AuthenticatedAdminUpdatesRoute
   AuthenticatedMeAttendanceRoute: typeof AuthenticatedMeAttendanceRoute
@@ -472,6 +493,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminLeavesRoute: AuthenticatedAdminLeavesRoute,
   AuthenticatedAdminLocationsRoute: AuthenticatedAdminLocationsRoute,
   AuthenticatedAdminReportsRoute: AuthenticatedAdminReportsRoute,
+  AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
   AuthenticatedAdminTasksRoute: AuthenticatedAdminTasksRoute,
   AuthenticatedAdminUpdatesRoute: AuthenticatedAdminUpdatesRoute,
   AuthenticatedMeAttendanceRoute: AuthenticatedMeAttendanceRoute,
