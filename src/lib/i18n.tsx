@@ -144,6 +144,7 @@ export const dict = {
   notif_status_all: { en: "All statuses", hi: "सभी स्थिति" },
   notif_status_unread: { en: "Unread", hi: "अपठित" },
   notif_status_read: { en: "Read", hi: "पढ़ी गई" },
+  view_all_notifications: { en: "View all notifications", hi: "सभी सूचनाएँ देखें" },
   leaves: { en: "Leaves", hi: "छुट्टियाँ" },
   announcements: { en: "Announcements", hi: "घोषणाएँ" },
   locations: { en: "Live Locations", hi: "लाइव स्थान" },
