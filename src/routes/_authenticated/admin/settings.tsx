@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { useI18n, type Lang } from "@/lib/i18n";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { getMyAccountInfo, changeMyPin, updateMyProfile } from "@/lib/settings.functions";
+import { getMyAccountInfo, changeMyPassword, updateMyProfile } from "@/lib/settings.functions";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
