@@ -133,7 +133,7 @@ export const dict = {
   no_notifications: { en: "No notifications", hi: "कोई सूचना नहीं" },
   load_more: { en: "Load more", hi: "और दिखाएँ" },
   open: { en: "Open", hi: "खोलें" },
-  priority_high: { en: "High", hi: "उच्च" },
+  
   notif_kind_all: { en: "All types", hi: "सभी प्रकार" },
   notif_kind_task: { en: "Tasks", hi: "काम" },
   notif_kind_daily_report: { en: "Daily Reports", hi: "दैनिक रिपोर्ट" },
