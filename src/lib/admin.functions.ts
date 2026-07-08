@@ -113,6 +113,113 @@ export const setEmployeeActive = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/** Admin updates an employee's editable profile fields. */
+export const updateEmployee = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({
+      user_id: z.string().uuid(),
+      full_name: z.string().trim().min(1).max(100).optional(),
+      username: z.string().trim().min(2).max(30).regex(/^[a-z0-9_.-]+$/).optional(),
+      phone: z.string().trim().max(20).optional().nullable(),
+      project: z.string().trim().max(100).optional().nullable(),
+      designation: z.string().trim().max(100).optional().nullable(),
+      address: z.string().trim().max(300).optional().nullable(),
+      date_of_joining: z.string().optional().nullable(),
+    }).parse(input)
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+    if (!roles?.some((r) => r.role === "admin")) throw new Error("Forbidden");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { user_id, username, ...rest } = data;
+    const patch: Record<string, unknown> = Object.fromEntries(
+      Object.entries(rest).filter(([, v]) => v !== undefined)
+    );
+
+    if (username) {
+      const { data: cur } = await supabaseAdmin.from("profiles").select("username").eq("id", user_id).maybeSingle();
+      if (cur?.username !== username) {
+        const { error: authErr } = await supabaseAdmin.auth.admin.updateUserById(user_id, {
+          email: `${username}@gck.local`,
+        });
+        if (authErr) throw new Error(authErr.message);
+        patch.username = username;
+      }
+    }
+
+    if (Object.keys(patch).length) {
+      const { error } = await supabaseAdmin.from("profiles").update(patch as never).eq("id", user_id);
+      if (error) throw new Error(error.message);
+    }
+    return { ok: true };
+  });
+
+/** Admin re-registers face descriptor for an employee. */
+export const updateEmployeeFace = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({
+      user_id: z.string().uuid(),
+      face_descriptor: z.array(z.number()).length(128),
+      photo_url: z.string().max(500).optional().nullable(),
+    }).parse(input)
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+    if (!roles?.some((r) => r.role === "admin")) throw new Error("Forbidden");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const patch: Record<string, unknown> = { face_descriptor: data.face_descriptor };
+    if (data.photo_url) patch.photo_url = data.photo_url;
+    const { error } = await supabaseAdmin.from("profiles").update(patch as never).eq("id", data.user_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/** Admin permanently deletes an employee and all related records. */
+export const deleteEmployee = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ user_id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    if (data.user_id === userId) throw new Error("You cannot delete yourself");
+    const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+    if (!roles?.some((r) => r.role === "admin")) throw new Error("Forbidden");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // Null out non-cascading FK references so the auth.users delete isn't blocked.
+    await Promise.all([
+      supabaseAdmin.from("tasks").update({ created_by: null as never }).eq("created_by", data.user_id),
+      supabaseAdmin.from("attendance").update({ marked_by: null as never }).eq("marked_by", data.user_id),
+      supabaseAdmin.from("leave_requests").update({ decided_by: null as never }).eq("decided_by", data.user_id),
+      supabaseAdmin.from("announcements").update({ created_by: null as never }).eq("created_by", data.user_id),
+      supabaseAdmin.from("daily_reports").update({ reviewed_by: null as never }).eq("reviewed_by", data.user_id),
+    ]);
+
+    // Best-effort: remove storage objects owned by this user.
+    try {
+      const buckets = ["avatars", "selfies", "task-media", "daily-reports", "documents"];
+      for (const b of buckets) {
+        const { data: list } = await supabaseAdmin.storage.from(b).list(data.user_id, { limit: 1000 });
+        if (list && list.length) {
+          await supabaseAdmin.storage.from(b).remove(list.map((f) => `${data.user_id}/${f.name}`));
+        }
+      }
+    } catch {}
+
+    // Deleting the auth user cascades to profiles, user_roles, attendance,
+    // task_updates, leave_requests, employee_locations, notifications,
+    // daily_reports (tasks.assigned_to → SET NULL).
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(data.user_id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 /** Bootstrap an initial admin account if one doesn't yet exist. Anyone can call this exactly once. */
 export const bootstrapAdmin = createServerFn({ method: "POST" })
   .inputValidator((input) =>
