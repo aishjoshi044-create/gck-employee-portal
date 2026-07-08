@@ -9,12 +9,29 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Plus, Search, KeyRound, Power, Printer, Loader2, ScanFace } from "lucide-react";
+import { Plus, Search, KeyRound, Power, Printer, Loader2, ScanFace, Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import logo from "@/assets/gck-logo.jpeg.asset.json";
 import { compressImage } from "@/lib/image-compress";
 import { FaceCapture } from "@/components/FaceCapture";
+
+const PROJECT_OPTIONS = [
+  "Education Program",
+  "Women Empowerment",
+  "Child Welfare",
+  "Healthcare",
+  "Livelihood",
+  "Environment",
+  "Rural Development",
+  "Skill Development",
+  "Administration",
+  "Finance",
+  "IT Support",
+];
 
 export const Route = createFileRoute("/_authenticated/admin/employees")({
   component: EmployeesPage,
