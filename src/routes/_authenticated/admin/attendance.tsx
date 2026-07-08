@@ -101,14 +101,36 @@ function workingHours(a: Att | null): { mins: number; label: string } {
 function AdminAttendance() {
   const { t, lang } = useI18n();
   const qc = useQueryClient();
+  // Default is always today. Because it's derived from `new Date()` on
+  // component mount, the view rolls over automatically on the 1st of each month.
   const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [q, setQ] = useState("");
   const [dept, setDept] = useState<string>("all");
   const [statusF, setStatusF] = useState<string>("all");
   const [openId, setOpenId] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(50);
-
-  const L = (en: string, hi: string) => (lang === "hi" ? hi : en);
+  const [rangeOpen, setRangeOpen] = useState(false);
+  const currentMonthStr = format(new Date(), "yyyy-MM");
+  const dateObj = parseISO(date);
+  const isToday = date === format(new Date(), "yyyy-MM-dd");
+  const shiftDate = (days: number) => {
+    const next = addDays(dateObj, days);
+    if (isAfter(next, new Date())) return;
+    setDate(format(next, "yyyy-MM-dd"));
+  };
+  const shiftMonth = (months: number) => {
+    const next = addMonths(dateObj, months);
+    if (isAfter(next, new Date())) return;
+    setDate(format(next, "yyyy-MM-dd"));
+  };
+  const onMonthPick = (v: string) => {
+    if (!v) return;
+    const [y, m] = v.split("-").map((n) => parseInt(n, 10));
+    if (!y || !m) return;
+    const first = startOfMonth(new Date(y, m - 1, 1));
+    const cap = new Date();
+    setDate(format(isAfter(first, cap) ? cap : first, "yyyy-MM-dd"));
+  };
 
   const { data: rows = [] } = useQuery({
     queryKey: ["admin-attendance", date],
