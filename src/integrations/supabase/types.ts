@@ -289,6 +289,7 @@ export type Database = {
           date_of_birth: string | null
           date_of_joining: string | null
           department: string | null
+          designation: string | null
           face_descriptor: Json | null
           full_name: string
           id: string
@@ -296,6 +297,7 @@ export type Database = {
           phone: string | null
           photo_url: string | null
           pin_changed: boolean
+          project: string | null
           updated_at: string
           username: string
         }
@@ -306,6 +308,7 @@ export type Database = {
           date_of_birth?: string | null
           date_of_joining?: string | null
           department?: string | null
+          designation?: string | null
           face_descriptor?: Json | null
           full_name: string
           id: string
@@ -313,6 +316,7 @@ export type Database = {
           phone?: string | null
           photo_url?: string | null
           pin_changed?: boolean
+          project?: string | null
           updated_at?: string
           username: string
         }
@@ -323,6 +327,7 @@ export type Database = {
           date_of_birth?: string | null
           date_of_joining?: string | null
           department?: string | null
+          designation?: string | null
           face_descriptor?: Json | null
           full_name?: string
           id?: string
@@ -330,6 +335,7 @@ export type Database = {
           phone?: string | null
           photo_url?: string | null
           pin_changed?: boolean
+          project?: string | null
           updated_at?: string
           username?: string
         }

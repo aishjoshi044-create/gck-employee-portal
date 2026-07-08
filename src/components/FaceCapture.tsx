@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Camera, Loader2, RotateCcw, ScanFace, CheckCircle2 } from "lucide-react";
+import { Camera, Loader2, RotateCcw, ScanFace, CheckCircle2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { getFaceDescriptor, loadFaceModels } from "@/lib/face";
 
@@ -14,6 +14,7 @@ interface FaceCaptureProps {
 
 export function FaceCapture({ onCaptured, buttonLabel = "Take photo", helperText }: FaceCaptureProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [cameraOn, setCameraOn] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -89,7 +90,48 @@ export function FaceCapture({ onCaptured, buttonLabel = "Take photo", helperText
   const retake = () => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl(null);
-    startCamera();
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!/^image\/(jpeg|jpg|png)$/i.test(file.type)) {
+      toast.error("Only JPG, JPEG, or PNG images are supported");
+      return;
+    }
+    setBusy(true);
+    try {
+      const url = URL.createObjectURL(file);
+      const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const i = new Image();
+        i.onload = () => resolve(i);
+        i.onerror = reject;
+        i.src = url;
+      });
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      canvas.getContext("2d")!.drawImage(img, 0, 0);
+      URL.revokeObjectURL(url);
+
+      const descriptor = await getFaceDescriptor(canvas);
+      if (!descriptor) {
+        toast.error("No face detected in the uploaded image. Use a clear, front-facing photo.");
+        setBusy(false);
+        return;
+      }
+      const blob: Blob | null = await new Promise((res) => canvas.toBlob((b) => res(b), "image/jpeg", 0.85));
+      if (!blob) { setBusy(false); return; }
+      const previewBlobUrl = URL.createObjectURL(blob);
+      setPreviewUrl(previewBlobUrl);
+      stopCamera();
+      onCaptured({ blob, descriptor: Array.from(descriptor), previewUrl: previewBlobUrl });
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to read image");
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -110,10 +152,22 @@ export function FaceCapture({ onCaptured, buttonLabel = "Take photo", helperText
         )}
       </div>
       {!cameraOn && !previewUrl && (
-        <Button type="button" onClick={startCamera} disabled={!modelsReady} className="w-full tap-lg gap-2">
-          <Camera className="size-5" /> {buttonLabel}
-        </Button>
+        <div className="grid grid-cols-2 gap-2">
+          <Button type="button" onClick={startCamera} disabled={!modelsReady || busy} className="tap-lg gap-2">
+            <Camera className="size-5" /> {buttonLabel}
+          </Button>
+          <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={!modelsReady || busy} className="tap-lg gap-2">
+            {busy ? <Loader2 className="size-5 animate-spin" /> : <Upload className="size-5" />} Upload
+          </Button>
+        </div>
       )}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/jpeg,image/jpg,image/png"
+        className="hidden"
+        onChange={handleFileUpload}
+      />
       {cameraOn && (
         <Button type="button" onClick={capture} disabled={busy} className="w-full tap-lg gap-2">
           {busy ? <Loader2 className="size-5 animate-spin" /> : <ScanFace className="size-5" />} Capture face
