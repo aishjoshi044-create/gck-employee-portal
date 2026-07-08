@@ -101,6 +101,7 @@ function workingHours(a: Att | null): { mins: number; label: string } {
 function AdminAttendance() {
   const { t, lang } = useI18n();
   const qc = useQueryClient();
+  const L = (en: string, hi: string) => (lang === "hi" ? hi : en);
   // Default is always today. Because it's derived from `new Date()` on
   // component mount, the view rolls over automatically on the 1st of each month.
   const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd"));
