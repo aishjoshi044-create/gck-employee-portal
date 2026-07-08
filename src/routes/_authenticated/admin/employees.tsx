@@ -146,16 +146,15 @@ function NewEmployeeForm({ onCreated, create }: { onCreated: (c: { username: str
 
   return (
     <form onSubmit={submit} className="space-y-3">
-      <div><Label>{t("full_name")}</Label><Input className="tap-lg mt-1" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} required /></div>
-      <div><Label>{t("username")}</Label><Input className="tap-lg mt-1" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value.toLowerCase() })} required pattern="[a-z0-9_.-]{2,30}" /></div>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div><Label>{t("full_name")}</Label><Input className="tap-lg mt-1" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} required /></div>
+        <div><Label>{t("username")}</Label><Input className="tap-lg mt-1" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value.toLowerCase() })} required pattern="[a-z0-9_.-]{2,30}" /></div>
         <div><Label>{t("phone")}</Label><Input className="tap-lg mt-1" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
         <div><Label>{t("department")}</Label><Input className="tap-lg mt-1" value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} /></div>
-      </div>
-      <div><Label>{t("address")}</Label><Input className="tap-lg mt-1" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} /></div>
-      <div className="grid grid-cols-2 gap-2">
-        <div><Label>{t("birthday")}</Label><Input type="date" className="tap-lg mt-1" value={form.date_of_birth} onChange={(e) => setForm({ ...form, date_of_birth: e.target.value })} /></div>
-        <div><Label>Joining</Label><Input type="date" className="tap-lg mt-1" value={form.date_of_joining} onChange={(e) => setForm({ ...form, date_of_joining: e.target.value })} /></div>
+        <div><Label>Project</Label><Input className="tap-lg mt-1" value={form.project} onChange={(e) => setForm({ ...form, project: e.target.value })} /></div>
+        <div><Label>Designation</Label><Input className="tap-lg mt-1" value={form.designation} onChange={(e) => setForm({ ...form, designation: e.target.value })} /></div>
+        <div className="sm:col-span-2"><Label>{t("address")}</Label><Input className="tap-lg mt-1" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} /></div>
+        <div className="sm:col-span-2"><Label>Joining Date</Label><Input type="date" className="tap-lg mt-1" value={form.date_of_joining} onChange={(e) => setForm({ ...form, date_of_joining: e.target.value })} /></div>
       </div>
       <div>
         <Label className="flex items-center gap-1"><KeyRound className="size-4" /> 4-digit login PIN</Label>
