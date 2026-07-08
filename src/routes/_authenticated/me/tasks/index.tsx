@@ -155,8 +155,9 @@ function MyTasksList() {
             <SelectItem value="all">{L("All Status", "सभी स्थिति")}</SelectItem>
             <SelectItem value="pending">{L("Pending", "बाकी")}</SelectItem>
             <SelectItem value="in_progress">{L("In Progress", "प्रगति में")}</SelectItem>
+            <SelectItem value="awaiting">{L("Awaiting Verification", "सत्यापन बाकी")}</SelectItem>
             <SelectItem value="overdue">{L("Overdue", "समय-बीत")}</SelectItem>
-            <SelectItem value="completed">{L("Completed", "पूर्ण")}</SelectItem>
+            <SelectItem value="completed">{L("Archived", "संग्रहित")}</SelectItem>
           </SelectContent>
         </Select>
         <Select value={priorityF} onValueChange={(v) => setPriorityF(v as any)}>
