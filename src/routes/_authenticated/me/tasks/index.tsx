@@ -326,14 +326,16 @@ function TaskDrawer({ task, onClose, L }: { task: Task; onClose: () => void; L: 
         )}
 
         {/* Actions */}
-        {s !== "completed" && (
+        {s !== "completed" && s !== "awaiting" && (
           <div className="flex gap-2">
-            {task.status !== "in_progress" && (
-              <Button variant="outline" size="sm" onClick={setInProgress} className="flex-1">{L("Start Task", "कार्य शुरू करें")}</Button>
-            )}
-            <Button size="sm" onClick={markComplete} className="flex-1 bg-success text-success-foreground hover:bg-success/90 gap-1.5">
-              <CheckCircle2 className="size-4" /> {L("Mark Complete", "पूर्ण चिह्नित करें")}
+            <Button size="sm" onClick={submitForVerification} className="flex-1 bg-success text-success-foreground hover:bg-success/90 gap-1.5">
+              <CheckCircle2 className="size-4" /> {L("Complete Task", "कार्य पूर्ण करें")}
             </Button>
+          </div>
+        )}
+        {s === "awaiting" && (
+          <div className="rounded-md border border-warning/40 bg-warning/5 p-3 text-xs text-warning">
+            {L("Awaiting admin verification.", "व्यवस्थापक सत्यापन बाकी है।")}
           </div>
         )}
 
