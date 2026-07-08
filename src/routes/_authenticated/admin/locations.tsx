@@ -20,7 +20,7 @@ export const Route = createFileRoute("/_authenticated/admin/locations")({
 interface Row {
   user_id: string;
   full_name: string;
-  department: string | null;
+  project: string | null;
   photo_url: string | null;
   lat: number | null;
   lng: number | null;
@@ -35,7 +35,7 @@ function LocationsPage() {
 
   const load = async () => {
     const [{ data: profs }, { data: locs }] = await Promise.all([
-      supabase.from("profiles").select("id,full_name,department,photo_url").eq("active", true).order("full_name"),
+      supabase.from("profiles").select("id,full_name,project,photo_url").eq("active", true).order("full_name"),
       supabase.from("employee_locations").select("*"),
     ]);
     const now = Date.now();
@@ -44,7 +44,7 @@ function LocationsPage() {
       return {
         user_id: p.id,
         full_name: p.full_name,
-        department: p.department,
+        project: p.project,
         photo_url: p.photo_url,
         lat: l?.lat ?? null,
         lng: l?.lng ?? null,
@@ -73,7 +73,7 @@ function LocationsPage() {
   const filtered = rows.filter((r) => {
     if (!q) return true;
     const s = q.toLowerCase();
-    return r.full_name?.toLowerCase().includes(s) || r.department?.toLowerCase().includes(s);
+    return r.full_name?.toLowerCase().includes(s) || r.project?.toLowerCase().includes(s);
   });
 
   if (selected) {
@@ -124,7 +124,7 @@ function LocationsPage() {
               <div className="text-xs text-muted-foreground truncate flex items-center gap-1">
                 <MapPin className="size-3" />
                 {r.updated_at ? (r.online ? "Live now" : `Last seen ${formatDistanceToNow(new Date(r.updated_at), { addSuffix: true })}`) : "No data"}
-                {r.department ? ` · ${r.department}` : ""}
+                {r.project ? ` · ${r.project}` : ""}
               </div>
             </div>
             <Button size="sm" variant="outline">View map</Button>

@@ -20,7 +20,8 @@ function ProfilePage() {
         <Row label={t("full_name")} value={profile.full_name} />
         <Row label={t("username")} value={profile.username} />
         <Row label={t("phone")} value={profile.phone ?? "—"} />
-        <Row label={t("department")} value={profile.department ?? "—"} />
+        <Row label={t("designation")} value={profile.designation ?? "—"} />
+        <Row label={t("project")} value={profile.project ?? "—"} />
         <Row label={t("address")} value={profile.address ?? "—"} />
       </Card>
 

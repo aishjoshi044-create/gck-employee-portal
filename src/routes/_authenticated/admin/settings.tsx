@@ -142,7 +142,7 @@ function SettingsPage() {
         <SectionRow icon={<Mail className="size-4" />} label={t("email")} value={isLoading ? "…" : account?.email ?? "—"} />
         <SectionRow icon={<Phone className="size-4" />} label={t("phone")} value={profile?.phone ?? "—"} />
         <SectionRow icon={<BadgeCheck className="size-4" />} label={t("role")} value={<span className="capitalize">{role ?? "—"}</span>} />
-        <SectionRow icon={<Briefcase className="size-4" />} label={t("department")} value={profile?.department ?? "—"} />
+        <SectionRow icon={<Briefcase className="size-4" />} label={t("project")} value={profile?.project ?? "—"} />
       </Card>
 
       {/* Account Information */}
@@ -223,7 +223,7 @@ function EditProfileDialog({
   const [form, setForm] = useState({
     full_name: profile?.full_name ?? "",
     phone: profile?.phone ?? "",
-    department: profile?.department ?? "",
+    project: profile?.project ?? "",
     address: profile?.address ?? "",
   });
   const [busy, setBusy] = useState(false);
@@ -236,7 +236,7 @@ function EditProfileDialog({
         data: {
           full_name: form.full_name.trim(),
           phone: form.phone.trim() || null,
-          department: form.department.trim() || null,
+          project: form.project.trim() || null,
           address: form.address.trim() || null,
         },
       });
@@ -264,8 +264,8 @@ function EditProfileDialog({
           <Input className="mt-1" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} maxLength={20} />
         </div>
         <div>
-          <Label>{t("department")}</Label>
-          <Input className="mt-1" value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} maxLength={60} />
+          <Label>{t("project")}</Label>
+          <Input className="mt-1" value={form.project} onChange={(e) => setForm({ ...form, project: e.target.value })} maxLength={60} />
         </div>
         <div>
           <Label>{t("address")}</Label>

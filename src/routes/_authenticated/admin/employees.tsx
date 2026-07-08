@@ -9,12 +9,29 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Plus, Search, KeyRound, Power, Printer, Loader2, ScanFace } from "lucide-react";
+import { Plus, Search, KeyRound, Power, Printer, Loader2, ScanFace, Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import logo from "@/assets/gck-logo.jpeg.asset.json";
 import { compressImage } from "@/lib/image-compress";
 import { FaceCapture } from "@/components/FaceCapture";
+
+const PROJECT_OPTIONS = [
+  "Education Program",
+  "Women Empowerment",
+  "Child Welfare",
+  "Healthcare",
+  "Livelihood",
+  "Environment",
+  "Rural Development",
+  "Skill Development",
+  "Administration",
+  "Finance",
+  "IT Support",
+];
 
 export const Route = createFileRoute("/_authenticated/admin/employees")({
   component: EmployeesPage,
@@ -48,7 +65,7 @@ function EmployeesPage() {
   const filtered = (employees ?? []).filter((e: any) => {
     if (!q) return true;
     const s = q.toLowerCase();
-    return e.full_name?.toLowerCase().includes(s) || e.username?.toLowerCase().includes(s) || e.department?.toLowerCase().includes(s);
+    return e.full_name?.toLowerCase().includes(s) || e.username?.toLowerCase().includes(s) || e.project?.toLowerCase().includes(s);
   });
 
   const [visibleCount, setVisibleCount] = useState(50);
@@ -82,7 +99,7 @@ function EmployeesPage() {
                 {e.full_name}
                 {e.face_descriptor && <ScanFace className="size-3 text-success" />}
               </div>
-              <div className="text-xs text-muted-foreground truncate">@{e.username} · {e.department ?? "—"} · {e.user_roles?.[0]?.role ?? "employee"}</div>
+              <div className="text-xs text-muted-foreground truncate">@{e.username} · {e.project ?? "—"} · {e.user_roles?.[0]?.role ?? "employee"}</div>
             </div>
             {!e.active && <span className="text-[10px] font-bold uppercase bg-muted px-2 py-0.5 rounded">{t("inactive")}</span>}
             <Button size="icon" variant="outline" title={t("change_pin")} onClick={async () => {
@@ -116,7 +133,7 @@ function EmployeesPage() {
 
 function NewEmployeeForm({ onCreated, create }: { onCreated: (c: { username: string; pin: string; name: string }) => void; create: any }) {
   const { t } = useI18n();
-  const [form, setForm] = useState({ username: "", full_name: "", phone: "", department: "", project: "", designation: "", address: "", date_of_joining: "", pin: "" });
+  const [form, setForm] = useState({ username: "", full_name: "", phone: "", project: "", designation: "", address: "", date_of_joining: "", pin: "" });
   const [faceDescriptor, setFaceDescriptor] = useState<number[] | null>(null);
   const [faceBlob, setFaceBlob] = useState<Blob | null>(null);
   const [busy, setBusy] = useState(false);
@@ -150,9 +167,14 @@ function NewEmployeeForm({ onCreated, create }: { onCreated: (c: { username: str
         <div><Label>{t("full_name")}</Label><Input className="tap-lg mt-1" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} required /></div>
         <div><Label>{t("username")}</Label><Input className="tap-lg mt-1" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value.toLowerCase() })} required pattern="[a-z0-9_.-]{2,30}" /></div>
         <div><Label>{t("phone")}</Label><Input className="tap-lg mt-1" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
-        <div><Label>{t("department")}</Label><Input className="tap-lg mt-1" value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} /></div>
-        <div><Label>Project</Label><Input className="tap-lg mt-1" value={form.project} onChange={(e) => setForm({ ...form, project: e.target.value })} /></div>
-        <div><Label>Designation</Label><Input className="tap-lg mt-1" value={form.designation} onChange={(e) => setForm({ ...form, designation: e.target.value })} /></div>
+        <div>
+          <Label>{t("designation")}</Label>
+          <Input className="tap-lg mt-1" value={form.designation} onChange={(e) => setForm({ ...form, designation: e.target.value })} placeholder="e.g. Field Coordinator" />
+        </div>
+        <div>
+          <Label>{t("project")}</Label>
+          <ProjectCombobox value={form.project} onChange={(v) => setForm({ ...form, project: v })} />
+        </div>
         <div className="sm:col-span-2"><Label>{t("address")}</Label><Input className="tap-lg mt-1" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} /></div>
         <div className="sm:col-span-2"><Label>Joining Date</Label><Input type="date" className="tap-lg mt-1" value={form.date_of_joining} onChange={(e) => setForm({ ...form, date_of_joining: e.target.value })} /></div>
       </div>
@@ -204,5 +226,44 @@ function CredentialCard({ data, onClose }: { data: { username: string; pin: stri
         <Button onClick={() => window.print()} className="gap-2"><Printer className="size-4" />{`Print`}</Button>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function ProjectCombobox({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const options = Array.from(new Set([...PROJECT_OPTIONS, ...(value ? [value] : [])]));
+  const showCreate = search.trim() && !options.some((o) => o.toLowerCase() === search.trim().toLowerCase());
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button type="button" variant="outline" role="combobox" className="w-full tap-lg mt-1 justify-between font-normal">
+          <span className={cn("truncate", !value && "text-muted-foreground")}>{value || "Select project"}</span>
+          <ChevronsUpDown className="size-4 opacity-50 shrink-0" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
+        <Command>
+          <CommandInput placeholder="Search project…" value={search} onValueChange={setSearch} />
+          <CommandList>
+            <CommandEmpty>No project found.</CommandEmpty>
+            <CommandGroup>
+              {options.map((p) => (
+                <CommandItem key={p} value={p} onSelect={() => { onChange(p); setOpen(false); setSearch(""); }}>
+                  <Check className={cn("mr-2 size-4", value === p ? "opacity-100" : "opacity-0")} />
+                  {p}
+                </CommandItem>
+              ))}
+              {showCreate && (
+                <CommandItem value={`__create_${search}`} onSelect={() => { onChange(search.trim()); setOpen(false); setSearch(""); }}>
+                  <Plus className="mr-2 size-4" /> Use "{search.trim()}"
+                </CommandItem>
+              )}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   );
 }

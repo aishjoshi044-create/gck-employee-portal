@@ -25,7 +25,6 @@ type Period = "monthly" | "quarterly" | "yearly";
 
 interface Filters {
   employeeId: string;
-  department: string;
   project: string;
   village: string;
   activity: string;
@@ -53,7 +52,6 @@ function ReportsPage() {
   const today = new Date();
   const [filters, setFilters] = useState<Filters>({
     employeeId: "all",
-    department: "all",
     project: "all",
     village: "all",
     activity: "all",
@@ -72,11 +70,11 @@ function ReportsPage() {
   const { data: employees = [] } = useQuery({
     queryKey: ["rg-emps"],
     queryFn: async () =>
-      (await supabase.from("profiles").select("id,full_name,department").eq("active", true).order("full_name")).data ?? [],
+      (await supabase.from("profiles").select("id,full_name,project").eq("active", true).order("full_name")).data ?? [],
     staleTime: 60_000,
   });
-  const departments = useMemo(
-    () => Array.from(new Set(employees.map((e) => e.department).filter(Boolean))) as string[],
+  const projects = useMemo(
+    () => Array.from(new Set(employees.map((e) => e.project).filter(Boolean))) as string[],
     [employees],
   );
 
@@ -116,11 +114,11 @@ function ReportsPage() {
   // Visible filter set per type
   const showFilter = (key: keyof Filters) => {
     const v: Record<ReportType, (keyof Filters)[]> = {
-      performance: ["employeeId", "department", "start", "end"],
-      attendance: ["employeeId", "department", "status", "start", "end"],
-      task: ["employeeId", "department", "status", "start", "end"],
-      daily: ["employeeId", "department", "project", "village", "activity", "status", "start", "end"],
-      monthly: ["department", "project", "period", "month"],
+      performance: ["employeeId", "project", "start", "end"],
+      attendance: ["employeeId", "project", "status", "start", "end"],
+      task: ["employeeId", "project", "status", "start", "end"],
+      daily: ["employeeId", "project", "project", "village", "activity", "status", "start", "end"],
+      monthly: ["project", "project", "period", "month"],
       donor: ["project", "village", "start", "end"],
     };
     return v[reportType].includes(key);
@@ -128,11 +126,11 @@ function ReportsPage() {
 
   const targetEmployees = useMemo(() => {
     return employees.filter((e) => {
-      if (filters.department !== "all" && e.department !== filters.department) return false;
+      if (filters.project !== "all" && e.project !== filters.project) return false;
       if (filters.employeeId !== "all" && e.id !== filters.employeeId) return false;
       return true;
     });
-  }, [employees, filters.department, filters.employeeId]);
+  }, [employees, filters.project, filters.employeeId]);
 
   // ---------- Report builders ----------
   const buildPerformance = async (): Promise<PreviewData> => {
@@ -154,7 +152,7 @@ function ReportsPage() {
       const attPct = Math.round((present / totalWorkdays) * 100);
       const taskPct = tk.length ? Math.round((done / tk.length) * 100) : 0;
       const score = Math.round(attPct * 0.4 + taskPct * 0.4 + Math.min(100, r.length * 5) * 0.2);
-      return [e.full_name, e.department ?? "—", `${attPct}%`, `${done}/${tk.length}`, r.length, ben, `${score}/100`];
+      return [e.full_name, e.project ?? "—", `${attPct}%`, `${done}/${tk.length}`, r.length, ben, `${score}/100`];
     });
     return {
       type: "performance",
@@ -173,7 +171,7 @@ function ReportsPage() {
     const map = new Map(employees.map((e) => [e.id, e]));
     const rows = (data ?? []).map((r: any) => {
       const e = map.get(r.user_id);
-      return [e?.full_name ?? "—", e?.department ?? "—", r.date, r.status, r.check_in_at ? format(new Date(r.check_in_at), "HH:mm") : "—"];
+      return [e?.full_name ?? "—", e?.project ?? "—", r.date, r.status, r.check_in_at ? format(new Date(r.check_in_at), "HH:mm") : "—"];
     });
     return {
       type: "attendance", title: t("rg_attendance"),
@@ -191,7 +189,7 @@ function ReportsPage() {
     const map = new Map(employees.map((e) => [e.id, e]));
     const rows = (data ?? []).map((r: any) => {
       const e = r.assigned_to ? map.get(r.assigned_to) : null;
-      return [r.title, e?.full_name ?? "—", e?.department ?? "—", r.priority, r.status, r.deadline ? format(new Date(r.deadline), "d MMM yyyy") : "—"];
+      return [r.title, e?.full_name ?? "—", e?.project ?? "—", r.priority, r.status, r.deadline ? format(new Date(r.deadline), "d MMM yyyy") : "—"];
     });
     return {
       type: "task", title: t("rg_task"),
@@ -350,14 +348,14 @@ function ReportsPage() {
             </div>
           )}
 
-          {showFilter("department") && (
+          {showFilter("project") && (
             <div>
               <Label className="text-xs">{t("rep_department")}</Label>
-              <Select value={filters.department} onValueChange={(v) => setF({ department: v })}>
+              <Select value={filters.project} onValueChange={(v) => setF({ project: v })}>
                 <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">{t("rg_all_departments")}</SelectItem>
-                  {departments.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                  {projects.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
