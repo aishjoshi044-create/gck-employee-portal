@@ -52,6 +52,8 @@ export const createEmployee = createServerFn({ method: "POST" })
       full_name: data.full_name,
       phone: data.phone ?? null,
       department: data.department ?? null,
+      project: data.project ?? null,
+      designation: data.designation ?? null,
       address: data.address ?? null,
       date_of_birth: data.date_of_birth || null,
       date_of_joining: data.date_of_joining || null,
