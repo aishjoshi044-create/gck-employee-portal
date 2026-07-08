@@ -90,7 +90,48 @@ export function FaceCapture({ onCaptured, buttonLabel = "Take photo", helperText
   const retake = () => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl(null);
-    startCamera();
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!/^image\/(jpeg|jpg|png)$/i.test(file.type)) {
+      toast.error("Only JPG, JPEG, or PNG images are supported");
+      return;
+    }
+    setBusy(true);
+    try {
+      const url = URL.createObjectURL(file);
+      const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const i = new Image();
+        i.onload = () => resolve(i);
+        i.onerror = reject;
+        i.src = url;
+      });
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      canvas.getContext("2d")!.drawImage(img, 0, 0);
+      URL.revokeObjectURL(url);
+
+      const descriptor = await getFaceDescriptor(canvas);
+      if (!descriptor) {
+        toast.error("No face detected in the uploaded image. Use a clear, front-facing photo.");
+        setBusy(false);
+        return;
+      }
+      const blob: Blob | null = await new Promise((res) => canvas.toBlob((b) => res(b), "image/jpeg", 0.85));
+      if (!blob) { setBusy(false); return; }
+      const previewBlobUrl = URL.createObjectURL(blob);
+      setPreviewUrl(previewBlobUrl);
+      stopCamera();
+      onCaptured({ blob, descriptor: Array.from(descriptor), previewUrl: previewBlobUrl });
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to read image");
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
