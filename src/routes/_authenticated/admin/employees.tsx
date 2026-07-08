@@ -228,3 +228,42 @@ function CredentialCard({ data, onClose }: { data: { username: string; pin: stri
     </Dialog>
   );
 }
+
+function ProjectCombobox({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const options = Array.from(new Set([...PROJECT_OPTIONS, ...(value ? [value] : [])]));
+  const showCreate = search.trim() && !options.some((o) => o.toLowerCase() === search.trim().toLowerCase());
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button type="button" variant="outline" role="combobox" className="w-full tap-lg mt-1 justify-between font-normal">
+          <span className={cn("truncate", !value && "text-muted-foreground")}>{value || "Select project"}</span>
+          <ChevronsUpDown className="size-4 opacity-50 shrink-0" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="p-0 w-[--radix-popover-trigger-width]" align="start">
+        <Command>
+          <CommandInput placeholder="Search project…" value={search} onValueChange={setSearch} />
+          <CommandList>
+            <CommandEmpty>No project found.</CommandEmpty>
+            <CommandGroup>
+              {options.map((p) => (
+                <CommandItem key={p} value={p} onSelect={() => { onChange(p); setOpen(false); setSearch(""); }}>
+                  <Check className={cn("mr-2 size-4", value === p ? "opacity-100" : "opacity-0")} />
+                  {p}
+                </CommandItem>
+              ))}
+              {showCreate && (
+                <CommandItem value={`__create_${search}`} onSelect={() => { onChange(search.trim()); setOpen(false); setSearch(""); }}>
+                  <Plus className="mr-2 size-4" /> Use "{search.trim()}"
+                </CommandItem>
+              )}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
