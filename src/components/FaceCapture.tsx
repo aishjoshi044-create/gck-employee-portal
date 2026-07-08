@@ -14,6 +14,7 @@ interface FaceCaptureProps {
 
 export function FaceCapture({ onCaptured, buttonLabel = "Take photo", helperText }: FaceCaptureProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [cameraOn, setCameraOn] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
