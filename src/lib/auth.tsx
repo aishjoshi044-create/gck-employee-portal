@@ -65,19 +65,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let mounted = true;
+    const clearSbTokens = () => {
+      try {
+        Object.keys(localStorage)
+          .filter((k) => k.startsWith("sb-"))
+          .forEach((k) => localStorage.removeItem(k));
+      } catch {}
+    };
+
     (async () => {
-      // "Remember me" enforcement: if user opted out, sign out when a new browser session starts.
+      // "Remember me" enforcement:
+      // - When the user opts OUT, the Supabase session (stored in localStorage)
+      //   must not survive a browser/tab close. We use a per-tab sessionStorage
+      //   marker to detect "fresh browser session" and clear tokens then.
+      // - As a belt-and-suspenders, we also purge tokens on real page hide
+      //   (tab close / browser quit) when remember === "0".
       if (typeof window !== "undefined") {
         const remember = localStorage.getItem("gck-remember");
         const tabAlive = sessionStorage.getItem("gck-tab-alive");
         if (remember === "0" && !tabAlive) {
-          await supabase.auth.signOut();
+          clearSbTokens();
+          await supabase.auth.signOut().catch(() => {});
         }
         sessionStorage.setItem("gck-tab-alive", "1");
       }
       await refresh();
       if (mounted) setLoading(false);
     })();
+
+    const onPageHide = (e: PageTransitionEvent) => {
+      // Only clear on actual unload (not bfcache navigation) and only when
+      // the user chose NOT to be remembered.
+      if (e.persisted) return;
+      if (localStorage.getItem("gck-remember") === "0") {
+        clearSbTokens();
+      }
+    };
+    if (typeof window !== "undefined") {
+      window.addEventListener("pagehide", onPageHide);
+    }
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_evt, session) => {
       const u = session?.user ?? null;
@@ -93,6 +119,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       mounted = false;
       subscription.unsubscribe();
+      if (typeof window !== "undefined") {
+        window.removeEventListener("pagehide", onPageHide);
+      }
     };
   }, []);
 
