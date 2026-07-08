@@ -62,15 +62,35 @@ function AttendancePage() {
     },
   });
 
-  const { data: recent = [] } = useQuery({
-    queryKey: ["attendance", "recent", user?.id],
+  const monthStart = format(startOfMonth(monthAnchor), "yyyy-MM-dd");
+  const monthEnd = format(endOfMonth(monthAnchor), "yyyy-MM-dd");
+
+  const { data: monthRows = [] } = useQuery({
+    queryKey: ["attendance", "month-list", user?.id, monthStart],
     enabled: !!user,
     queryFn: async () => {
       const { data } = await supabase.from("attendance").select("*")
-        .eq("user_id", user!.id).order("date", { ascending: false }).limit(7);
+        .eq("user_id", user!.id)
+        .gte("date", monthStart).lte("date", monthEnd)
+        .order("date", { ascending: false });
       return (data ?? []) as AttRow[];
     },
   });
+
+  const goPrevMonth = () => setMonthAnchor((m) => startOfMonth(addMonths(m, -1)));
+  const goNextMonth = () => setMonthAnchor((m) => {
+    const next = startOfMonth(addMonths(m, 1));
+    return isAfter(next, startOfMonth(new Date())) ? startOfMonth(new Date()) : next;
+  });
+  const goCurrentMonth = () => setMonthAnchor(startOfMonth(new Date()));
+  const onMonthInput = (v: string) => {
+    if (!v) return;
+    const [y, m] = v.split("-").map((n) => parseInt(n, 10));
+    if (!y || !m) return;
+    const picked = startOfMonth(new Date(y, m - 1, 1));
+    const cap = startOfMonth(new Date());
+    setMonthAnchor(isAfter(picked, cap) ? cap : picked);
+  };
 
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ["attendance"] });
