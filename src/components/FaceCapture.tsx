@@ -152,10 +152,22 @@ export function FaceCapture({ onCaptured, buttonLabel = "Take photo", helperText
         )}
       </div>
       {!cameraOn && !previewUrl && (
-        <Button type="button" onClick={startCamera} disabled={!modelsReady} className="w-full tap-lg gap-2">
-          <Camera className="size-5" /> {buttonLabel}
-        </Button>
+        <div className="grid grid-cols-2 gap-2">
+          <Button type="button" onClick={startCamera} disabled={!modelsReady || busy} className="tap-lg gap-2">
+            <Camera className="size-5" /> {buttonLabel}
+          </Button>
+          <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={!modelsReady || busy} className="tap-lg gap-2">
+            {busy ? <Loader2 className="size-5 animate-spin" /> : <Upload className="size-5" />} Upload
+          </Button>
+        </div>
       )}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/jpeg,image/jpg,image/png"
+        className="hidden"
+        onChange={handleFileUpload}
+      />
       {cameraOn && (
         <Button type="button" onClick={capture} disabled={busy} className="w-full tap-lg gap-2">
           {busy ? <Loader2 className="size-5 animate-spin" /> : <ScanFace className="size-5" />} Capture face
