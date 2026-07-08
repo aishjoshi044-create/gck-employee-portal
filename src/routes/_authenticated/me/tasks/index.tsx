@@ -287,19 +287,16 @@ function TaskDrawer({ task, onClose, L }: { task: Task; onClose: () => void; L: 
     },
   });
 
-  const markComplete = async () => {
-    const { error } = await supabase.from("tasks").update({ status: "completed", completed_at: new Date().toISOString() }).eq("id", task.id);
+  const submitForVerification = async () => {
+    const { error } = await supabase.from("tasks")
+      .update({ status: "awaiting_verification" as any, completed_at: new Date().toISOString() })
+      .eq("id", task.id);
     if (error) toast.error(error.message);
     else {
-      toast.success(L("Marked complete", "पूर्ण के रूप में चिह्नित"));
+      toast.success(L("Sent for verification", "सत्यापन के लिए भेजा गया"));
       qc.invalidateQueries({ queryKey: ["my-tasks"] });
       qc.invalidateQueries({ queryKey: ["task-updates", task.id] });
     }
-  };
-  const setInProgress = async () => {
-    const { error } = await supabase.from("tasks").update({ status: "in_progress" }).eq("id", task.id);
-    if (error) toast.error(error.message);
-    else { toast.success(L("Started", "शुरू किया")); qc.invalidateQueries({ queryKey: ["my-tasks"] }); }
   };
 
   return (
