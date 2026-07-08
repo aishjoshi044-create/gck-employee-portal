@@ -139,6 +139,7 @@ function MyTasksList() {
         <SummaryChip label={L("Total", "कुल")} value={summary.total} active={statusF === "all"} tone="muted" onClick={() => setStatusF("all")} />
         <SummaryChip label={L("Pending", "बाकी")} value={summary.pending} active={statusF === "pending"} tone="muted" onClick={() => setStatusF("pending")} />
         <SummaryChip label={L("In Progress", "प्रगति में")} value={summary.in_progress} active={statusF === "in_progress"} tone="info" onClick={() => setStatusF("in_progress")} />
+        <SummaryChip label={L("Awaiting", "सत्यापन बाकी")} value={summary.awaiting} active={statusF === "awaiting"} tone="warning" onClick={() => setStatusF("awaiting")} />
         <SummaryChip label={L("Overdue", "समय-बीत")} value={summary.overdue} active={statusF === "overdue"} tone="destructive" onClick={() => setStatusF("overdue")} />
       </div>
 
