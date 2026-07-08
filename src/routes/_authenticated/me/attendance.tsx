@@ -43,6 +43,12 @@ function AttendancePage() {
   const today = format(new Date(), "yyyy-MM-dd");
   const L = (en: string, hi: string) => (lang === "hi" ? hi : en);
 
+  // Selected month for the history view. Defaults to the current month —
+  // because it's derived from `new Date()` on mount, it rolls over
+  // automatically on the 1st of every month.
+  const [monthAnchor, setMonthAnchor] = useState<Date>(() => startOfMonth(new Date()));
+  const isCurrentMonth = isSameDay(monthAnchor, startOfMonth(new Date()));
+
   const [showCalendar, setShowCalendar] = useState(false);
   const [showVerify, setShowVerify] = useState(false);
   const [mode, setMode] = useState<"idle" | "checkin" | "checkout">("idle");
