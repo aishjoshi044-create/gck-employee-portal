@@ -41,7 +41,7 @@ type Notif = {
   expires_at: string;
 };
 
-const KINDS = ["all", "task", "daily_report", "leave", "attendance", "announcement", "system"] as const;
+const KINDS = ["all", "task", "daily_report", "leave", "attendance", "announcement", "employees", "system"] as const;
 type Kind = typeof KINDS[number];
 
 function iconFor(kind: string) {
@@ -51,8 +51,21 @@ function iconFor(kind: string) {
     case "leave": return CalendarDays;
     case "attendance": return CalendarCheck;
     case "announcement": return Megaphone;
+    case "employees": return Users;
     default: return SettingsIcon;
   }
+}
+
+function normalizePriority(p: string): "high" | "medium" | "low" {
+  if (p === "high") return "high";
+  if (p === "low") return "low";
+  return "medium";
+}
+
+function priorityBadgeClasses(p: "high" | "medium" | "low") {
+  if (p === "high") return "bg-destructive/15 text-destructive";
+  if (p === "medium") return "bg-amber-500/15 text-amber-600 dark:text-amber-400";
+  return "bg-muted text-muted-foreground";
 }
 
 function linkFor(kind: string, refId: string | null, isAdmin: boolean): string | null {
