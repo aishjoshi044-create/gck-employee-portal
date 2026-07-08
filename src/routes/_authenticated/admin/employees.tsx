@@ -173,7 +173,7 @@ function NewEmployeeForm({ onCreated, create }: { onCreated: (c: { username: str
         </div>
         <div>
           <Label>{t("project")}</Label>
-          <ProjectCombobox value={form.project} onChange={(v) => setForm({ ...form, project: v })} />
+          <Input className="tap-lg mt-1" value={form.project} onChange={(e) => setForm({ ...form, project: e.target.value })} placeholder="e.g. Education Program" />
         </div>
         <div className="sm:col-span-2"><Label>{t("address")}</Label><Input className="tap-lg mt-1" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} /></div>
         <div className="sm:col-span-2"><Label>Joining Date</Label><Input type="date" className="tap-lg mt-1" value={form.date_of_joining} onChange={(e) => setForm({ ...form, date_of_joining: e.target.value })} /></div>
