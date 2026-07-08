@@ -53,7 +53,6 @@ function ReportsPage() {
   const [filters, setFilters] = useState<Filters>({
     employeeId: "all",
     project: "all",
-    project: "all",
     village: "all",
     activity: "all",
     status: "all",
