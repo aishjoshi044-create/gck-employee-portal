@@ -549,7 +549,13 @@ export type Database = {
       document_category: "monthly_ppt" | "monthly_activity" | "budget" | "other"
       leave_status: "pending" | "approved" | "rejected"
       task_priority: "low" | "medium" | "high"
-      task_status: "not_started" | "in_progress" | "completed" | "failed"
+      task_status:
+        | "not_started"
+        | "in_progress"
+        | "completed"
+        | "failed"
+        | "awaiting_verification"
+        | "archived"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -691,7 +697,14 @@ export const Constants = {
       document_category: ["monthly_ppt", "monthly_activity", "budget", "other"],
       leave_status: ["pending", "approved", "rejected"],
       task_priority: ["low", "medium", "high"],
-      task_status: ["not_started", "in_progress", "completed", "failed"],
+      task_status: [
+        "not_started",
+        "in_progress",
+        "completed",
+        "failed",
+        "awaiting_verification",
+        "archived",
+      ],
     },
   },
 } as const
