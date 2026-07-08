@@ -46,7 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       supabase.from("profiles").select("*").eq("id", uid).maybeSingle(),
       supabase.from("user_roles").select("role").eq("user_id", uid),
     ]);
-    setProfile((prof as Profile) ?? null);
+    setProfile((prof as unknown as Profile) ?? null);
     const r = roles?.find((x) => x.role === "admin") ? "admin" : roles?.length ? "employee" : null;
     setRole(r);
   };
