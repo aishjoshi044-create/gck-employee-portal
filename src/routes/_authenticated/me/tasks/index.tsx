@@ -193,10 +193,11 @@ function MyTasksList() {
 }
 
 function SummaryChip({ label, value, active, tone, onClick }: {
-  label: string; value: number; active: boolean; tone: "muted" | "info" | "destructive"; onClick: () => void;
+  label: string; value: number; active: boolean; tone: "muted" | "info" | "warning" | "destructive"; onClick: () => void;
 }) {
   const toneCls = active
     ? tone === "info" ? "bg-info text-info-foreground border-info"
+    : tone === "warning" ? "bg-warning text-warning-foreground border-warning"
     : tone === "destructive" ? "bg-destructive text-destructive-foreground border-destructive"
     : "bg-primary text-primary-foreground border-primary"
     : "bg-background hover:bg-muted border-border text-foreground";
