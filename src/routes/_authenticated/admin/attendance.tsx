@@ -45,7 +45,7 @@ type Row = {
   id: string;
   full_name: string;
   username: string;
-  department: string | null;
+  project: string | null;
   photo_url: string | null;
   attendance: Att | null;
 };
@@ -137,7 +137,7 @@ function AdminAttendance() {
     queryKey: ["admin-attendance", date],
     queryFn: async (): Promise<Row[]> => {
       const [{ data: profs }, { data: att }] = await Promise.all([
-        supabase.from("profiles").select("id,full_name,department,username,photo_url").eq("active", true),
+        supabase.from("profiles").select("id,full_name,project,username,photo_url").eq("active", true),
         supabase.from("attendance").select("*").eq("date", date),
       ]);
       return (profs ?? []).map((p: any) => ({
@@ -147,8 +147,8 @@ function AdminAttendance() {
     },
   });
 
-  const departments = useMemo(
-    () => Array.from(new Set(rows.map((r) => r.department).filter(Boolean))) as string[],
+  const projects = useMemo(
+    () => Array.from(new Set(rows.map((r) => r.project).filter(Boolean))) as string[],
     [rows],
   );
 
@@ -156,7 +156,7 @@ function AdminAttendance() {
     const needle = q.trim().toLowerCase();
     return rows.filter((r) => {
       if (needle && !(`${r.full_name} ${r.username}`.toLowerCase().includes(needle))) return false;
-      if (dept !== "all" && (r.department ?? "") !== dept) return false;
+      if (dept !== "all" && (r.project ?? "") !== dept) return false;
       if (statusF !== "all" && statusOf(r) !== statusF) return false;
       return true;
     });
@@ -176,7 +176,7 @@ function AdminAttendance() {
   }, [rows]);
 
   const HEAD = [
-    L("Name", "नाम"), L("Department", "विभाग"), L("Check-in", "चेक-इन"),
+    L("Name", "नाम"), L("Project", "परियोजना"), L("Check-in", "चेक-इन"),
     L("Check-out", "चेक-आउट"), L("Hours", "घंटे"), L("Status", "स्थिति"),
     L("GPS", "GPS"), L("Face", "चेहरा"),
   ];
@@ -185,7 +185,7 @@ function AdminAttendance() {
     const a = r.attendance;
     return [
       r.full_name,
-      r.department ?? "—",
+      r.project ?? "—",
       a?.check_in_at ? format(new Date(a.check_in_at), "h:mm a") : "—",
       a?.check_out_at ? format(new Date(a.check_out_at), "h:mm a") : "—",
       workingHours(a).label,
@@ -234,10 +234,10 @@ function AdminAttendance() {
             <Input placeholder={L("Search employee…", "कर्मचारी खोजें…")} value={q} onChange={(e) => setQ(e.target.value)} className="pl-9" />
           </div>
           <Select value={dept} onValueChange={setDept}>
-            <SelectTrigger className="md:w-44"><SelectValue placeholder={L("Department", "विभाग")} /></SelectTrigger>
+            <SelectTrigger className="md:w-44"><SelectValue placeholder={L("Project", "परियोजना")} /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">{L("All Departments", "सभी विभाग")}</SelectItem>
-              {departments.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+              <SelectItem value="all">{L("All Projects", "सभी परियोजना")}</SelectItem>
+              {projects.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={statusF} onValueChange={setStatusF}>
@@ -292,7 +292,7 @@ function AdminAttendance() {
             <thead className="bg-muted/60 backdrop-blur sticky top-0 z-10 text-xs uppercase tracking-wide text-muted-foreground">
               <tr>
                 <th className="text-left p-3 font-semibold">{L("Employee", "कर्मचारी")}</th>
-                <th className="text-left p-3 font-semibold">{t("department")}</th>
+                <th className="text-left p-3 font-semibold">{t("project")}</th>
                 <th className="text-left p-3 font-semibold">{L("Check-in", "चेक-इन")}</th>
                 <th className="text-left p-3 font-semibold">{L("Check-out", "चेक-आउट")}</th>
                 <th className="text-left p-3 font-semibold">{L("Hours", "घंटे")}</th>
@@ -323,7 +323,7 @@ function AdminAttendance() {
                         </div>
                       </div>
                     </td>
-                    <td className="p-3 text-muted-foreground">{r.department ?? "—"}</td>
+                    <td className="p-3 text-muted-foreground">{r.project ?? "—"}</td>
                     <td className="p-3 tabular-nums">{a?.check_in_at ? format(new Date(a.check_in_at), "h:mm a") : "—"}</td>
                     <td className="p-3 tabular-nums">{a?.check_out_at ? format(new Date(a.check_out_at), "h:mm a") : "—"}</td>
                     <td className="p-3 tabular-nums text-muted-foreground">{workingHours(a).label}</td>
@@ -383,7 +383,7 @@ function AdminAttendance() {
                       {statusLabel(s, L)}
                     </span>
                   </div>
-                  <div className="text-xs text-muted-foreground truncate">{r.department ?? "—"}</div>
+                  <div className="text-xs text-muted-foreground truncate">{r.project ?? "—"}</div>
                 </div>
               </div>
               <div className="mt-2 flex items-center justify-between text-xs">
@@ -486,7 +486,7 @@ function DetailsBody({
           </Avatar>
           <div className="min-w-0 flex-1">
             <div className="font-extrabold truncate">{row.full_name}</div>
-            <div className="text-xs text-muted-foreground truncate">{row.department ?? "—"} · @{row.username}</div>
+            <div className="text-xs text-muted-foreground truncate">{row.project ?? "—"} · @{row.username}</div>
             <div className="text-xs text-muted-foreground">{format(new Date(date), "EEEE, d MMM yyyy")}</div>
           </div>
           <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full font-bold border ${statusClass(s)}`}>
@@ -599,7 +599,7 @@ function RangeSheet({
     enabled: open && !!from && !!to && from <= to,
     queryFn: async () => {
       const [{ data: profs }, { data: att }] = await Promise.all([
-        supabase.from("profiles").select("id,full_name,username,department,photo_url").eq("active", true),
+        supabase.from("profiles").select("id,full_name,username,project,photo_url").eq("active", true),
         supabase.from("attendance").select("user_id,date,status,check_in_at,check_out_at").gte("date", from).lte("date", to),
       ]);
       const byUser = new Map<string, { present: number; late: number; absent: number; leave: number; pending: number; hours: number }>();
@@ -634,13 +634,13 @@ function RangeSheet({
   }, [data, q]);
 
   const HEAD = [
-    L("Employee", "कर्मचारी"), L("Department", "विभाग"),
+    L("Employee", "कर्मचारी"), L("Project", "परियोजना"),
     L("Present", "उपस्थित"), L("Late", "देर से"),
     L("Absent", "अनुपस्थित"), L("Leave", "अवकाश"),
     L("Pending", "बाकी"), L("Hours", "घंटे"),
   ];
   const body = () => filtered.map((r: any) => [
-    r.full_name, r.department ?? "—",
+    r.full_name, r.project ?? "—",
     r.stats.present, r.stats.late, r.stats.absent, r.stats.leave, r.stats.pending,
     r.stats.hours.toFixed(1),
   ]);
@@ -708,7 +708,7 @@ function RangeSheet({
                   <tr key={r.id} className="border-t">
                     <td className="p-2">
                       <div className="font-semibold truncate">{r.full_name}</div>
-                      <div className="text-[11px] text-muted-foreground truncate">{r.department ?? "—"}</div>
+                      <div className="text-[11px] text-muted-foreground truncate">{r.project ?? "—"}</div>
                     </td>
                     <td className="p-2 text-center tabular-nums text-success font-bold">{r.stats.present}</td>
                     <td className="p-2 text-center tabular-nums text-warning">{r.stats.late}</td>

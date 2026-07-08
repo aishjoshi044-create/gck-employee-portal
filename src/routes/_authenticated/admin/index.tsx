@@ -52,7 +52,7 @@ function AdminDashboard() {
         recentLeavesRes,
         recentAnnRes,
       ] = await Promise.all([
-        supabase.from("profiles").select("id,full_name,date_of_birth,department").eq("active", true),
+        supabase.from("profiles").select("id,full_name,date_of_birth,project").eq("active", true),
         supabase.from("attendance").select("user_id,status").eq("date", today),
         supabase.from("leave_requests").select("user_id").eq("status", "approved").lte("start_date", today).gte("end_date", today),
         supabase.from("leave_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
@@ -139,7 +139,7 @@ function AdminDashboard() {
         .map((l) => ({
           id: l.user_id,
           name: profileMap.get(l.user_id)?.full_name ?? "—",
-          dept: profileMap.get(l.user_id)?.department ?? "",
+          dept: profileMap.get(l.user_id)?.project ?? "",
           when: l.updated_at,
         }))
         .sort((a, b) => +new Date(b.when) - +new Date(a.when))

@@ -50,7 +50,7 @@ export const createEmployee = createServerFn({ method: "POST" })
       username: data.username,
       full_name: data.full_name,
       phone: data.phone ?? null,
-      department: data.department ?? null,
+      project: data.project ?? null,
       project: data.project ?? null,
       designation: data.designation ?? null,
       address: data.address ?? null,

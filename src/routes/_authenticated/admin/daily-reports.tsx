@@ -79,7 +79,7 @@ function AdminDailyReportsPage() {
   const { data: profiles = [] } = useQuery({
     queryKey: ["all-profiles-basic"],
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("id,full_name,department,active").eq("active", true);
+      const { data } = await supabase.from("profiles").select("id,full_name,project,active").eq("active", true);
       return data ?? [];
     },
   });

@@ -30,7 +30,7 @@ type LeaveRow = {
   admin_note: string | null;
   decided_at: string | null;
   created_at: string;
-  profiles?: { full_name: string; username: string; department: string | null } | null;
+  profiles?: { full_name: string; username: string; project: string | null } | null;
 };
 
 const LEAVE_TYPES = ["sick", "personal", "family", "other"] as const;
@@ -88,7 +88,7 @@ function LeavesPage() {
       if (error) { toast.error(error.message); return [] as LeaveRow[]; }
       if (!leaves?.length) return [] as LeaveRow[];
       const userIds = [...new Set(leaves.map((l) => l.user_id))];
-      const { data: profs } = await supabase.from("profiles").select("id, full_name, username, department").in("id", userIds);
+      const { data: profs } = await supabase.from("profiles").select("id, full_name, username, project").in("id", userIds);
       const pMap = new Map((profs ?? []).map((p) => [p.id, p]));
       return leaves.map((l) => ({ ...l, profiles: pMap.get(l.user_id) ?? null })) as LeaveRow[];
     },
@@ -124,7 +124,7 @@ function LeavesPage() {
       if (typeF !== "all" && type !== typeF) return false;
       if (qq) {
         const name = (l.profiles?.full_name ?? "").toLowerCase();
-        const dept = (l.profiles?.department ?? "").toLowerCase();
+        const dept = (l.profiles?.project ?? "").toLowerCase();
         const uname = (l.profiles?.username ?? "").toLowerCase();
         if (!name.includes(qq) && !dept.includes(qq) && !uname.includes(qq)) return false;
       }
@@ -232,7 +232,7 @@ function LeavesPage() {
                   <TableRow key={l.id} className="cursor-pointer" onClick={() => { setOpen(l); setRemark(l.admin_note ?? ""); }}>
                     <TableCell>
                       <div className="font-semibold truncate max-w-[180px]">{l.profiles?.full_name ?? "—"}</div>
-                      <div className="text-xs text-muted-foreground truncate max-w-[180px]">{l.profiles?.department ?? l.profiles?.username ?? "—"}</div>
+                      <div className="text-xs text-muted-foreground truncate max-w-[180px]">{l.profiles?.project ?? l.profiles?.username ?? "—"}</div>
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
                       <span className="text-xs px-1.5 py-0.5 rounded bg-muted font-medium">{t(`leave_${type}` as DictKey)}</span>
@@ -278,7 +278,7 @@ function LeavesPage() {
               <div className="mt-4 space-y-4">
                 <div className="space-y-1">
                   <div className="text-lg font-bold">{open.profiles?.full_name ?? "—"}</div>
-                  <div className="text-sm text-muted-foreground">{open.profiles?.department ?? "—"}</div>
+                  <div className="text-sm text-muted-foreground">{open.profiles?.project ?? "—"}</div>
                 </div>
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <Field label={t("lv_employee_id")} value={open.profiles?.username ?? "—"} />

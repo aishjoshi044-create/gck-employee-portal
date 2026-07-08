@@ -100,14 +100,14 @@ export const changeMyPassword = createServerFn({ method: "POST" })
   });
 
 
-/** Update my own profile fields (name, phone, department, address, language). */
+/** Update my own profile fields (name, phone, project, address, language). */
 export const updateMyProfile = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
     z.object({
       full_name: z.string().trim().min(1).max(100).optional(),
       phone: z.string().trim().max(20).optional().nullable(),
-      department: z.string().trim().max(60).optional().nullable(),
+      project: z.string().trim().max(60).optional().nullable(),
       address: z.string().trim().max(300).optional().nullable(),
       language: z.enum(["en", "hi"]).optional(),
     }).parse(input)

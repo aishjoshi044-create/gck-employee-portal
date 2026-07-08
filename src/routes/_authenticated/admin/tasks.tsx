@@ -62,7 +62,7 @@ function AdminTasks() {
   const { data: employees } = useQuery({
     queryKey: ["emp-pick"],
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("id,full_name,department").eq("active", true).order("full_name");
+      const { data } = await supabase.from("profiles").select("id,full_name,project").eq("active", true).order("full_name");
       return data ?? [];
     },
   });
@@ -152,8 +152,8 @@ function ActivePanel({ employees, onSelect }: { employees: any[]; onSelect: (t: 
 
   const projects = useMemo(() =>
     Array.from(new Set([
-      ...tasks.map((x: any) => x.department).filter(Boolean),
-      ...employees.map((x: any) => x.department).filter(Boolean),
+      ...tasks.map((x: any) => x.project).filter(Boolean),
+      ...employees.map((x: any) => x.project).filter(Boolean),
     ])) as string[],
   [tasks, employees]);
 
@@ -170,7 +170,7 @@ function ActivePanel({ employees, onSelect }: { employees: any[]; onSelect: (t: 
         if (!hay.includes(q)) return false;
       }
       if (fEmployee !== "all" && tk.assigned_to !== fEmployee) return false;
-      if (fProject !== "all" && tk.department !== fProject) return false;
+      if (fProject !== "all" && tk.project !== fProject) return false;
       if (fVillage !== "all" && tk.location_label !== fVillage) return false;
       if (fStatus !== "all") {
         if (fStatus === "overdue") { if (!isOverdue(tk)) return false; }
@@ -212,7 +212,7 @@ function ActivePanel({ employees, onSelect }: { employees: any[]; onSelect: (t: 
     filtered.map((tk: any) => [
       tk.title ?? "",
       tk.profiles?.full_name ?? (tk.assigned_to ? "—" : "All / Dept"),
-      tk.department ?? "—",
+      tk.project ?? "—",
       tk.location_label ?? "—",
       PRIORITY_META[tk.priority] ? t(PRIORITY_META[tk.priority].labelKey) : tk.priority,
       STATUS_META[tk.status] ? t(STATUS_META[tk.status].labelKey) : tk.status,
@@ -334,7 +334,7 @@ function TaskCard({ task, onClick }: { task: any; onClick: () => void }) {
       <div className="font-semibold text-sm leading-snug line-clamp-2 group-hover:text-primary">{task.title}</div>
       <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
         <User className="size-3 shrink-0" />
-        <span className="truncate">{task.profiles?.full_name ?? (task.department ? task.department : t("unassigned"))}</span>
+        <span className="truncate">{task.profiles?.full_name ?? (task.project ? task.project : t("unassigned"))}</span>
       </div>
       <div className="mt-1.5 flex items-center justify-between gap-2 text-xs">
         <div className="flex items-center gap-1.5">
@@ -382,7 +382,7 @@ function ActiveTable({ tasks, onSelect }: { tasks: any[]; onSelect: (t: any) => 
                   {tk.title}
                 </TableCell>
                 <TableCell className="text-sm text-muted-foreground">{tk.profiles?.full_name ?? "—"}</TableCell>
-                <TableCell className="text-sm text-muted-foreground hidden md:table-cell">{tk.department ?? "—"}</TableCell>
+                <TableCell className="text-sm text-muted-foreground hidden md:table-cell">{tk.project ?? "—"}</TableCell>
                 <TableCell className="text-sm text-muted-foreground hidden lg:table-cell">{tk.location_label ?? "—"}</TableCell>
                 <TableCell><Badge variant="outline" className={`${pri?.badge} text-xs`}>{pri ? t(pri.labelKey) : tk.priority}</Badge></TableCell>
                 <TableCell><Badge variant="outline" className={`${sm?.bg} ${sm?.color} border-0 text-xs`}>{sm ? t(sm.labelKey) : tk.status}</Badge></TableCell>
@@ -432,7 +432,7 @@ function ArchivePanel({ employees, onSelect }: { employees: any[]; onSelect: (t:
         .order("completed_at", { ascending: false, nullsFirst: false })
         .range(page * pageSize, page * pageSize + pageSize - 1);
       if (fEmployee !== "all") q = q.eq("assigned_to", fEmployee);
-      if (fProject !== "all") q = q.eq("department", fProject);
+      if (fProject !== "all") q = q.eq("project", fProject);
       if (bounds.from) q = q.gte("completed_at", bounds.from);
       if (bounds.to) q = q.lte("completed_at", bounds.to);
       const { data: ts, count, error } = await q;
@@ -445,7 +445,7 @@ function ArchivePanel({ employees, onSelect }: { employees: any[]; onSelect: (t:
   const rows = data?.rows ?? [];
   const total = data?.count ?? 0;
   const projects = useMemo(() =>
-    Array.from(new Set(employees.map((x: any) => x.department).filter(Boolean))) as string[],
+    Array.from(new Set(employees.map((x: any) => x.project).filter(Boolean))) as string[],
   [employees]);
 
   const filtered = useMemo(() => {
@@ -462,7 +462,7 @@ function ArchivePanel({ employees, onSelect }: { employees: any[]; onSelect: (t:
     filtered.map((tk: any) => [
       tk.title ?? "",
       tk.profiles?.full_name ?? "—",
-      tk.department ?? "—",
+      tk.project ?? "—",
       tk.location_label ?? "—",
       PRIORITY_META[tk.priority] ? t(PRIORITY_META[tk.priority].labelKey) : tk.priority,
       tk.completed_at ? format(new Date(tk.completed_at), "d MMM yyyy") : "—",
@@ -537,7 +537,7 @@ function ArchivePanel({ employees, onSelect }: { employees: any[]; onSelect: (t:
                 <TableRow key={tk.id} className="cursor-pointer h-11" onClick={() => onSelect(tk)}>
                   <TableCell className="font-medium max-w-[280px] truncate">{tk.title}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">{tk.profiles?.full_name ?? "—"}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground hidden md:table-cell">{tk.department ?? "—"}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground hidden md:table-cell">{tk.project ?? "—"}</TableCell>
                   <TableCell className="text-sm text-muted-foreground hidden lg:table-cell">{tk.location_label ?? "—"}</TableCell>
                   <TableCell><Badge variant="outline" className={`${pri?.badge} text-xs`}>{pri ? t(pri.labelKey) : tk.priority}</Badge></TableCell>
                   <TableCell className="text-sm text-muted-foreground">{tk.completed_at ? format(new Date(tk.completed_at), "d MMM yyyy") : "—"}</TableCell>
@@ -568,7 +568,7 @@ async function hydrate(ts: any[]) {
   if (!ts.length) return [];
   const ids = [...new Set(ts.map((x: any) => x.assigned_to).filter(Boolean))] as string[];
   const { data: profs } = ids.length
-    ? await supabase.from("profiles").select("id, full_name, department").in("id", ids)
+    ? await supabase.from("profiles").select("id, full_name, project").in("id", ids)
     : { data: [] as any[] };
   const pMap = new Map((profs ?? []).map((p: any) => [p.id, p]));
   const taskIds = ts.map((x: any) => x.id);
@@ -729,7 +729,7 @@ function TaskDetails({ task, readOnly, onClosed }: { task: any; readOnly: boolea
 
       <div className="grid grid-cols-2 gap-3 text-sm">
         <MetaItem icon={User} label={t("employees")} value={task.profiles?.full_name ?? "—"} />
-        <MetaItem icon={LayoutGrid} label={t("project")} value={task.department ?? "—"} />
+        <MetaItem icon={LayoutGrid} label={t("project")} value={task.project ?? "—"} />
         <MetaItem icon={MapPin} label={t("village")} value={task.location_label ?? "—"} />
         <MetaItem icon={Calendar} label={t("due_date")} value={task.deadline ? format(new Date(task.deadline), "d MMM yyyy") : "—"} />
         {task.completed_at && <MetaItem icon={Archive} label={t("completed_date")} value={format(new Date(task.completed_at), "d MMM yyyy")} />}
@@ -840,12 +840,12 @@ function TaskForm({ employees, onSaved }: { employees: any[]; onSaved: () => voi
   const { t } = useI18n();
   const [form, setForm] = useState({
     title: "", description: "", priority: "medium" as "low" | "medium" | "high",
-    deadline: "", assigned_to: "", department: "", location_label: "",
+    deadline: "", assigned_to: "", project: "", location_label: "",
   });
   const [assignMode, setAssignMode] = useState<"one" | "dept" | "all">("one");
   const [busy, setBusy] = useState(false);
 
-  const departments = Array.from(new Set(employees.map((e) => e.department).filter(Boolean))) as string[];
+  const projects = Array.from(new Set(employees.map((e) => e.project).filter(Boolean))) as string[];
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -857,20 +857,20 @@ function TaskForm({ employees, onSaved }: { employees: any[]; onSaved: () => voi
         deadline: form.deadline || null, location_label: form.location_label || null, created_by: user.id,
       };
       if (assignMode === "all") {
-        const rows = employees.map((emp) => ({ ...base, assigned_to: emp.id, department: emp.department ?? null }));
+        const rows = employees.map((emp) => ({ ...base, assigned_to: emp.id, project: emp.project ?? null }));
         if (!rows.length) throw new Error(t("no_active_employees"));
         const { error } = await supabase.from("tasks").insert(rows);
         if (error) throw error;
       } else if (assignMode === "dept") {
-        if (!form.department) throw new Error(t("pick_project"));
-        const rows = employees.filter((e) => e.department === form.department)
-          .map((emp) => ({ ...base, assigned_to: emp.id, department: form.department }));
+        if (!form.project) throw new Error(t("pick_project"));
+        const rows = employees.filter((e) => e.project === form.project)
+          .map((emp) => ({ ...base, assigned_to: emp.id, project: form.project }));
         if (!rows.length) throw new Error(t("no_employees_in_project"));
         const { error } = await supabase.from("tasks").insert(rows);
         if (error) throw error;
       } else {
         if (!form.assigned_to) throw new Error(t("pick_employee"));
-        const { error } = await supabase.from("tasks").insert({ ...base, assigned_to: form.assigned_to, department: form.department || null });
+        const { error } = await supabase.from("tasks").insert({ ...base, assigned_to: form.assigned_to, project: form.project || null });
         if (error) throw error;
       }
       toast.success(t("task_created"));
@@ -911,9 +911,9 @@ function TaskForm({ employees, onSaved }: { employees: any[]; onSaved: () => voi
       {assignMode === "dept" && (
         <div>
           <Label>{t("project")}</Label>
-          <Select value={form.department} onValueChange={(v) => setForm({ ...form, department: v })}>
+          <Select value={form.project} onValueChange={(v) => setForm({ ...form, project: v })}>
             <SelectTrigger className="mt-1"><SelectValue placeholder="—" /></SelectTrigger>
-            <SelectContent>{departments.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
+            <SelectContent>{projects.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
           </Select>
         </div>
       )}

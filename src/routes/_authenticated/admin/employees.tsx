@@ -48,7 +48,7 @@ function EmployeesPage() {
   const filtered = (employees ?? []).filter((e: any) => {
     if (!q) return true;
     const s = q.toLowerCase();
-    return e.full_name?.toLowerCase().includes(s) || e.username?.toLowerCase().includes(s) || e.department?.toLowerCase().includes(s);
+    return e.full_name?.toLowerCase().includes(s) || e.username?.toLowerCase().includes(s) || e.project?.toLowerCase().includes(s);
   });
 
   const [visibleCount, setVisibleCount] = useState(50);
@@ -82,7 +82,7 @@ function EmployeesPage() {
                 {e.full_name}
                 {e.face_descriptor && <ScanFace className="size-3 text-success" />}
               </div>
-              <div className="text-xs text-muted-foreground truncate">@{e.username} · {e.department ?? "—"} · {e.user_roles?.[0]?.role ?? "employee"}</div>
+              <div className="text-xs text-muted-foreground truncate">@{e.username} · {e.project ?? "—"} · {e.user_roles?.[0]?.role ?? "employee"}</div>
             </div>
             {!e.active && <span className="text-[10px] font-bold uppercase bg-muted px-2 py-0.5 rounded">{t("inactive")}</span>}
             <Button size="icon" variant="outline" title={t("change_pin")} onClick={async () => {
@@ -116,7 +116,7 @@ function EmployeesPage() {
 
 function NewEmployeeForm({ onCreated, create }: { onCreated: (c: { username: string; pin: string; name: string }) => void; create: any }) {
   const { t } = useI18n();
-  const [form, setForm] = useState({ username: "", full_name: "", phone: "", department: "", project: "", designation: "", address: "", date_of_joining: "", pin: "" });
+  const [form, setForm] = useState({ username: "", full_name: "", phone: "", project: "", project: "", designation: "", address: "", date_of_joining: "", pin: "" });
   const [faceDescriptor, setFaceDescriptor] = useState<number[] | null>(null);
   const [faceBlob, setFaceBlob] = useState<Blob | null>(null);
   const [busy, setBusy] = useState(false);
@@ -150,7 +150,7 @@ function NewEmployeeForm({ onCreated, create }: { onCreated: (c: { username: str
         <div><Label>{t("full_name")}</Label><Input className="tap-lg mt-1" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} required /></div>
         <div><Label>{t("username")}</Label><Input className="tap-lg mt-1" value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value.toLowerCase() })} required pattern="[a-z0-9_.-]{2,30}" /></div>
         <div><Label>{t("phone")}</Label><Input className="tap-lg mt-1" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
-        <div><Label>{t("department")}</Label><Input className="tap-lg mt-1" value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} /></div>
+        <div><Label>{t("project")}</Label><Input className="tap-lg mt-1" value={form.project} onChange={(e) => setForm({ ...form, project: e.target.value })} /></div>
         <div><Label>Project</Label><Input className="tap-lg mt-1" value={form.project} onChange={(e) => setForm({ ...form, project: e.target.value })} /></div>
         <div><Label>Designation</Label><Input className="tap-lg mt-1" value={form.designation} onChange={(e) => setForm({ ...form, designation: e.target.value })} /></div>
         <div className="sm:col-span-2"><Label>{t("address")}</Label><Input className="tap-lg mt-1" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} /></div>

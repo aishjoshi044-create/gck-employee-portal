@@ -9,7 +9,7 @@ export interface Profile {
   username: string;
   full_name: string;
   phone: string | null;
-  department: string | null;
+  project: string | null;
   address: string | null;
   photo_url: string | null;
   language: string;

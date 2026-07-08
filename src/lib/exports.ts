@@ -157,7 +157,7 @@ export interface EmpPerfSection {
 export interface EmpPerfPdfOptions {
   filename: string;
   employeeName: string;
-  department: string;
+  project: string;
   period: string;
   overallScore: number;
   category: string;
@@ -195,7 +195,7 @@ export async function downloadEmployeePerfPdf(opts: EmpPerfPdfOptions) {
   doc.setFont("helvetica", "bold"); doc.setFontSize(15);
   doc.text(opts.employeeName, margin + 14, y + 24);
   doc.setFont("helvetica", "normal"); doc.setFontSize(10); doc.setTextColor(80, 80, 80);
-  doc.text(`Department: ${opts.department}`, margin + 14, y + 42);
+  doc.text(`Project: ${opts.project}`, margin + 14, y + 42);
   doc.text(`Period: ${opts.period}`, margin + 14, y + 58);
   // Score badge
   const badgeW = 140, badgeX = pageW - margin - badgeW - 14;
