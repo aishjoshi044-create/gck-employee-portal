@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Camera, Loader2, RotateCcw, ScanFace, CheckCircle2 } from "lucide-react";
+import { Camera, Loader2, RotateCcw, ScanFace, CheckCircle2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { getFaceDescriptor, loadFaceModels } from "@/lib/face";
 
