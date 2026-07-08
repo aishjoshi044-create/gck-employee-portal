@@ -140,6 +140,7 @@ export const dict = {
   notif_kind_leave: { en: "Leave", hi: "छुट्टी" },
   notif_kind_attendance: { en: "Attendance", hi: "हाज़िरी" },
   notif_kind_announcement: { en: "Announcements", hi: "घोषणाएँ" },
+  notif_kind_employees: { en: "Employees", hi: "कर्मचारी" },
   notif_kind_system: { en: "System", hi: "सिस्टम" },
   notif_status_all: { en: "All statuses", hi: "सभी स्थिति" },
   notif_status_unread: { en: "Unread", hi: "अपठित" },

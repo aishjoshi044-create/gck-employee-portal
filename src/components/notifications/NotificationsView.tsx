@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Bell, CheckCheck, ClipboardList, NotebookPen, CalendarDays, CalendarCheck, Megaphone, Settings as SettingsIcon, ExternalLink, CalendarRange, X, Search, SlidersHorizontal } from "lucide-react";
+import { Bell, CheckCheck, ClipboardList, NotebookPen, CalendarDays, CalendarCheck, Megaphone, Settings as SettingsIcon, ExternalLink, CalendarRange, X, Search, SlidersHorizontal, Users } from "lucide-react";
 import { formatDistanceToNow, format, subDays, startOfDay, endOfDay } from "date-fns";
 import type { DateRange } from "react-day-picker";
 import { Link } from "@tanstack/react-router";
@@ -41,7 +41,7 @@ type Notif = {
   expires_at: string;
 };
 
-const KINDS = ["all", "task", "daily_report", "leave", "attendance", "announcement", "system"] as const;
+const KINDS = ["all", "task", "daily_report", "leave", "attendance", "announcement", "employees", "system"] as const;
 type Kind = typeof KINDS[number];
 
 function iconFor(kind: string) {
@@ -51,8 +51,21 @@ function iconFor(kind: string) {
     case "leave": return CalendarDays;
     case "attendance": return CalendarCheck;
     case "announcement": return Megaphone;
+    case "employees": return Users;
     default: return SettingsIcon;
   }
+}
+
+function normalizePriority(p: string): "high" | "medium" | "low" {
+  if (p === "high") return "high";
+  if (p === "low") return "low";
+  return "medium";
+}
+
+function priorityBadgeClasses(p: "high" | "medium" | "low") {
+  if (p === "high") return "bg-destructive/15 text-destructive";
+  if (p === "medium") return "bg-amber-500/15 text-amber-600 dark:text-amber-400";
+  return "bg-muted text-muted-foreground";
 }
 
 function linkFor(kind: string, refId: string | null, isAdmin: boolean): string | null {
@@ -64,6 +77,7 @@ function linkFor(kind: string, refId: string | null, isAdmin: boolean): string |
     case "leave": return isAdmin ? "/admin/leaves" : "/me/leave";
     case "attendance": return isAdmin ? "/admin/attendance" : "/me/attendance";
     case "announcement": return isAdmin ? "/admin/announcements" : "/me";
+    case "employees": return isAdmin ? "/admin/employees" : "/me/profile";
     default: return base;
   }
 }
@@ -332,9 +346,14 @@ export function NotificationsView({ isAdmin }: { isAdmin: boolean }) {
                       <div className="text-sm font-bold truncate">{n.title}</div>
                       {n.body && <div className="text-xs text-muted-foreground line-clamp-2">{n.body}</div>}
                     </div>
-                    {n.priority === "high" && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold bg-destructive/15 text-destructive shrink-0">{t("priority_high")}</span>
-                    )}
+                    {(() => {
+                      const p = normalizePriority(n.priority);
+                      return (
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold shrink-0 ${priorityBadgeClasses(p)}`}>
+                          {t(`priority_${p}` as const)}
+                        </span>
+                      );
+                    })()}
                   </div>
                   <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                     <span className="text-[11px] text-muted-foreground">{formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}</span>
