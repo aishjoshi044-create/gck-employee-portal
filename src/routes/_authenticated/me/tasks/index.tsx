@@ -27,7 +27,7 @@ type Task = {
   id: string;
   title: string;
   description: string | null;
-  status: "not_started" | "in_progress" | "completed" | "failed";
+  status: "not_started" | "in_progress" | "awaiting_verification" | "archived" | "completed" | "failed";
   priority: "low" | "medium" | "high";
   deadline: string | null;
   created_at: string;
@@ -35,10 +35,11 @@ type Task = {
   location_label: string | null;
 };
 
-type S = "pending" | "in_progress" | "overdue" | "completed";
+type S = "pending" | "in_progress" | "overdue" | "awaiting" | "completed";
 
 function derivedStatus(t: Task): S {
-  if (t.status === "completed") return "completed";
+  if (t.status === "archived" || t.status === "completed" || t.status === "failed") return "completed";
+  if (t.status === "awaiting_verification") return "awaiting";
   if (t.deadline && isPast(new Date(t.deadline)) && !isToday(new Date(t.deadline))) return "overdue";
   if (t.status === "in_progress") return "in_progress";
   return "pending";
@@ -87,7 +88,7 @@ function MyTasksList() {
   }, [user, qc]);
 
   const summary = useMemo(() => {
-    const s = { total: tasks.length, pending: 0, in_progress: 0, overdue: 0, completed: 0 };
+    const s = { total: tasks.length, pending: 0, in_progress: 0, awaiting: 0, overdue: 0, completed: 0 };
     tasks.forEach((t) => { s[derivedStatus(t)]++; });
     return s;
   }, [tasks]);
@@ -138,6 +139,7 @@ function MyTasksList() {
         <SummaryChip label={L("Total", "कुल")} value={summary.total} active={statusF === "all"} tone="muted" onClick={() => setStatusF("all")} />
         <SummaryChip label={L("Pending", "बाकी")} value={summary.pending} active={statusF === "pending"} tone="muted" onClick={() => setStatusF("pending")} />
         <SummaryChip label={L("In Progress", "प्रगति में")} value={summary.in_progress} active={statusF === "in_progress"} tone="info" onClick={() => setStatusF("in_progress")} />
+        <SummaryChip label={L("Awaiting", "सत्यापन बाकी")} value={summary.awaiting} active={statusF === "awaiting"} tone="warning" onClick={() => setStatusF("awaiting")} />
         <SummaryChip label={L("Overdue", "समय-बीत")} value={summary.overdue} active={statusF === "overdue"} tone="destructive" onClick={() => setStatusF("overdue")} />
       </div>
 
@@ -153,8 +155,9 @@ function MyTasksList() {
             <SelectItem value="all">{L("All Status", "सभी स्थिति")}</SelectItem>
             <SelectItem value="pending">{L("Pending", "बाकी")}</SelectItem>
             <SelectItem value="in_progress">{L("In Progress", "प्रगति में")}</SelectItem>
+            <SelectItem value="awaiting">{L("Awaiting Verification", "सत्यापन बाकी")}</SelectItem>
             <SelectItem value="overdue">{L("Overdue", "समय-बीत")}</SelectItem>
-            <SelectItem value="completed">{L("Completed", "पूर्ण")}</SelectItem>
+            <SelectItem value="completed">{L("Archived", "संग्रहित")}</SelectItem>
           </SelectContent>
         </Select>
         <Select value={priorityF} onValueChange={(v) => setPriorityF(v as any)}>
@@ -191,10 +194,11 @@ function MyTasksList() {
 }
 
 function SummaryChip({ label, value, active, tone, onClick }: {
-  label: string; value: number; active: boolean; tone: "muted" | "info" | "destructive"; onClick: () => void;
+  label: string; value: number; active: boolean; tone: "muted" | "info" | "warning" | "destructive"; onClick: () => void;
 }) {
   const toneCls = active
     ? tone === "info" ? "bg-info text-info-foreground border-info"
+    : tone === "warning" ? "bg-warning text-warning-foreground border-warning"
     : tone === "destructive" ? "bg-destructive text-destructive-foreground border-destructive"
     : "bg-primary text-primary-foreground border-primary"
     : "bg-background hover:bg-muted border-border text-foreground";
@@ -220,7 +224,8 @@ function statusBadge(s: S, L: (a: string, b: string) => string) {
     pending: { cls: "bg-muted text-muted-foreground border-border", label: L("Pending", "बाकी") },
     in_progress: { cls: "bg-info/15 text-info border-info/30", label: L("In Progress", "प्रगति में") },
     overdue: { cls: "bg-destructive/15 text-destructive border-destructive/30", label: L("Overdue", "समय-बीत") },
-    completed: { cls: "bg-success/15 text-success border-success/30", label: L("Completed", "पूर्ण") },
+    awaiting: { cls: "bg-warning/15 text-warning border-warning/30", label: L("Awaiting Verification", "सत्यापन बाकी") },
+    completed: { cls: "bg-success/15 text-success border-success/30", label: L("Archived", "संग्रहित") },
   };
   const { cls, label } = map[s];
   return <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold border ${cls}`}>{label}</span>;
@@ -285,19 +290,16 @@ function TaskDrawer({ task, onClose, L }: { task: Task; onClose: () => void; L: 
     },
   });
 
-  const markComplete = async () => {
-    const { error } = await supabase.from("tasks").update({ status: "completed", completed_at: new Date().toISOString() }).eq("id", task.id);
+  const submitForVerification = async () => {
+    const { error } = await supabase.from("tasks")
+      .update({ status: "awaiting_verification" as any, completed_at: new Date().toISOString() })
+      .eq("id", task.id);
     if (error) toast.error(error.message);
     else {
-      toast.success(L("Marked complete", "पूर्ण के रूप में चिह्नित"));
+      toast.success(L("Sent for verification", "सत्यापन के लिए भेजा गया"));
       qc.invalidateQueries({ queryKey: ["my-tasks"] });
       qc.invalidateQueries({ queryKey: ["task-updates", task.id] });
     }
-  };
-  const setInProgress = async () => {
-    const { error } = await supabase.from("tasks").update({ status: "in_progress" }).eq("id", task.id);
-    if (error) toast.error(error.message);
-    else { toast.success(L("Started", "शुरू किया")); qc.invalidateQueries({ queryKey: ["my-tasks"] }); }
   };
 
   return (
@@ -327,14 +329,16 @@ function TaskDrawer({ task, onClose, L }: { task: Task; onClose: () => void; L: 
         )}
 
         {/* Actions */}
-        {s !== "completed" && (
+        {s !== "completed" && s !== "awaiting" && (
           <div className="flex gap-2">
-            {task.status !== "in_progress" && (
-              <Button variant="outline" size="sm" onClick={setInProgress} className="flex-1">{L("Start Task", "कार्य शुरू करें")}</Button>
-            )}
-            <Button size="sm" onClick={markComplete} className="flex-1 bg-success text-success-foreground hover:bg-success/90 gap-1.5">
-              <CheckCircle2 className="size-4" /> {L("Mark Complete", "पूर्ण चिह्नित करें")}
+            <Button size="sm" onClick={submitForVerification} className="flex-1 bg-success text-success-foreground hover:bg-success/90 gap-1.5">
+              <CheckCircle2 className="size-4" /> {L("Complete Task", "कार्य पूर्ण करें")}
             </Button>
+          </div>
+        )}
+        {s === "awaiting" && (
+          <div className="rounded-md border border-warning/40 bg-warning/5 p-3 text-xs text-warning">
+            {L("Awaiting admin verification.", "व्यवस्थापक सत्यापन बाकी है।")}
           </div>
         )}
 

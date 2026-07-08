@@ -39,15 +39,22 @@ function TaskDetail() {
     },
   });
 
-  const setStatus = async (status: "not_started" | "in_progress" | "completed") => {
-    const patch: any = { status };
-    if (status === "completed") patch.completed_at = new Date().toISOString();
-    const { error } = await supabase.from("tasks").update(patch).eq("id", id);
+  const submitForVerification = async () => {
+    const { error } = await supabase.from("tasks")
+      .update({ status: "awaiting_verification" as any, completed_at: new Date().toISOString() })
+      .eq("id", id);
     if (error) toast.error(error.message);
-    else { qc.invalidateQueries({ queryKey: ["task", id] }); qc.invalidateQueries({ queryKey: ["my-tasks"] }); toast.success(t("save")); }
+    else {
+      qc.invalidateQueries({ queryKey: ["task", id] });
+      qc.invalidateQueries({ queryKey: ["my-tasks"] });
+      toast.success(t("submitted_for_verification" as any));
+    }
   };
 
   if (!task) return <div className="text-center py-8 text-muted-foreground">{t("loading")}</div>;
+
+  const isAwaiting = task.status === "awaiting_verification";
+  const isArchived = task.status === "archived" || task.status === "completed" || task.status === "failed";
 
   return (
     <div className="space-y-4">
@@ -68,14 +75,26 @@ function TaskDetail() {
         )}
       </Card>
 
-      <Card className="p-4">
-        <div className="text-sm font-semibold mb-2">Status</div>
-        <div className="grid grid-cols-3 gap-2">
-          <Button variant={task.status === "not_started" ? "default" : "outline"} className="tap-lg text-xs" onClick={() => setStatus("not_started")}>{t("task_status_not_started")}</Button>
-          <Button variant={task.status === "in_progress" ? "default" : "outline"} className="tap-lg text-xs" onClick={() => setStatus("in_progress")}>{t("start_task")}</Button>
-          <Button variant={task.status === "completed" ? "default" : "outline"} className={`tap-lg text-xs ${task.status === "completed" ? "bg-success" : ""}`} onClick={() => setStatus("completed")}>{t("mark_done")}</Button>
-        </div>
-      </Card>
+      {!isArchived && !isAwaiting && (
+        <Card className="p-4">
+          <Button onClick={submitForVerification} className="w-full bg-success text-success-foreground hover:bg-success/90 tap-lg">
+            {t("submit_for_verification" as any)}
+          </Button>
+          <p className="text-[11px] text-muted-foreground text-center mt-2">
+            {t("verify_task_hint" as any)}
+          </p>
+        </Card>
+      )}
+      {isAwaiting && (
+        <Card className="p-3 border-warning/40 bg-warning/5 text-sm text-warning font-medium">
+          {t("status_awaiting_verification" as any)}
+        </Card>
+      )}
+      {isArchived && (
+        <Card className="p-3 border-success/40 bg-success/5 text-sm text-success font-medium">
+          {t("status_archived" as any)}
+        </Card>
+      )}
 
       <UpdateComposer taskId={id} onSent={() => qc.invalidateQueries({ queryKey: ["task-updates", id] })} />
 
