@@ -346,9 +346,14 @@ export function NotificationsView({ isAdmin }: { isAdmin: boolean }) {
                       <div className="text-sm font-bold truncate">{n.title}</div>
                       {n.body && <div className="text-xs text-muted-foreground line-clamp-2">{n.body}</div>}
                     </div>
-                    {n.priority === "high" && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold bg-destructive/15 text-destructive shrink-0">{t("priority_high")}</span>
-                    )}
+                    {(() => {
+                      const p = normalizePriority(n.priority);
+                      return (
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold shrink-0 ${priorityBadgeClasses(p)}`}>
+                          {t(`priority_${p}` as const)}
+                        </span>
+                      );
+                    })()}
                   </div>
                   <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                     <span className="text-[11px] text-muted-foreground">{formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}</span>
