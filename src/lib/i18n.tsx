@@ -103,6 +103,7 @@ export const dict = {
   new_pin: { en: "New PIN", hi: "नया PIN" },
   phone: { en: "Phone", hi: "फ़ोन" },
   project: { en: "Project", hi: "परियोजना" },
+  designation: { en: "Designation", hi: "पदनाम" },
   address: { en: "Address", hi: "पता" },
   full_name: { en: "Full Name", hi: "पूरा नाम" },
 
