@@ -121,18 +121,37 @@ function AttendancePage() {
       </Card>
 
       <Card className="p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-bold">{L("Recent Attendance", "हाल की हाज़िरी")}</h2>
-          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setShowCalendar(true)}>
-            <CalendarIcon className="size-4" /> {L("View Calendar", "कैलेंडर देखें")}
-          </Button>
+        <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
+          <h2 className="font-bold">{L("Monthly Attendance", "मासिक हाज़िरी")}</h2>
+          <div className="flex items-center gap-1.5">
+            <Button size="icon" variant="outline" onClick={goPrevMonth} aria-label={L("Previous Month", "पिछला महीना")}>
+              <ChevronLeft className="size-4" />
+            </Button>
+            <input
+              type="month"
+              value={format(monthAnchor, "yyyy-MM")}
+              max={format(new Date(), "yyyy-MM")}
+              onChange={(e) => onMonthInput(e.target.value)}
+              className="h-9 px-2 rounded-md border bg-background text-sm tabular-nums"
+              aria-label={L("Select month", "महीना चुनें")}
+            />
+            <Button size="icon" variant="outline" onClick={goNextMonth} disabled={isCurrentMonth} aria-label={L("Next Month", "अगला महीना")}>
+              <ChevronRight className="size-4" />
+            </Button>
+            {!isCurrentMonth && (
+              <Button size="sm" variant="ghost" onClick={goCurrentMonth}>{L("This Month", "इस महीने")}</Button>
+            )}
+            <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setShowCalendar(true)}>
+              <CalendarIcon className="size-4" /> {L("Calendar", "कैलेंडर")}
+            </Button>
+          </div>
         </div>
-        {recent.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-6">{L("No attendance yet", "अभी कोई हाज़िरी नहीं")}</p>
+        {monthRows.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-6">{L("No attendance recorded this month", "इस महीने कोई हाज़िरी दर्ज नहीं")}</p>
         ) : (
-          <div className="divide-y">
-            {recent.map((r) => (
-              <div key={r.id} className="py-2.5 grid grid-cols-[1fr_auto_auto_auto] items-center gap-3 text-sm">
+          <div className="divide-y max-h-[420px] overflow-y-auto">
+            {monthRows.map((r) => (
+              <div key={r.id} className="py-2.5 grid grid-cols-[1fr_auto_auto] items-center gap-3 text-sm">
                 <div className="min-w-0">
                   <div className="font-semibold">{format(new Date(r.date), "EEE, d MMM")}</div>
                 </div>
@@ -151,7 +170,18 @@ function AttendancePage() {
       <Sheet open={showCalendar} onOpenChange={setShowCalendar}>
         <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto">
           <SheetHeader><SheetTitle>{L("Attendance Calendar", "हाज़िरी कैलेंडर")}</SheetTitle></SheetHeader>
-          <div className="mt-4"><MonthCalendar userId={user?.id} L={L} /></div>
+          <div className="mt-4">
+            <MonthCalendar
+              userId={user?.id}
+              L={L}
+              monthAnchor={monthAnchor}
+              onPrev={goPrevMonth}
+              onNext={goNextMonth}
+              onCurrent={goCurrentMonth}
+              onPick={onMonthInput}
+              isCurrentMonth={isCurrentMonth}
+            />
+          </div>
         </SheetContent>
       </Sheet>
 
