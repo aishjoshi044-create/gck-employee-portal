@@ -191,7 +191,7 @@ export const dict = {
   reply_placeholder: { en: "Reply…", hi: "जवाब लिखें…" },
   reply_sent: { en: "Reply sent", hi: "जवाब भेज दिया" },
   single_employee: { en: "Single employee", hi: "एक कर्मचारी" },
-  whole_project: { en: "Whole project / project", hi: "पूरी परियोजना / परियोजना" },
+  whole_project: { en: "Whole project", hi: "पूरी परियोजना" },
   all_employees_opt: { en: "All employees", hi: "सभी कर्मचारी" },
   create_task: { en: "Create Task", hi: "काम बनाएं" },
   task_created: { en: "Task created", hi: "काम बन गया" },
