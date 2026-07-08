@@ -535,21 +535,52 @@ function VerificationBody({ row, L }: { row: AttRow; L: (en: string, hi: string)
 
 /* ---------- Calendar drawer ---------- */
 
-function MonthCalendar({ userId, L }: { userId?: string; L: (en: string, hi: string) => string }) {
+function MonthCalendar({
+  userId, L, monthAnchor, onPrev, onNext, onCurrent, onPick, isCurrentMonth,
+}: {
+  userId?: string;
+  L: (en: string, hi: string) => string;
+  monthAnchor: Date;
+  onPrev: () => void;
+  onNext: () => void;
+  onCurrent: () => void;
+  onPick: (v: string) => void;
+  isCurrentMonth: boolean;
+}) {
+  const start = format(startOfMonth(monthAnchor), "yyyy-MM-dd");
+  const end = format(endOfMonth(monthAnchor), "yyyy-MM-dd");
   const { data = [] } = useQuery({
-    queryKey: ["attendance", "month", userId],
+    queryKey: ["attendance", "month", userId, start],
     enabled: !!userId,
     queryFn: async () => {
-      const start = format(startOfMonth(new Date()), "yyyy-MM-dd");
-      const end = format(endOfMonth(new Date()), "yyyy-MM-dd");
       const { data } = await supabase.from("attendance").select("date,status,check_out_at").eq("user_id", userId!).gte("date", start).lte("date", end);
       return data ?? [];
     },
   });
-  const days = useMemo(() => eachDayOfInterval({ start: startOfMonth(new Date()), end: endOfMonth(new Date()) }), []);
+  const days = useMemo(() => eachDayOfInterval({ start: startOfMonth(monthAnchor), end: endOfMonth(monthAnchor) }), [monthAnchor]);
   return (
     <div>
-      <div className="font-bold mb-2">{format(new Date(), "MMMM yyyy")}</div>
+      <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
+        <div className="font-bold">{format(monthAnchor, "MMMM yyyy")}</div>
+        <div className="flex items-center gap-1.5">
+          <Button size="icon" variant="outline" onClick={onPrev} aria-label={L("Previous Month", "पिछला महीना")}>
+            <ChevronLeft className="size-4" />
+          </Button>
+          <input
+            type="month"
+            value={format(monthAnchor, "yyyy-MM")}
+            max={format(new Date(), "yyyy-MM")}
+            onChange={(e) => onPick(e.target.value)}
+            className="h-9 px-2 rounded-md border bg-background text-sm tabular-nums"
+          />
+          <Button size="icon" variant="outline" onClick={onNext} disabled={isCurrentMonth} aria-label={L("Next Month", "अगला महीना")}>
+            <ChevronRight className="size-4" />
+          </Button>
+          {!isCurrentMonth && (
+            <Button size="sm" variant="ghost" onClick={onCurrent}>{L("This Month", "इस महीने")}</Button>
+          )}
+        </div>
+      </div>
       <div className="grid grid-cols-7 gap-1.5">
         {["S","M","T","W","T","F","S"].map((d, i) => <div key={i} className="text-center text-xs text-muted-foreground font-bold">{d}</div>)}
         {Array.from({ length: days[0].getDay() }).map((_, i) => <div key={"e"+i} />)}
