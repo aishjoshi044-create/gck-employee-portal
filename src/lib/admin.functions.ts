@@ -12,7 +12,6 @@ export const createEmployee = createServerFn({ method: "POST" })
       username: z.string().trim().min(2).max(30).regex(/^[a-z0-9_.-]+$/, "lowercase letters, numbers, _ . - only"),
       full_name: z.string().trim().min(1).max(100),
       phone: z.string().trim().max(20).optional().nullable(),
-      department: z.string().trim().max(60).optional().nullable(),
       project: z.string().trim().max(100).optional().nullable(),
       designation: z.string().trim().max(100).optional().nullable(),
       address: z.string().trim().max(300).optional().nullable(),
