@@ -26,7 +26,6 @@ type Period = "monthly" | "quarterly" | "yearly";
 interface Filters {
   employeeId: string;
   project: string;
-  project: string;
   village: string;
   activity: string;
   status: string;
