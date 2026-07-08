@@ -221,7 +221,8 @@ function statusBadge(s: S, L: (a: string, b: string) => string) {
     pending: { cls: "bg-muted text-muted-foreground border-border", label: L("Pending", "बाकी") },
     in_progress: { cls: "bg-info/15 text-info border-info/30", label: L("In Progress", "प्रगति में") },
     overdue: { cls: "bg-destructive/15 text-destructive border-destructive/30", label: L("Overdue", "समय-बीत") },
-    completed: { cls: "bg-success/15 text-success border-success/30", label: L("Completed", "पूर्ण") },
+    awaiting: { cls: "bg-warning/15 text-warning border-warning/30", label: L("Awaiting Verification", "सत्यापन बाकी") },
+    completed: { cls: "bg-success/15 text-success border-success/30", label: L("Archived", "संग्रहित") },
   };
   const { cls, label } = map[s];
   return <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold border ${cls}`}>{label}</span>;
