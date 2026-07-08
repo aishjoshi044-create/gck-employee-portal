@@ -253,7 +253,7 @@ export const dict = {
   missing_reports: { en: "Missing Reports", hi: "गायब रिपोर्ट" },
   this_week: { en: "This Week", hi: "इस सप्ताह" },
   last_month: { en: "Last Month", hi: "पिछला महीना" },
-  custom_range: { en: "Custom Range", hi: "कस्टम अवधि" },
+  
   from_date: { en: "From", hi: "से" },
   to_date: { en: "To", hi: "तक" },
   activity_type: { en: "Activity Type", hi: "गतिविधि प्रकार" },
