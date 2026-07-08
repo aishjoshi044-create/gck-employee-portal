@@ -27,7 +27,7 @@ type Task = {
   id: string;
   title: string;
   description: string | null;
-  status: "not_started" | "in_progress" | "completed" | "failed";
+  status: "not_started" | "in_progress" | "awaiting_verification" | "archived" | "completed" | "failed";
   priority: "low" | "medium" | "high";
   deadline: string | null;
   created_at: string;
@@ -35,10 +35,11 @@ type Task = {
   location_label: string | null;
 };
 
-type S = "pending" | "in_progress" | "overdue" | "completed";
+type S = "pending" | "in_progress" | "overdue" | "awaiting" | "completed";
 
 function derivedStatus(t: Task): S {
-  if (t.status === "completed") return "completed";
+  if (t.status === "archived" || t.status === "completed" || t.status === "failed") return "completed";
+  if (t.status === "awaiting_verification") return "awaiting";
   if (t.deadline && isPast(new Date(t.deadline)) && !isToday(new Date(t.deadline))) return "overdue";
   if (t.status === "in_progress") return "in_progress";
   return "pending";
