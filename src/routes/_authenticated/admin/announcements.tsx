@@ -37,11 +37,7 @@ function AnnouncementsPage() {
     const { error } = await supabase.from("announcements").insert({ title, body, audience: "all", created_by: user.id });
     if (error) toast.error(error.message);
     else {
-      // also push notifications to all employees
-      const { data: profs } = await supabase.from("profiles").select("id").eq("active", true);
-      if (profs?.length) {
-        await supabase.from("notifications").insert(profs.map((p) => ({ user_id: p.id, title, body, kind: "announcement" })));
-      }
+      // Notifications are dispatched automatically by the DB trigger (notify_announcement)
       toast.success(t("send"));
       setTitle(""); setBody("");
       qc.invalidateQueries({ queryKey: ["announcements"] });
