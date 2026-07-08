@@ -11,9 +11,10 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import {
   Camera, CheckCircle2, Loader2, RotateCcw, MapPin, ScanFace, AlertTriangle,
   Clock, LogOut, Calendar as CalendarIcon, ShieldCheck, ExternalLink,
+  ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, differenceInSeconds } from "date-fns";
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, differenceInSeconds, addMonths, isAfter } from "date-fns";
 import { getFaceDescriptor, loadFaceModels, similarityPct } from "@/lib/face";
 import { compressImage } from "@/lib/image-compress";
 
