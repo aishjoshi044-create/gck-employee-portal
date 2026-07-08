@@ -472,42 +472,44 @@ function ArchivePanel({ employees, onSelect }: { employees: any[]; onSelect: (t:
   return (
     <div className="space-y-4">
       <Card className="p-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative flex-1 min-w-[200px]">
-            <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder={t("search_tasks_placeholder")} className="pl-9 h-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+        <div className="grid grid-cols-1 gap-2 sm:flex sm:flex-wrap sm:items-center">
+          <div className="relative min-w-0 sm:flex-1 sm:min-w-[200px]">
+            <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground shrink-0" />
+            <Input placeholder={t("search_tasks_placeholder")} className="pl-9 h-9 w-full" value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
-          <FilterSelect value={fEmployee} onChange={(v) => { setFEmployee(v); setPage(0); }} placeholder={t("employees")} width="w-[150px]">
-            <SelectItem value="all">{t("all_employees")}</SelectItem>
-            {employees.map((e) => <SelectItem key={e.id} value={e.id}>{e.full_name}</SelectItem>)}
-          </FilterSelect>
-          <FilterSelect value={fProject} onChange={(v) => { setFProject(v); setPage(0); }} placeholder={t("project")} width="w-[140px]">
-            <SelectItem value="all">{t("all_projects")}</SelectItem>
-            {projects.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-          </FilterSelect>
-          <div className="flex items-center gap-1">
+          <div className="grid grid-cols-2 gap-2 min-w-0 sm:flex sm:flex-wrap sm:items-center">
+            <FilterSelect value={fEmployee} onChange={(v) => { setFEmployee(v); setPage(0); }} placeholder={t("employees")} width="w-full sm:w-[150px]">
+              <SelectItem value="all">{t("all_employees")}</SelectItem>
+              {employees.map((e) => <SelectItem key={e.id} value={e.id}>{e.full_name}</SelectItem>)}
+            </FilterSelect>
+            <FilterSelect value={fProject} onChange={(v) => { setFProject(v); setPage(0); }} placeholder={t("project")} width="w-full sm:w-[140px]">
+              <SelectItem value="all">{t("all_projects")}</SelectItem>
+              {projects.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+            </FilterSelect>
+          </div>
+          <div className="grid grid-cols-2 gap-1 min-w-0 sm:flex sm:flex-wrap sm:items-center">
             {[
               { k: "30", label: t("last_30_days") },
               { k: "60", label: t("last_60_days") },
               { k: "custom", label: t("custom_range") },
               { k: "all", label: t("any_date") },
             ].map((o) => (
-              <Button key={o.k} size="sm" variant={range === o.k ? "default" : "outline"} className="h-9" onClick={() => { setRange(o.k as any); setPage(0); }}>{o.label}</Button>
+              <Button key={o.k} size="sm" variant={range === o.k ? "default" : "outline"} className="h-9 w-full sm:w-auto" onClick={() => { setRange(o.k as any); setPage(0); }}>{o.label}</Button>
             ))}
           </div>
           {range === "custom" && (
-            <div className="flex items-center gap-1">
-              <Input type="date" className="h-9 w-[140px]" value={customFrom} onChange={(e) => { setCustomFrom(e.target.value); setPage(0); }} />
-              <span className="text-xs text-muted-foreground">–</span>
-              <Input type="date" className="h-9 w-[140px]" value={customTo} onChange={(e) => { setCustomTo(e.target.value); setPage(0); }} />
+            <div className="flex items-center gap-1 min-w-0">
+              <Input type="date" className="h-9 flex-1 min-w-[120px] sm:w-[140px]" value={customFrom} onChange={(e) => { setCustomFrom(e.target.value); setPage(0); }} />
+              <span className="text-xs text-muted-foreground shrink-0">–</span>
+              <Input type="date" className="h-9 flex-1 min-w-[120px] sm:w-[140px]" value={customTo} onChange={(e) => { setCustomTo(e.target.value); setPage(0); }} />
             </div>
           )}
-          <div className="ml-auto flex items-center gap-2">
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => downloadPdf({ title: t("archived_tasks"), filename: `archived-tasks-${format(new Date(), "yyyy-MM-dd")}.pdf`, head: HEAD, body: buildRows() })}>
-              <FileDown className="size-3.5" /> PDF
+          <div className="flex items-center gap-2 min-w-0 sm:ml-auto">
+            <Button variant="outline" size="sm" className="gap-1.5 flex-1 sm:flex-none" onClick={() => downloadPdf({ title: t("archived_tasks"), filename: `archived-tasks-${format(new Date(), "yyyy-MM-dd")}.pdf`, head: HEAD, body: buildRows() })}>
+              <FileDown className="size-3.5 shrink-0" /> PDF
             </Button>
-            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => downloadExcel(`archived-tasks-${format(new Date(), "yyyy-MM-dd")}.xlsx`, [{ name: t("archived_tasks"), header: HEAD, rows: buildRows() }])}>
-              <FileSpreadsheet className="size-3.5" /> Excel
+            <Button variant="outline" size="sm" className="gap-1.5 flex-1 sm:flex-none" onClick={() => downloadExcel(`archived-tasks-${format(new Date(), "yyyy-MM-dd")}.xlsx`, [{ name: t("archived_tasks"), header: HEAD, rows: buildRows() }])}>
+              <FileSpreadsheet className="size-3.5 shrink-0" /> Excel
             </Button>
           </div>
         </div>
