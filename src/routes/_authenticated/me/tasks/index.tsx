@@ -88,7 +88,7 @@ function MyTasksList() {
   }, [user, qc]);
 
   const summary = useMemo(() => {
-    const s = { total: tasks.length, pending: 0, in_progress: 0, overdue: 0, completed: 0 };
+    const s = { total: tasks.length, pending: 0, in_progress: 0, awaiting: 0, overdue: 0, completed: 0 };
     tasks.forEach((t) => { s[derivedStatus(t)]++; });
     return s;
   }, [tasks]);
