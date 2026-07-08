@@ -288,7 +288,6 @@ export type Database = {
           created_at: string
           date_of_birth: string | null
           date_of_joining: string | null
-          department: string | null
           designation: string | null
           face_descriptor: Json | null
           full_name: string
@@ -307,7 +306,6 @@ export type Database = {
           created_at?: string
           date_of_birth?: string | null
           date_of_joining?: string | null
-          department?: string | null
           designation?: string | null
           face_descriptor?: Json | null
           full_name: string
@@ -326,7 +324,6 @@ export type Database = {
           created_at?: string
           date_of_birth?: string | null
           date_of_joining?: string | null
-          department?: string | null
           designation?: string | null
           face_descriptor?: Json | null
           full_name?: string
@@ -460,13 +457,13 @@ export type Database = {
           created_at: string
           created_by: string | null
           deadline: string | null
-          department: string | null
           description: string | null
           id: string
           location_label: string | null
           location_lat: number | null
           location_lng: number | null
           priority: Database["public"]["Enums"]["task_priority"]
+          project: string | null
           status: Database["public"]["Enums"]["task_status"]
           title: string
           updated_at: string
@@ -477,13 +474,13 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           deadline?: string | null
-          department?: string | null
           description?: string | null
           id?: string
           location_label?: string | null
           location_lat?: number | null
           location_lng?: number | null
           priority?: Database["public"]["Enums"]["task_priority"]
+          project?: string | null
           status?: Database["public"]["Enums"]["task_status"]
           title: string
           updated_at?: string
@@ -494,13 +491,13 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           deadline?: string | null
-          department?: string | null
           description?: string | null
           id?: string
           location_label?: string | null
           location_lat?: number | null
           location_lng?: number | null
           priority?: Database["public"]["Enums"]["task_priority"]
+          project?: string | null
           status?: Database["public"]["Enums"]["task_status"]
           title?: string
           updated_at?: string
