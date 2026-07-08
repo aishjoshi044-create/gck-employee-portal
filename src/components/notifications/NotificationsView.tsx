@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Bell, CheckCheck, ClipboardList, NotebookPen, CalendarDays, CalendarCheck, Megaphone, Settings as SettingsIcon, ExternalLink, CalendarRange, X, Search, SlidersHorizontal } from "lucide-react";
+import { Bell, CheckCheck, ClipboardList, NotebookPen, CalendarDays, CalendarCheck, Megaphone, Settings as SettingsIcon, ExternalLink, CalendarRange, X, Search, SlidersHorizontal, Users } from "lucide-react";
 import { formatDistanceToNow, format, subDays, startOfDay, endOfDay } from "date-fns";
 import type { DateRange } from "react-day-picker";
 import { Link } from "@tanstack/react-router";
