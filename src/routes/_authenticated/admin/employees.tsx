@@ -205,28 +205,6 @@ function EmployeeDrawer({
   const remove = useServerFn(deleteEmployee);
   const updateFace = useServerFn(updateEmployeeFace);
 
-  // Lazy summary — only fires when drawer opens.
-  const { data: summary, isLoading: sumLoading } = useQuery({
-    queryKey: ["employee-summary", employee.id],
-    queryFn: async () => {
-      const monthStart = new Date();
-      monthStart.setDate(1);
-      monthStart.setHours(0, 0, 0, 0);
-      const iso = monthStart.toISOString().slice(0, 10);
-      const [att, tasks, reports, leaves] = await Promise.all([
-        supabase.from("attendance").select("id", { count: "exact", head: true }).eq("user_id", employee.id).gte("date", iso),
-        supabase.from("tasks").select("id", { count: "exact", head: true }).eq("assigned_to", employee.id),
-        supabase.from("daily_reports").select("id", { count: "exact", head: true }).eq("user_id", employee.id),
-        supabase.from("leave_requests").select("id", { count: "exact", head: true }).eq("user_id", employee.id).eq("status", "approved"),
-      ]);
-      return {
-        attendance: att.count ?? 0,
-        tasks: tasks.count ?? 0,
-        reports: reports.count ?? 0,
-        leaves: leaves.count ?? 0,
-      };
-    },
-  });
 
   const [form, setForm] = useState({
     full_name: employee.full_name ?? "",
@@ -384,16 +362,6 @@ function EmployeeDrawer({
               </Card>
 
               <div>
-                <div className="text-xs font-bold uppercase text-muted-foreground mb-1.5">{t("summary")}</div>
-                <div className="grid grid-cols-2 gap-2">
-                  <SummaryCard label={t("attendance")} value={summary?.attendance} loading={sumLoading} hint={t("this_month")} />
-                  <SummaryCard label={t("tasks")} value={summary?.tasks} loading={sumLoading} />
-                  <SummaryCard label={t("daily_reports")} value={summary?.reports} loading={sumLoading} />
-                  <SummaryCard label={t("leave")} value={summary?.leaves} loading={sumLoading} hint={t("approved")} />
-                </div>
-              </div>
-
-              <div>
                 <div className="text-xs font-bold uppercase text-muted-foreground mb-1.5">{t("actions")}</div>
                 <div className="grid grid-cols-2 gap-2">
                   <Button variant="outline" className="tap-lg gap-2" onClick={() => setMode("edit")}>
@@ -501,18 +469,6 @@ function Field({
       <Label>{label}</Label>
       <Input type={type} className="tap-lg mt-1" value={value} onChange={(e) => onChange(e.target.value)} required={required} />
     </div>
-  );
-}
-
-function SummaryCard({ label, value, loading, hint }: { label: string; value?: number; loading: boolean; hint?: string }) {
-  return (
-    <Card className="p-3">
-      <div className="text-[11px] uppercase font-bold text-muted-foreground truncate">{label}</div>
-      <div className="text-2xl font-extrabold mt-0.5">
-        {loading ? <Loader2 className="size-5 animate-spin text-muted-foreground" /> : (value ?? 0)}
-      </div>
-      {hint && <div className="text-[10px] text-muted-foreground mt-0.5">{hint}</div>}
-    </Card>
   );
 }
 
