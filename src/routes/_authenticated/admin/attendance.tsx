@@ -251,7 +251,37 @@ function AdminAttendance() {
               <SelectItem value="unmarked">{L("Unmarked", "अचिह्नित")}</SelectItem>
             </SelectContent>
           </Select>
-          <Input type="date" className="md:w-44" value={date} onChange={(e) => setDate(e.target.value)} />
+          <Input type="date" className="md:w-40" value={date} max={format(new Date(), "yyyy-MM-dd")} onChange={(e) => setDate(e.target.value)} />
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5 mt-2 pt-2 border-t">
+          <Button size="icon" variant="outline" onClick={() => shiftDate(-1)} aria-label={L("Previous Day", "पिछला दिन")}>
+            <ChevronLeft className="size-4" />
+          </Button>
+          <Button size="icon" variant="outline" onClick={() => shiftDate(1)} disabled={isToday} aria-label={L("Next Day", "अगला दिन")}>
+            <ChevronRight className="size-4" />
+          </Button>
+          <div className="mx-1 h-6 w-px bg-border" />
+          <Button size="sm" variant="outline" onClick={() => shiftMonth(-1)} className="gap-1">
+            <ChevronLeft className="size-4" /> {L("Prev Month", "पिछला महीना")}
+          </Button>
+          <input
+            type="month"
+            value={format(dateObj, "yyyy-MM")}
+            max={currentMonthStr}
+            onChange={(e) => onMonthPick(e.target.value)}
+            className="h-9 px-2 rounded-md border bg-background text-sm tabular-nums"
+            aria-label={L("Select month", "महीना चुनें")}
+          />
+          <Button size="sm" variant="outline" onClick={() => shiftMonth(1)} disabled={format(dateObj, "yyyy-MM") === currentMonthStr} className="gap-1">
+            {L("Next Month", "अगला महीना")} <ChevronRight className="size-4" />
+          </Button>
+          <div className="mx-1 h-6 w-px bg-border" />
+          <Button size="sm" variant={isToday ? "secondary" : "default"} onClick={() => setDate(format(new Date(), "yyyy-MM-dd"))}>
+            {L("Today", "आज")}
+          </Button>
+          <Button size="sm" variant="outline" className="gap-1.5 ml-auto" onClick={() => setRangeOpen(true)}>
+            <CalendarRange className="size-4" /> {L("Date Range", "तारीख सीमा")}
+          </Button>
         </div>
       </Card>
 
