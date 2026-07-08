@@ -10,11 +10,12 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
 import { useEffect, useMemo, useState } from "react";
-import { format } from "date-fns";
+import { format, addDays, addMonths, startOfMonth, endOfMonth, isAfter, parseISO } from "date-fns";
 import { toast } from "sonner";
 import {
   FileDown, FileSpreadsheet, Search, Users, UserCheck, UserX, Clock,
-  MapPin, ScanFace, Eye, ExternalLink, Flag,
+  MapPin, ScanFace, Eye, ExternalLink, Flag, ChevronLeft, ChevronRight,
+  CalendarRange,
 } from "lucide-react";
 import { downloadPdf, downloadExcel } from "@/lib/exports";
 
