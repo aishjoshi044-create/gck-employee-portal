@@ -245,7 +245,7 @@ function ActivePanel({ employees, onSelect }: { employees: any[]; onSelect: (t: 
             {projects.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
           </FilterSelect>
           <FilterSelect value={fVillage} onChange={setFVillage} placeholder={t("village")} width="w-[140px]">
-            <SelectItem value="all">{t("all_villages") as any}</SelectItem>
+            <SelectItem value="all">{"All Villages"}</SelectItem>
             {villages.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}
           </FilterSelect>
           <FilterSelect value={fStatus} onChange={setFStatus} placeholder="Status" width="w-[160px]">
