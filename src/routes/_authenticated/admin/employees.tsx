@@ -116,7 +116,7 @@ function EmployeesPage() {
 
 function NewEmployeeForm({ onCreated, create }: { onCreated: (c: { username: string; pin: string; name: string }) => void; create: any }) {
   const { t } = useI18n();
-  const [form, setForm] = useState({ username: "", full_name: "", phone: "", project: "", project: "", designation: "", address: "", date_of_joining: "", pin: "" });
+  const [form, setForm] = useState({ username: "", full_name: "", phone: "", project: "", designation: "", address: "", date_of_joining: "", pin: "" });
   const [faceDescriptor, setFaceDescriptor] = useState<number[] | null>(null);
   const [faceBlob, setFaceBlob] = useState<Blob | null>(null);
   const [busy, setBusy] = useState(false);
