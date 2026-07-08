@@ -181,7 +181,6 @@ export const dict = {
   completed: { en: "Completed", hi: "पूरा" },
   failed: { en: "Failed", hi: "असफल" },
   not_started: { en: "Not Started", hi: "शुरू नहीं" },
-  project: { en: "Project", hi: "परियोजना" },
   village: { en: "Village", hi: "गाँव" },
   due: { en: "Due", hi: "समय-सीमा" },
   due_date: { en: "Due Date", hi: "अंतिम तारीख" },
