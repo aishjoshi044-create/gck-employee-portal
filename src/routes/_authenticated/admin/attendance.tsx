@@ -582,3 +582,147 @@ function KV({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+
+/* ---------- Date-range aggregate sheet ---------- */
+
+function RangeSheet({
+  open, onOpenChange, L,
+}: { open: boolean; onOpenChange: (v: boolean) => void; L: (en: string, hi: string) => string }) {
+  const firstOfMonth = format(startOfMonth(new Date()), "yyyy-MM-dd");
+  const todayStr = format(new Date(), "yyyy-MM-dd");
+  const [from, setFrom] = useState(firstOfMonth);
+  const [to, setTo] = useState(todayStr);
+  const [q, setQ] = useState("");
+
+  const { data, isFetching } = useQuery({
+    queryKey: ["admin-attendance-range", from, to],
+    enabled: open && !!from && !!to && from <= to,
+    queryFn: async () => {
+      const [{ data: profs }, { data: att }] = await Promise.all([
+        supabase.from("profiles").select("id,full_name,username,department,photo_url").eq("active", true),
+        supabase.from("attendance").select("user_id,date,status,check_in_at,check_out_at").gte("date", from).lte("date", to),
+      ]);
+      const byUser = new Map<string, { present: number; late: number; absent: number; leave: number; pending: number; hours: number }>();
+      (att ?? []).forEach((a: any) => {
+        const b = byUser.get(a.user_id) ?? { present: 0, late: 0, absent: 0, leave: 0, pending: 0, hours: 0 };
+        if (a.status === "leave") b.leave++;
+        else if (a.status === "absent") b.absent++;
+        else if (a.check_in_at) {
+          const d = new Date(a.check_in_at);
+          const late = d.getHours() > LATE_HOUR || (d.getHours() === LATE_HOUR && d.getMinutes() > LATE_MIN);
+          if (a.check_out_at) {
+            b.present++;
+            if (late) b.late++;
+            b.hours += Math.max(0, (new Date(a.check_out_at).getTime() - d.getTime()) / 3600000);
+          } else {
+            b.pending++;
+          }
+        }
+        byUser.set(a.user_id, b);
+      });
+      return (profs ?? []).map((p: any) => ({
+        ...p,
+        stats: byUser.get(p.id) ?? { present: 0, late: 0, absent: 0, leave: 0, pending: 0, hours: 0 },
+      }));
+    },
+  });
+
+  const filtered = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    if (!needle) return data ?? [];
+    return (data ?? []).filter((r: any) => `${r.full_name} ${r.username}`.toLowerCase().includes(needle));
+  }, [data, q]);
+
+  const HEAD = [
+    L("Employee", "कर्मचारी"), L("Department", "विभाग"),
+    L("Present", "उपस्थित"), L("Late", "देर से"),
+    L("Absent", "अनुपस्थित"), L("Leave", "अवकाश"),
+    L("Pending", "बाकी"), L("Hours", "घंटे"),
+  ];
+  const body = () => filtered.map((r: any) => [
+    r.full_name, r.department ?? "—",
+    r.stats.present, r.stats.late, r.stats.absent, r.stats.leave, r.stats.pending,
+    r.stats.hours.toFixed(1),
+  ]);
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle>{L("Attendance by Date Range", "तारीख सीमा के अनुसार हाज़िरी")}</SheetTitle>
+        </SheetHeader>
+        <div className="mt-4 space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2">
+            <div>
+              <label className="text-xs text-muted-foreground">{L("From", "से")}</label>
+              <Input type="date" value={from} max={to} onChange={(e) => setFrom(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">{L("To", "तक")}</label>
+              <Input type="date" value={to} min={from} max={todayStr} onChange={(e) => setTo(e.target.value)} />
+            </div>
+            <div className="flex items-end gap-1">
+              <Button variant="outline" size="sm" className="gap-1"
+                onClick={() => downloadExcel(`attendance-${from}_${to}.xlsx`, [{ name: `${from}_${to}`, header: HEAD, rows: body() }])}
+              ><FileSpreadsheet className="size-4" /> Excel</Button>
+              <Button variant="outline" size="sm" className="gap-1"
+                onClick={() => downloadPdf({ title: `${L("Attendance", "हाज़िरी")} ${from} → ${to}`, filename: `attendance-${from}_${to}.pdf`, head: HEAD, body: body() })}
+              ><FileDown className="size-4" /> PDF</Button>
+            </div>
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            {[
+              { label: L("This Month", "इस महीने"), f: format(startOfMonth(new Date()), "yyyy-MM-dd"), t: todayStr },
+              { label: L("Last Month", "पिछला महीना"), f: format(startOfMonth(addMonths(new Date(), -1)), "yyyy-MM-dd"), t: format(endOfMonth(addMonths(new Date(), -1)), "yyyy-MM-dd") },
+              { label: L("Last 7 days", "पिछले 7 दिन"), f: format(addDays(new Date(), -6), "yyyy-MM-dd"), t: todayStr },
+              { label: L("Last 30 days", "पिछले 30 दिन"), f: format(addDays(new Date(), -29), "yyyy-MM-dd"), t: todayStr },
+            ].map((p) => (
+              <Button key={p.label} size="sm" variant="ghost" onClick={() => { setFrom(p.f); setTo(p.t); }}>{p.label}</Button>
+            ))}
+          </div>
+          <div className="relative">
+            <Search className="size-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Input placeholder={L("Search employee…", "कर्मचारी खोजें…")} value={q} onChange={(e) => setQ(e.target.value)} className="pl-9" />
+          </div>
+          <div className="rounded-md border overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/60 text-xs uppercase text-muted-foreground">
+                <tr>
+                  <th className="text-left p-2 font-semibold">{L("Employee", "कर्मचारी")}</th>
+                  <th className="p-2 font-semibold text-center">{L("P", "उ")}</th>
+                  <th className="p-2 font-semibold text-center">{L("L", "दे")}</th>
+                  <th className="p-2 font-semibold text-center">{L("A", "अ")}</th>
+                  <th className="p-2 font-semibold text-center">{L("Lv", "छु")}</th>
+                  <th className="p-2 font-semibold text-center">{L("Pn", "बा")}</th>
+                  <th className="p-2 font-semibold text-right">{L("Hrs", "घं")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {isFetching && (
+                  <tr><td colSpan={7} className="p-6 text-center text-muted-foreground text-xs">{L("Loading…", "लोड हो रहा है…")}</td></tr>
+                )}
+                {!isFetching && filtered.length === 0 && (
+                  <tr><td colSpan={7} className="p-6 text-center text-muted-foreground text-xs">{L("No results", "कोई परिणाम नहीं")}</td></tr>
+                )}
+                {!isFetching && filtered.map((r: any) => (
+                  <tr key={r.id} className="border-t">
+                    <td className="p-2">
+                      <div className="font-semibold truncate">{r.full_name}</div>
+                      <div className="text-[11px] text-muted-foreground truncate">{r.department ?? "—"}</div>
+                    </td>
+                    <td className="p-2 text-center tabular-nums text-success font-bold">{r.stats.present}</td>
+                    <td className="p-2 text-center tabular-nums text-warning">{r.stats.late}</td>
+                    <td className="p-2 text-center tabular-nums text-destructive">{r.stats.absent}</td>
+                    <td className="p-2 text-center tabular-nums text-info">{r.stats.leave}</td>
+                    <td className="p-2 text-center tabular-nums">{r.stats.pending}</td>
+                    <td className="p-2 text-right tabular-nums font-bold">{r.stats.hours.toFixed(1)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
