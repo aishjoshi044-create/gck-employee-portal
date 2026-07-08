@@ -77,6 +77,7 @@ function linkFor(kind: string, refId: string | null, isAdmin: boolean): string |
     case "leave": return isAdmin ? "/admin/leaves" : "/me/leave";
     case "attendance": return isAdmin ? "/admin/attendance" : "/me/attendance";
     case "announcement": return isAdmin ? "/admin/announcements" : "/me";
+    case "employees": return isAdmin ? "/admin/employees" : "/me/profile";
     default: return base;
   }
 }
