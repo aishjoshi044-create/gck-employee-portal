@@ -413,6 +413,8 @@ function AdminAttendance() {
           {open && <DetailsBody row={open} date={date} L={L} onFlagged={() => qc.invalidateQueries({ queryKey: ["admin-attendance"] })} />}
         </SheetContent>
       </Sheet>
+
+      <RangeSheet open={rangeOpen} onOpenChange={setRangeOpen} L={L} />
     </div>
   );
 }
