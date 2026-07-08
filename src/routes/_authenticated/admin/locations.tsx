@@ -89,7 +89,7 @@ function LocationsPage() {
           </div>
         </div>
         <Card className="p-2">
-          <div className="h-[60vh] rounded-xl overflow-hidden">
+          <div className="h-[60vh] rounded-xl overflow-hidden relative z-0 isolate">
             {selected.lat && selected.lng ? (
               <ClientOnly fallback={<div className="h-full bg-muted animate-pulse" />}>
                 <Suspense fallback={<div className="h-full bg-muted animate-pulse" />}>
