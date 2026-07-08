@@ -7,10 +7,12 @@ const LiveMap = lazy(() =>
 
 export function LiveMapClient() {
   return (
-    <ClientOnly fallback={<div className="h-full bg-muted animate-pulse rounded-xl" />}>
-      <Suspense fallback={<div className="h-full bg-muted animate-pulse rounded-xl" />}>
-        <LiveMap />
-      </Suspense>
-    </ClientOnly>
+    <div className="h-full w-full relative z-0 isolate">
+      <ClientOnly fallback={<div className="h-full bg-muted animate-pulse rounded-xl" />}>
+        <Suspense fallback={<div className="h-full bg-muted animate-pulse rounded-xl" />}>
+          <LiveMap />
+        </Suspense>
+      </ClientOnly>
+    </div>
   );
 }
