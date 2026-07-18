@@ -1262,7 +1262,7 @@ function EditTaskDialog({ task, employees, open, onOpenChange, onSaved }: { task
     if (Object.keys(patch).length === 0) {
       setBusy(false); toast.info("No changes"); onOpenChange(false); return;
     }
-    const { error } = await supabase.from("tasks").update(patch).eq("id", task.id);
+    const { error } = await supabase.from("tasks").update(patch as any).eq("id", task.id);
     setBusy(false);
     if (error) toast.error(error.message);
     else { toast.success("Task updated"); onSaved(); }
