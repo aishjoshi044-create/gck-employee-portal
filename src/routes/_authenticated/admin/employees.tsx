@@ -86,14 +86,15 @@ function EmployeesPage() {
   const { data: employees } = useQuery({
     queryKey: ["employees", "list"],
     queryFn: async () => {
-      const [{ data: profs }, { data: roles }] = await Promise.all([
-        supabase.from("profiles").select(FIELDS).order("created_at", { ascending: false }),
-        supabase.from("user_roles").select("user_id, role"),
-      ]);
-      const adminIds = new Set((roles ?? []).filter((r: any) => r.role === "admin").map((r: any) => r.user_id));
-      return ((profs as any[]) ?? []).filter((p) => !adminIds.has(p.id)) as Employee[];
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select(FIELDS)
+        .not("id", "in", `(select user_id from user_roles where role = 'admin')`)
+        .order("created_at", { ascending: false });
+      return (profs ?? []) as Employee[];
     },
   });
+
 
   const filtered = (employees ?? []).filter((e) => {
     if (!q) return true;
