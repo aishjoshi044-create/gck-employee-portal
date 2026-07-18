@@ -427,6 +427,7 @@ function ArchivePanel({ employees, onSelect }: { employees: any[]; onSelect: (t:
   const [customFrom, setCustomFrom] = useState<string>("");
   const [customTo, setCustomTo] = useState<string>("");
   const [page, setPage] = useState(0);
+  const [showDeleted, setShowDeleted] = useState(false);
   const pageSize = 50;
 
   const bounds = useMemo(() => {
@@ -441,14 +442,18 @@ function ArchivePanel({ employees, onSelect }: { employees: any[]; onSelect: (t:
   }, [range, customFrom, customTo]);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["admin-tasks-archive", fEmployee, fProject, bounds.from, bounds.to, page],
+    queryKey: ["admin-tasks-archive", fEmployee, fProject, bounds.from, bounds.to, page, showDeleted],
     queryFn: async () => {
       let q = supabase
         .from("tasks")
         .select("*", { count: "exact" })
-        .in("status", ["archived", "completed", "failed"] as any)
         .order("completed_at", { ascending: false, nullsFirst: false })
         .range(page * pageSize, page * pageSize + pageSize - 1);
+      if (showDeleted) {
+        q = q.not("deleted_at", "is", null);
+      } else {
+        q = q.is("deleted_at", null).in("status", ["archived", "completed", "failed"] as any);
+      }
       if (fEmployee !== "all") q = q.eq("assigned_to", fEmployee);
       if (fProject !== "all") q = q.eq("project", fProject);
       if (bounds.from) q = q.gte("completed_at", bounds.from);
