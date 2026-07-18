@@ -18,6 +18,7 @@ import {
   CalendarRange,
 } from "lucide-react";
 import { downloadPdf, downloadExcel } from "@/lib/exports";
+import { useAdminIds } from "@/hooks/useAdminIds";
 
 export const Route = createFileRoute("/_authenticated/admin/attendance")({
   component: AdminAttendance,
