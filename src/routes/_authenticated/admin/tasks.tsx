@@ -125,7 +125,14 @@ function AdminTasks() {
           <SheetHeader>
             <SheetTitle className="pr-6">{viewTask?.title}</SheetTitle>
           </SheetHeader>
-          {viewTask && <TaskDetails task={viewTask} readOnly={isArchivedStatus(viewTask.status)} onClosed={() => setViewTask(null)} />}
+          {viewTask && (
+            <TaskDetails
+              task={viewTask}
+              employees={employees ?? []}
+              readOnly={isArchivedStatus(viewTask.status)}
+              onClosed={() => setViewTask(null)}
+            />
+          )}
         </SheetContent>
       </Sheet>
     </div>
