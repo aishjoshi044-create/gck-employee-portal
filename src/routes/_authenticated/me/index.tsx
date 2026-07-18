@@ -35,6 +35,7 @@ function EmployeeHome() {
       const { data } = await supabase
         .from("tasks").select("id,title,status,priority,deadline")
         .eq("assigned_to", user!.id)
+        .is("deleted_at", null)
         .neq("status", "completed")
         .order("deadline", { ascending: true })
         .limit(3);
@@ -48,7 +49,7 @@ function EmployeeHome() {
     queryFn: async () => {
       const { count } = await supabase
         .from("tasks").select("id", { count: "exact", head: true })
-        .eq("assigned_to", user!.id).neq("status", "completed");
+        .eq("assigned_to", user!.id).is("deleted_at", null).neq("status", "completed");
       return count ?? 0;
     },
   });
