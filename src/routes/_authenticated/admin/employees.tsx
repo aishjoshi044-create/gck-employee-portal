@@ -51,6 +51,8 @@ import {
 import logo from "@/assets/gck-logo.jpeg.asset.json";
 import { compressImage } from "@/lib/image-compress";
 import { FaceCapture } from "@/components/FaceCapture";
+import { useAdminIds } from "@/hooks/useAdminIds";
+
 
 type Employee = {
   id: string;
