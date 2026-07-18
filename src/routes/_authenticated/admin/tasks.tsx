@@ -151,6 +151,7 @@ function ActivePanel({ employees, onSelect }: { employees: any[]; onSelect: (t: 
       const { data: ts, error } = await supabase
         .from("tasks")
         .select("*")
+        .is("deleted_at", null)
         .not("status", "in", "(archived,completed,failed)")
         .order("created_at", { ascending: false });
       if (error) { toast.error(error.message); return []; }
