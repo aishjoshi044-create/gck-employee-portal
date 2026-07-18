@@ -42,7 +42,7 @@ function LocationsPage() {
     ]);
     const filteredProfs = (profs ?? []).filter((p: any) => !adminIds.has(p.id));
     const now = Date.now();
-    const merged: Row[] = (profs ?? []).map((p: any) => {
+    const merged: Row[] = filteredProfs.map((p: any) => {
       const l = locs?.find((x) => x.user_id === p.id);
       return {
         user_id: p.id,
