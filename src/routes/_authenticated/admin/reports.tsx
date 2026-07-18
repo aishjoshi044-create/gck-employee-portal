@@ -68,10 +68,13 @@ function ReportsPage() {
   const [generating, setGenerating] = useState(false);
 
   // Lookups
+  const { notInList, adminIdsReady } = useAdminIds();
+  // Lookups
   const { data: employees = [] } = useQuery({
-    queryKey: ["rg-emps"],
+    queryKey: ["rg-emps", notInList],
+    enabled: adminIdsReady,
     queryFn: async () =>
-      (await supabase.from("profiles").select("id,full_name,project").eq("active", true).order("full_name")).data ?? [],
+      (await supabase.from("profiles").select("id,full_name,project").eq("active", true).not("id", "in", notInList).order("full_name")).data ?? [],
     staleTime: 60_000,
   });
   const projects = useMemo(
