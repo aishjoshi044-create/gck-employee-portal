@@ -599,12 +599,13 @@ function RangeSheet({
   const [to, setTo] = useState(todayStr);
   const [q, setQ] = useState("");
 
+  const { notInList, adminIdsReady } = useAdminIds();
   const { data, isFetching } = useQuery({
-    queryKey: ["admin-attendance-range", from, to],
-    enabled: open && !!from && !!to && from <= to,
+    queryKey: ["admin-attendance-range", from, to, notInList],
+    enabled: open && !!from && !!to && from <= to && adminIdsReady,
     queryFn: async () => {
       const [{ data: profs }, { data: att }] = await Promise.all([
-        supabase.from("profiles").select("id,full_name,username,project,photo_url").eq("active", true),
+        supabase.from("profiles").select("id,full_name,username,project,photo_url").eq("active", true).not("id", "in", notInList),
         supabase.from("attendance").select("user_id,date,status,check_in_at,check_out_at").gte("date", from).lte("date", to),
       ]);
       const byUser = new Map<string, { present: number; late: number; absent: number; leave: number; pending: number; hours: number }>();
