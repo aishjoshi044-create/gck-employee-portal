@@ -44,15 +44,19 @@ export function LiveMap() {
 
   const load = async () => {
     const today = format(new Date(), "yyyy-MM-dd");
+    const { data: roles } = await supabase.from("user_roles").select("user_id, role");
+    const adminIds = new Set((roles ?? []).filter((r: any) => r.role === "admin").map((r: any) => r.user_id));
     const [{ data: locs }, { data: profs }, { data: att }, { data: tasks }] = await Promise.all([
       supabase.from("employee_locations").select("*"),
       supabase.from("profiles").select("id,full_name").eq("active", true),
       supabase.from("attendance").select("user_id,status").eq("date", today),
       supabase.from("tasks").select("assigned_to,status").eq("status", "in_progress"),
     ]);
+    const filteredProfs = (profs ?? []).filter((p: any) => !adminIds.has(p.id));
+
     const now = Date.now();
     const result: Pin[] = [];
-    for (const p of profs ?? []) {
+    for (const p of filteredProfs) {
       const loc = locs?.find((l) => l.user_id === p.id);
       if (!loc || typeof loc.lat !== "number" || typeof loc.lng !== "number") continue;
       const a = att?.find((x) => x.user_id === p.id);

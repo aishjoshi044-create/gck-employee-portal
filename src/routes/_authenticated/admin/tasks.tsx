@@ -23,6 +23,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { format, isPast, subDays } from "date-fns";
 import { downloadPdf, downloadExcel } from "@/lib/exports";
+import { useAdminIds } from "@/hooks/useAdminIds";
 
 export const Route = createFileRoute("/_authenticated/admin/tasks")({
   component: AdminTasks,
@@ -59,13 +60,16 @@ function AdminTasks() {
   const [open, setOpen] = useState(false);
   const [viewTask, setViewTask] = useState<any | null>(null);
 
+  const { notInList, adminIdsReady } = useAdminIds();
   const { data: employees } = useQuery({
-    queryKey: ["emp-pick"],
+    queryKey: ["emp-pick", notInList],
+    enabled: adminIdsReady,
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("id,full_name,project").eq("active", true).order("full_name");
+      const { data } = await supabase.from("profiles").select("id,full_name,project").eq("active", true).not("id", "in", notInList).order("full_name");
       return data ?? [];
     },
   });
+
 
   useEffect(() => {
     const ch = supabase

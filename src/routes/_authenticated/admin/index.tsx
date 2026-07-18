@@ -9,6 +9,7 @@ import {
   CheckCircle2, Clock, XCircle, Circle,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
+import { useAdminIds } from "@/hooks/useAdminIds";
 
 export const Route = createFileRoute("/_authenticated/admin/")({
   component: AdminDashboard,
@@ -30,8 +31,11 @@ function AdminDashboard() {
   const endOfToday = new Date(); endOfToday.setHours(23, 59, 59, 999);
   const liveCutoff = new Date(Date.now() - 5 * 60 * 1000).toISOString(); // 5 min
 
+  const { notInList, adminIdsReady } = useAdminIds();
+
   const { data, isLoading } = useQuery({
-    queryKey: ["admin-dashboard-v2", today],
+    queryKey: ["admin-dashboard-v2", today, notInList],
+    enabled: adminIdsReady,
     queryFn: async () => {
       const [
         profilesRes,
@@ -52,22 +56,22 @@ function AdminDashboard() {
         recentLeavesRes,
         recentAnnRes,
       ] = await Promise.all([
-        supabase.from("profiles").select("id,full_name,date_of_birth,project").eq("active", true),
-        supabase.from("attendance").select("user_id,status").eq("date", today),
-        supabase.from("leave_requests").select("user_id").eq("status", "approved").lte("start_date", today).gte("end_date", today),
-        supabase.from("leave_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
-        supabase.from("tasks").select("status,deadline,assigned_to"),
-        supabase.from("tasks").select("id", { count: "exact", head: true }).gte("deadline", startOfToday.toISOString()).lte("deadline", endOfToday.toISOString()).neq("status", "completed"),
-        supabase.from("tasks").select("id", { count: "exact", head: true }).lt("deadline", startOfToday.toISOString()).in("status", ["not_started", "in_progress"]),
-        supabase.from("daily_reports").select("status,user_id,created_at"),
-        supabase.from("daily_reports").select("id", { count: "exact", head: true }).gte("created_at", startOfToday.toISOString()),
-        supabase.from("daily_reports").select("id", { count: "exact", head: true }).eq("status", "pending"),
-        supabase.from("employee_locations").select("user_id,updated_at,lat,lng").gte("updated_at", liveCutoff),
-        supabase.from("profiles").select("id,full_name,date_of_birth").not("date_of_birth", "is", null),
-        supabase.from("attendance").select("id,user_id,created_at,status").order("created_at", { ascending: false }).limit(10),
-        supabase.from("task_updates").select("id,user_id,created_at").order("created_at", { ascending: false }).limit(10),
-        supabase.from("daily_reports").select("id,user_id,village,created_at").order("created_at", { ascending: false }).limit(10),
-        supabase.from("leave_requests").select("id,user_id,created_at").order("created_at", { ascending: false }).limit(10),
+        supabase.from("profiles").select("id,full_name,date_of_birth,project").eq("active", true).not("id", "in", notInList),
+        supabase.from("attendance").select("user_id,status").eq("date", today).not("user_id", "in", notInList),
+        supabase.from("leave_requests").select("user_id").eq("status", "approved").lte("start_date", today).gte("end_date", today).not("user_id", "in", notInList),
+        supabase.from("leave_requests").select("id", { count: "exact", head: true }).eq("status", "pending").not("user_id", "in", notInList),
+        supabase.from("tasks").select("status,deadline,assigned_to").not("assigned_to", "in", notInList),
+        supabase.from("tasks").select("id", { count: "exact", head: true }).gte("deadline", startOfToday.toISOString()).lte("deadline", endOfToday.toISOString()).neq("status", "completed").not("assigned_to", "in", notInList),
+        supabase.from("tasks").select("id", { count: "exact", head: true }).lt("deadline", startOfToday.toISOString()).in("status", ["not_started", "in_progress"]).not("assigned_to", "in", notInList),
+        supabase.from("daily_reports").select("status,user_id,created_at").not("user_id", "in", notInList),
+        supabase.from("daily_reports").select("id", { count: "exact", head: true }).gte("created_at", startOfToday.toISOString()).not("user_id", "in", notInList),
+        supabase.from("daily_reports").select("id", { count: "exact", head: true }).eq("status", "pending").not("user_id", "in", notInList),
+        supabase.from("employee_locations").select("user_id,updated_at,lat,lng").gte("updated_at", liveCutoff).not("user_id", "in", notInList),
+        supabase.from("profiles").select("id,full_name,date_of_birth").not("date_of_birth", "is", null).not("id", "in", notInList),
+        supabase.from("attendance").select("id,user_id,created_at,status").not("user_id", "in", notInList).order("created_at", { ascending: false }).limit(10),
+        supabase.from("task_updates").select("id,user_id,created_at").not("user_id", "in", notInList).order("created_at", { ascending: false }).limit(10),
+        supabase.from("daily_reports").select("id,user_id,village,created_at").not("user_id", "in", notInList).order("created_at", { ascending: false }).limit(10),
+        supabase.from("leave_requests").select("id,user_id,created_at").not("user_id", "in", notInList).order("created_at", { ascending: false }).limit(10),
         supabase.from("announcements").select("id,created_by,title,created_at").order("created_at", { ascending: false }).limit(5),
       ]);
 

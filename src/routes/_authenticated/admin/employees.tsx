@@ -51,6 +51,8 @@ import {
 import logo from "@/assets/gck-logo.jpeg.asset.json";
 import { compressImage } from "@/lib/image-compress";
 import { FaceCapture } from "@/components/FaceCapture";
+import { useAdminIds } from "@/hooks/useAdminIds";
+
 
 type Employee = {
   id: string;
@@ -83,17 +85,22 @@ function EmployeesPage() {
 
   const create = useServerFn(createEmployee);
 
+  const { notInList, adminIdsReady } = useAdminIds();
+
   const { data: employees } = useQuery({
-    queryKey: ["employees", "list"],
+    queryKey: ["employees", "list", notInList],
+    enabled: adminIdsReady,
     queryFn: async () => {
-      const [{ data: profs }, { data: roles }] = await Promise.all([
-        supabase.from("profiles").select(FIELDS).order("created_at", { ascending: false }),
-        supabase.from("user_roles").select("user_id, role"),
-      ]);
-      const adminIds = new Set((roles ?? []).filter((r: any) => r.role === "admin").map((r: any) => r.user_id));
-      return ((profs as any[]) ?? []).filter((p) => !adminIds.has(p.id)) as Employee[];
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select(FIELDS)
+        .not("id", "in", notInList)
+        .order("created_at", { ascending: false });
+      return (profs ?? []) as Employee[];
     },
   });
+
+
 
   const filtered = (employees ?? []).filter((e) => {
     if (!q) return true;

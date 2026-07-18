@@ -18,6 +18,7 @@ import {
   CalendarRange,
 } from "lucide-react";
 import { downloadPdf, downloadExcel } from "@/lib/exports";
+import { useAdminIds } from "@/hooks/useAdminIds";
 
 export const Route = createFileRoute("/_authenticated/admin/attendance")({
   component: AdminAttendance,
@@ -133,11 +134,14 @@ function AdminAttendance() {
     setDate(format(isAfter(first, cap) ? cap : first, "yyyy-MM-dd"));
   };
 
+  const { notInList, adminIdsReady } = useAdminIds();
+
   const { data: rows = [] } = useQuery({
-    queryKey: ["admin-attendance", date],
+    queryKey: ["admin-attendance", date, notInList],
+    enabled: adminIdsReady,
     queryFn: async (): Promise<Row[]> => {
       const [{ data: profs }, { data: att }] = await Promise.all([
-        supabase.from("profiles").select("id,full_name,project,username,photo_url").eq("active", true),
+        supabase.from("profiles").select("id,full_name,project,username,photo_url").eq("active", true).not("id", "in", notInList),
         supabase.from("attendance").select("*").eq("date", date),
       ]);
       return (profs ?? []).map((p: any) => ({
@@ -146,6 +150,7 @@ function AdminAttendance() {
       }));
     },
   });
+
 
   const projects = useMemo(
     () => Array.from(new Set(rows.map((r) => r.project).filter(Boolean))) as string[],
@@ -594,12 +599,13 @@ function RangeSheet({
   const [to, setTo] = useState(todayStr);
   const [q, setQ] = useState("");
 
+  const { notInList, adminIdsReady } = useAdminIds();
   const { data, isFetching } = useQuery({
-    queryKey: ["admin-attendance-range", from, to],
-    enabled: open && !!from && !!to && from <= to,
+    queryKey: ["admin-attendance-range", from, to, notInList],
+    enabled: open && !!from && !!to && from <= to && adminIdsReady,
     queryFn: async () => {
       const [{ data: profs }, { data: att }] = await Promise.all([
-        supabase.from("profiles").select("id,full_name,username,project,photo_url").eq("active", true),
+        supabase.from("profiles").select("id,full_name,username,project,photo_url").eq("active", true).not("id", "in", notInList),
         supabase.from("attendance").select("user_id,date,status,check_in_at,check_out_at").gte("date", from).lte("date", to),
       ]);
       const byUser = new Map<string, { present: number; late: number; absent: number; leave: number; pending: number; hours: number }>();
