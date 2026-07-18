@@ -528,6 +528,15 @@ function ArchivePanel({ employees, onSelect }: { employees: any[]; onSelect: (t:
             </div>
           )}
           <div className="flex items-center gap-2 min-w-0 sm:ml-auto">
+            <Button
+              variant={showDeleted ? "default" : "outline"}
+              size="sm"
+              className="gap-1.5"
+              onClick={() => { setShowDeleted((v) => !v); setPage(0); }}
+            >
+              <Trash2 className="size-3.5" />
+              {showDeleted ? "Viewing deleted" : "Show deleted"}
+            </Button>
             <Button variant="outline" size="sm" className="gap-1.5 flex-1 sm:flex-none" onClick={() => downloadPdf({ title: t("archived_tasks"), filename: `archived-tasks-${format(new Date(), "yyyy-MM-dd")}.pdf`, head: HEAD, body: buildRows() })}>
               <FileDown className="size-3.5 shrink-0" /> PDF
             </Button>
