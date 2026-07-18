@@ -56,7 +56,7 @@ export function LiveMap() {
 
     const now = Date.now();
     const result: Pin[] = [];
-    for (const p of profs ?? []) {
+    for (const p of filteredProfs) {
       const loc = locs?.find((l) => l.user_id === p.id);
       if (!loc || typeof loc.lat !== "number" || typeof loc.lng !== "number") continue;
       const a = att?.find((x) => x.user_id === p.id);
