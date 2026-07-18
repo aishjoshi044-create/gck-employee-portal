@@ -34,10 +34,13 @@ function LocationsPage() {
   const [selected, setSelected] = useState<Row | null>(null);
 
   const load = async () => {
+    const { data: roles } = await supabase.from("user_roles").select("user_id, role");
+    const adminIds = new Set((roles ?? []).filter((r: any) => r.role === "admin").map((r: any) => r.user_id));
     const [{ data: profs }, { data: locs }] = await Promise.all([
       supabase.from("profiles").select("id,full_name,project,photo_url").eq("active", true).order("full_name"),
       supabase.from("employee_locations").select("*"),
     ]);
+    const filteredProfs = (profs ?? []).filter((p: any) => !adminIds.has(p.id));
     const now = Date.now();
     const merged: Row[] = (profs ?? []).map((p: any) => {
       const l = locs?.find((x) => x.user_id === p.id);
