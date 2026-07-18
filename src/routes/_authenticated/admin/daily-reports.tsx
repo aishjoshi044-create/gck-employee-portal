@@ -77,10 +77,12 @@ function AdminDailyReportsPage() {
   const [search, setSearch] = useState("");
   const [detail, setDetail] = useState<DailyReport | null>(null);
 
+  const { notInList, adminIdsReady } = useAdminIds();
   const { data: profiles = [] } = useQuery({
-    queryKey: ["all-profiles-basic"],
+    queryKey: ["all-profiles-basic", notInList],
+    enabled: adminIdsReady,
     queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("id,full_name,project,active").eq("active", true);
+      const { data } = await supabase.from("profiles").select("id,full_name,project,active").eq("active", true).not("id", "in", notInList);
       return data ?? [];
     },
   });
