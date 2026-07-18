@@ -10,9 +10,9 @@ export function useAdminIds() {
   const q = useQuery({
     queryKey: ["admin-ids"],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("get_admin_ids");
+      const { data, error } = await (supabase as any).rpc("get_admin_ids");
       if (error) throw error;
-      return (data ?? []).map((r: any) => (typeof r === "string" ? r : r.get_admin_ids ?? r)) as string[];
+      return ((data ?? []) as any[]).map((r) => (typeof r === "string" ? r : r.get_admin_ids ?? r)) as string[];
     },
     staleTime: 10 * 60_000,
     gcTime: 30 * 60_000,
