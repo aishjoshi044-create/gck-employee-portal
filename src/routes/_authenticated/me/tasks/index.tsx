@@ -61,7 +61,7 @@ function MyTasksList() {
     enabled: !!user,
     queryFn: async () => {
       const { data } = await supabase.from("tasks").select("*")
-        .eq("assigned_to", user!.id).order("deadline", { ascending: true, nullsFirst: false });
+        .eq("assigned_to", user!.id).is("deleted_at", null).order("deadline", { ascending: true, nullsFirst: false });
       return (data ?? []) as Task[];
     },
   });
