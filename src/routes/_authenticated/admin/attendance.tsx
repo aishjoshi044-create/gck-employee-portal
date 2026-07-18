@@ -134,11 +134,14 @@ function AdminAttendance() {
     setDate(format(isAfter(first, cap) ? cap : first, "yyyy-MM-dd"));
   };
 
+  const { notInList, adminIdsReady } = useAdminIds();
+
   const { data: rows = [] } = useQuery({
-    queryKey: ["admin-attendance", date],
+    queryKey: ["admin-attendance", date, notInList],
+    enabled: adminIdsReady,
     queryFn: async (): Promise<Row[]> => {
       const [{ data: profs }, { data: att }] = await Promise.all([
-        supabase.from("profiles").select("id,full_name,project,username,photo_url").eq("active", true),
+        supabase.from("profiles").select("id,full_name,project,username,photo_url").eq("active", true).not("id", "in", notInList),
         supabase.from("attendance").select("*").eq("date", date),
       ]);
       return (profs ?? []).map((p: any) => ({
@@ -147,6 +150,7 @@ function AdminAttendance() {
       }));
     },
   });
+
 
   const projects = useMemo(
     () => Array.from(new Set(rows.map((r) => r.project).filter(Boolean))) as string[],
