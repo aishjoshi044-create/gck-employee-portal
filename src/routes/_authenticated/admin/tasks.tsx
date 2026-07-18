@@ -10,14 +10,18 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Plus, Loader2, FileDown, FileSpreadsheet, Search, LayoutGrid, Table as TableIcon,
   Calendar, MapPin, User, Flag, X, Clock, AlertCircle, CheckCircle2, Circle, PlayCircle,
-  MessageSquare, Send, Archive, ShieldCheck, Undo2,
+  MessageSquare, Send, Archive, ShieldCheck, Undo2, Pencil, Trash2, RotateCcw,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -121,7 +125,14 @@ function AdminTasks() {
           <SheetHeader>
             <SheetTitle className="pr-6">{viewTask?.title}</SheetTitle>
           </SheetHeader>
-          {viewTask && <TaskDetails task={viewTask} readOnly={isArchivedStatus(viewTask.status)} onClosed={() => setViewTask(null)} />}
+          {viewTask && (
+            <TaskDetails
+              task={viewTask}
+              employees={employees ?? []}
+              readOnly={isArchivedStatus(viewTask.status)}
+              onClosed={() => setViewTask(null)}
+            />
+          )}
         </SheetContent>
       </Sheet>
     </div>
@@ -147,6 +158,7 @@ function ActivePanel({ employees, onSelect }: { employees: any[]; onSelect: (t: 
       const { data: ts, error } = await supabase
         .from("tasks")
         .select("*")
+        .is("deleted_at", null)
         .not("status", "in", "(archived,completed,failed)")
         .order("created_at", { ascending: false });
       if (error) { toast.error(error.message); return []; }
@@ -294,7 +306,7 @@ function ActivePanel({ employees, onSelect }: { employees: any[]; onSelect: (t: 
 
       {view === "kanban"
         ? <ActiveKanban tasks={filtered} onSelect={onSelect} />
-        : <ActiveTable tasks={filtered} onSelect={onSelect} />}
+        : <ActiveTable tasks={filtered} employees={employees} onSelect={onSelect} />}
     </div>
   );
 }
@@ -355,7 +367,7 @@ function TaskCard({ task, onClick }: { task: any; onClick: () => void }) {
   );
 }
 
-function ActiveTable({ tasks, onSelect }: { tasks: any[]; onSelect: (t: any) => void }) {
+function ActiveTable({ tasks, employees, onSelect }: { tasks: any[]; employees: any[]; onSelect: (t: any) => void }) {
   const { t } = useI18n();
   return (
     <Card className="overflow-hidden">
@@ -369,11 +381,12 @@ function ActiveTable({ tasks, onSelect }: { tasks: any[]; onSelect: (t: any) => 
             <TableHead className="font-semibold">{t("priority")}</TableHead>
             <TableHead className="font-semibold">Status</TableHead>
             <TableHead className="font-semibold">{t("due")}</TableHead>
+            <TableHead className="font-semibold w-[100px] text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {tasks.length === 0 && (
-            <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">{t("no_tasks_match")}</TableCell></TableRow>
+            <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">{t("no_tasks_match")}</TableCell></TableRow>
           )}
           {tasks.map((tk) => {
             const overdue = isOverdue(tk);
@@ -393,6 +406,7 @@ function ActiveTable({ tasks, onSelect }: { tasks: any[]; onSelect: (t: any) => 
                 <TableCell className={`text-sm ${overdue ? "text-destructive font-medium" : "text-muted-foreground"}`}>
                   {tk.deadline ? format(new Date(tk.deadline), "d MMM yyyy") : "—"}
                 </TableCell>
+                <TableCell className="text-right"><TaskRowActions task={tk} employees={employees} /></TableCell>
               </TableRow>
             );
           })}
@@ -413,6 +427,7 @@ function ArchivePanel({ employees, onSelect }: { employees: any[]; onSelect: (t:
   const [customFrom, setCustomFrom] = useState<string>("");
   const [customTo, setCustomTo] = useState<string>("");
   const [page, setPage] = useState(0);
+  const [showDeleted, setShowDeleted] = useState(false);
   const pageSize = 50;
 
   const bounds = useMemo(() => {
@@ -427,14 +442,18 @@ function ArchivePanel({ employees, onSelect }: { employees: any[]; onSelect: (t:
   }, [range, customFrom, customTo]);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["admin-tasks-archive", fEmployee, fProject, bounds.from, bounds.to, page],
+    queryKey: ["admin-tasks-archive", fEmployee, fProject, bounds.from, bounds.to, page, showDeleted],
     queryFn: async () => {
       let q = supabase
         .from("tasks")
         .select("*", { count: "exact" })
-        .in("status", ["archived", "completed", "failed"] as any)
         .order("completed_at", { ascending: false, nullsFirst: false })
         .range(page * pageSize, page * pageSize + pageSize - 1);
+      if (showDeleted) {
+        q = q.not("deleted_at", "is", null);
+      } else {
+        q = q.is("deleted_at", null).in("status", ["archived", "completed", "failed"] as any);
+      }
       if (fEmployee !== "all") q = q.eq("assigned_to", fEmployee);
       if (fProject !== "all") q = q.eq("project", fProject);
       if (bounds.from) q = q.gte("completed_at", bounds.from);
@@ -509,6 +528,15 @@ function ArchivePanel({ employees, onSelect }: { employees: any[]; onSelect: (t:
             </div>
           )}
           <div className="flex items-center gap-2 min-w-0 sm:ml-auto">
+            <Button
+              variant={showDeleted ? "default" : "outline"}
+              size="sm"
+              className="gap-1.5"
+              onClick={() => { setShowDeleted((v) => !v); setPage(0); }}
+            >
+              <Trash2 className="size-3.5" />
+              {showDeleted ? "Viewing deleted" : "Show deleted"}
+            </Button>
             <Button variant="outline" size="sm" className="gap-1.5 flex-1 sm:flex-none" onClick={() => downloadPdf({ title: t("archived_tasks"), filename: `archived-tasks-${format(new Date(), "yyyy-MM-dd")}.pdf`, head: HEAD, body: buildRows() })}>
               <FileDown className="size-3.5 shrink-0" /> PDF
             </Button>
@@ -530,24 +558,29 @@ function ArchivePanel({ employees, onSelect }: { employees: any[]; onSelect: (t:
               <TableHead className="font-semibold">{t("priority")}</TableHead>
               <TableHead className="font-semibold">{t("completed_date")}</TableHead>
               <TableHead className="font-semibold hidden md:table-cell">{t("archived_date")}</TableHead>
+              <TableHead className="font-semibold w-[100px] text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading && <TableRow><TableCell colSpan={7} className="text-center py-8"><Loader2 className="size-4 animate-spin inline" /></TableCell></TableRow>}
+            {isLoading && <TableRow><TableCell colSpan={8} className="text-center py-8"><Loader2 className="size-4 animate-spin inline" /></TableCell></TableRow>}
             {!isLoading && filtered.length === 0 && (
-              <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">{t("no_tasks_match")}</TableCell></TableRow>
+              <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">{t("no_tasks_match")}</TableCell></TableRow>
             )}
             {filtered.map((tk: any) => {
               const pri = PRIORITY_META[tk.priority];
               return (
                 <TableRow key={tk.id} className="cursor-pointer h-11" onClick={() => onSelect(tk)}>
-                  <TableCell className="font-medium max-w-[280px] truncate">{tk.title}</TableCell>
+                  <TableCell className="font-medium max-w-[280px] truncate">
+                    {tk.deleted_at && <Badge variant="outline" className="mr-1.5 bg-destructive/15 text-destructive border-destructive/30 text-[10px] h-4 px-1">Deleted</Badge>}
+                    {tk.title}
+                  </TableCell>
                   <TableCell className="text-sm text-muted-foreground">{tk.profiles?.full_name ?? "—"}</TableCell>
                   <TableCell className="text-sm text-muted-foreground hidden md:table-cell">{tk.project ?? "—"}</TableCell>
                   <TableCell className="text-sm text-muted-foreground hidden lg:table-cell">{tk.location_label ?? "—"}</TableCell>
                   <TableCell><Badge variant="outline" className={`${pri?.badge} text-xs`}>{pri ? t(pri.labelKey) : tk.priority}</Badge></TableCell>
                   <TableCell className="text-sm text-muted-foreground">{tk.completed_at ? format(new Date(tk.completed_at), "d MMM yyyy") : "—"}</TableCell>
                   <TableCell className="text-sm text-muted-foreground hidden md:table-cell">{tk.completed_at ? format(new Date(tk.completed_at), "d MMM yyyy") : "—"}</TableCell>
+                  <TableCell className="text-right"><TaskRowActions task={tk} employees={employees} /></TableCell>
                 </TableRow>
               );
             })}
@@ -626,7 +659,7 @@ const UPDATE_TYPE_META: Record<string, { labelKey: "update_type_progress" | "upd
   completion: { labelKey: "update_type_completion", cls: "bg-success/15 text-success border-success/30" },
 };
 
-function TaskDetails({ task, readOnly, onClosed }: { task: any; readOnly: boolean; onClosed: () => void }) {
+function TaskDetails({ task, employees, readOnly, onClosed }: { task: any; employees: any[]; readOnly: boolean; onClosed: () => void }) {
   const qc = useQueryClient();
   const { t } = useI18n();
   const { user } = useAuth();
@@ -634,6 +667,24 @@ function TaskDetails({ task, readOnly, onClosed }: { task: any; readOnly: boolea
   const pri = PRIORITY_META[task.priority];
   const overdue = isOverdue(task);
   const [decisionBusy, setDecisionBusy] = useState<"approve" | "reject" | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [editWarnOpen, setEditWarnOpen] = useState(false);
+  const isArchived = isArchivedStatus(task.status);
+
+  const reopen = async () => {
+    const { error } = await supabase.from("tasks")
+      .update({ status: "in_progress" as any, completed_at: null })
+      .eq("id", task.id);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("Task reopened");
+      qc.invalidateQueries({ queryKey: ["admin-tasks-active"] });
+      qc.invalidateQueries({ queryKey: ["admin-tasks-archive"] });
+      onClosed();
+    }
+  };
+
 
   const approve = async () => {
     setDecisionBusy("approve");
@@ -708,12 +759,66 @@ function TaskDetails({ task, readOnly, onClosed }: { task: any; readOnly: boolea
 
   return (
     <div className="space-y-5 mt-4">
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Badge variant="outline" className={`${sm?.bg} ${sm?.color} border-0`}>{sm ? t(sm.labelKey) : task.status}</Badge>
         <Badge variant="outline" className={pri?.badge}><Flag className="size-3 mr-1" />{pri ? t(pri.labelKey) : task.priority}</Badge>
         {overdue && <Badge variant="outline" className="bg-destructive/15 text-destructive border-destructive/30"><Clock className="size-3 mr-1" />{t("overdue")}</Badge>}
         {readOnly && <Badge variant="outline" className="bg-muted text-muted-foreground border-0"><Archive className="size-3 mr-1" />{t("read_only")}</Badge>}
+        <div className="ml-auto flex items-center gap-1.5">
+          {isArchived ? (
+            <Button size="sm" variant="outline" className="h-8 gap-1.5" onClick={reopen}>
+              <RotateCcw className="size-3.5" />Reopen
+            </Button>
+          ) : (
+            <Button size="sm" variant="outline" className="h-8 gap-1.5" onClick={() => {
+              if (task.status === "awaiting_verification") setEditWarnOpen(true);
+              else setEditOpen(true);
+            }}>
+              <Pencil className="size-3.5" />Edit
+            </Button>
+          )}
+          <Button size="sm" variant="outline" className="h-8 gap-1.5 text-destructive hover:text-destructive" onClick={() => setDeleteOpen(true)}>
+            <Trash2 className="size-3.5" />Delete
+          </Button>
+        </div>
       </div>
+
+      <EditTaskDialog
+        task={task}
+        employees={employees}
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        onSaved={() => {
+          setEditOpen(false);
+          qc.invalidateQueries({ queryKey: ["admin-tasks-active"] });
+          qc.invalidateQueries({ queryKey: ["admin-tasks-archive"] });
+        }}
+      />
+      <DeleteTaskDialog
+        task={task}
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        onDeleted={() => {
+          setDeleteOpen(false);
+          qc.invalidateQueries({ queryKey: ["admin-tasks-active"] });
+          qc.invalidateQueries({ queryKey: ["admin-tasks-archive"] });
+          onClosed();
+        }}
+      />
+      <AlertDialog open={editWarnOpen} onOpenChange={setEditWarnOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Edit a task awaiting verification?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This task has been marked complete by the employee. Editing it may affect their submission. Continue?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setEditWarnOpen(false); setEditOpen(true); }}>Continue</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Verify actions */}
       {task.status === "awaiting_verification" && (
@@ -935,5 +1040,315 @@ function TaskForm({ employees, onSaved }: { employees: any[]; onSaved: () => voi
       <div><Label>{t("village_location")}</Label><Input className="mt-1" value={form.location_label} onChange={(e) => setForm({ ...form, location_label: e.target.value })} placeholder={t("village_address_ph")} /></div>
       <Button type="submit" disabled={busy} className="w-full">{busy ? <Loader2 className="size-4 animate-spin" /> : t("create_task")}</Button>
     </form>
+  );
+}
+
+/* -------------------------------- Row actions -------------------------------- */
+
+function TaskRowActions({ task, employees }: { task: any; employees: any[] }) {
+  const qc = useQueryClient();
+  const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [warnOpen, setWarnOpen] = useState(false);
+  const isArchived = isArchivedStatus(task.status);
+  const isDeleted = !!task.deleted_at;
+
+  const restore = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const { error } = await supabase.from("tasks")
+      .update({ deleted_at: null, deleted_by: null } as any)
+      .eq("id", task.id);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("Task restored");
+      qc.invalidateQueries({ queryKey: ["admin-tasks-active"] });
+      qc.invalidateQueries({ queryKey: ["admin-tasks-archive"] });
+    }
+  };
+
+  if (isDeleted) {
+    return (
+      <Button size="sm" variant="outline" className="h-8 gap-1.5" onClick={restore}>
+        <RotateCcw className="size-3.5" />Restore
+      </Button>
+    );
+  }
+
+  const openEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isArchived) { toast.error("Reopen the task before editing"); return; }
+    if (task.status === "awaiting_verification") setWarnOpen(true);
+    else setEditOpen(true);
+  };
+
+  return (
+    <div className="inline-flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={openEdit} title="Edit">
+        <Pencil className="size-3.5" />
+      </Button>
+      <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); setDeleteOpen(true); }} title="Delete">
+        <Trash2 className="size-3.5" />
+      </Button>
+
+      <EditTaskDialog
+        task={task}
+        employees={employees}
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        onSaved={() => {
+          setEditOpen(false);
+          qc.invalidateQueries({ queryKey: ["admin-tasks-active"] });
+          qc.invalidateQueries({ queryKey: ["admin-tasks-archive"] });
+        }}
+      />
+      <DeleteTaskDialog
+        task={task}
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        onDeleted={() => {
+          setDeleteOpen(false);
+          qc.invalidateQueries({ queryKey: ["admin-tasks-active"] });
+          qc.invalidateQueries({ queryKey: ["admin-tasks-archive"] });
+        }}
+      />
+      <AlertDialog open={warnOpen} onOpenChange={setWarnOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Edit a task awaiting verification?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This task has been marked complete by the employee. Editing may affect their submission. Continue?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setWarnOpen(false); setEditOpen(true); }}>Continue</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
+
+/* -------------------------------- Delete dialog -------------------------------- */
+
+function DeleteTaskDialog({ task, open, onOpenChange, onDeleted }: { task: any; open: boolean; onOpenChange: (v: boolean) => void; onDeleted: () => void }) {
+  const { user } = useAuth();
+  const [busy, setBusy] = useState(false);
+  const confirm = async () => {
+    setBusy(true);
+    const { error } = await supabase.from("tasks")
+      .update({ deleted_at: new Date().toISOString(), deleted_by: user?.id ?? null } as any)
+      .eq("id", task.id);
+    setBusy(false);
+    if (error) toast.error(error.message);
+    else { toast.success("Task deleted"); onDeleted(); }
+  };
+  return (
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete this task?</AlertDialogTitle>
+          <AlertDialogDescription>
+            "{task.title}" will be hidden from all lists. Admins can restore it later from Archive → Show deleted.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={busy}>Cancel</AlertDialogCancel>
+          <AlertDialogAction disabled={busy} onClick={confirm} className="bg-destructive hover:bg-destructive/90">
+            {busy ? <Loader2 className="size-4 animate-spin" /> : "Delete"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
+/* -------------------------------- Edit dialog -------------------------------- */
+
+const EDITABLE_STATUSES = ["not_started", "in_progress", "awaiting_verification"] as const;
+
+function toDateInput(iso: string | null | undefined) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  const off = d.getTimezoneOffset();
+  return new Date(d.getTime() - off * 60000).toISOString().slice(0, 10);
+}
+
+function EditTaskDialog({ task, employees, open, onOpenChange, onSaved }: { task: any; employees: any[]; open: boolean; onOpenChange: (v: boolean) => void; onSaved: () => void }) {
+  const { t } = useI18n();
+  const projects = useMemo(() =>
+    Array.from(new Set(employees.map((e) => e.project).filter(Boolean))) as string[],
+  [employees]);
+  const [form, setForm] = useState({
+    title: task.title ?? "",
+    description: task.description ?? "",
+    priority: task.priority ?? "medium",
+    status: task.status ?? "not_started",
+    deadline: toDateInput(task.deadline),
+    start_date: toDateInput(task.start_date),
+    assigned_to: task.assigned_to ?? "",
+    project: task.project ?? "",
+    location_label: task.location_label ?? "",
+    notes: task.notes ?? "",
+  });
+  const [attachments, setAttachments] = useState<string[]>((task.attachments ?? []) as string[]);
+  const [uploading, setUploading] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setForm({
+        title: task.title ?? "",
+        description: task.description ?? "",
+        priority: task.priority ?? "medium",
+        status: task.status ?? "not_started",
+        deadline: toDateInput(task.deadline),
+        start_date: toDateInput(task.start_date),
+        assigned_to: task.assigned_to ?? "",
+        project: task.project ?? "",
+        location_label: task.location_label ?? "",
+        notes: task.notes ?? "",
+      });
+      setAttachments((task.attachments ?? []) as string[]);
+    }
+  }, [open, task]);
+
+  const onUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    if (!files.length) return;
+    setUploading(true);
+    try {
+      const paths: string[] = [];
+      for (const f of files) {
+        const p = `tasks/${task.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${f.name}`;
+        const { error } = await supabase.storage.from("task-media").upload(p, f, { contentType: f.type });
+        if (error) throw error;
+        paths.push(p);
+      }
+      setAttachments((prev) => [...prev, ...paths]);
+    } catch (err: any) { toast.error(err?.message ?? "Upload failed"); }
+    finally { setUploading(false); e.target.value = ""; }
+  };
+
+  const removeAttachment = (p: string) => setAttachments((prev) => prev.filter((x) => x !== p));
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    // Build patch of changed fields only
+    const patch: Record<string, any> = {};
+    if (form.title !== (task.title ?? "")) patch.title = form.title;
+    if (form.description !== (task.description ?? "")) patch.description = form.description || null;
+    if (form.priority !== task.priority) patch.priority = form.priority;
+    if (form.status !== task.status) {
+      patch.status = form.status;
+      if (form.status !== "archived" && form.status !== "completed" && form.status !== "failed") {
+        patch.completed_at = null;
+      }
+    }
+    const newDeadline = form.deadline ? new Date(form.deadline).toISOString() : null;
+    if (newDeadline !== (task.deadline ?? null)) patch.deadline = newDeadline;
+    const newStart = form.start_date ? new Date(form.start_date).toISOString() : null;
+    if (newStart !== (task.start_date ?? null)) patch.start_date = newStart;
+    if ((form.assigned_to || null) !== (task.assigned_to ?? null)) patch.assigned_to = form.assigned_to || null;
+    if ((form.project || null) !== (task.project ?? null)) patch.project = form.project || null;
+    if ((form.location_label || null) !== (task.location_label ?? null)) patch.location_label = form.location_label || null;
+    if ((form.notes || null) !== (task.notes ?? null)) patch.notes = form.notes || null;
+    const currentAtt = (task.attachments ?? []) as string[];
+    if (attachments.length !== currentAtt.length || attachments.some((x, i) => x !== currentAtt[i])) {
+      patch.attachments = attachments;
+    }
+    if (Object.keys(patch).length === 0) {
+      setBusy(false); toast.info("No changes"); onOpenChange(false); return;
+    }
+    const { error } = await supabase.from("tasks").update(patch as any).eq("id", task.id);
+    setBusy(false);
+    if (error) toast.error(error.message);
+    else { toast.success("Task updated"); onSaved(); }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader><DialogTitle>Edit task</DialogTitle></DialogHeader>
+        <form onSubmit={submit} className="space-y-3">
+          <div><Label>{t("title")}</Label><Input className="mt-1" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required /></div>
+          <div><Label>{t("description")}</Label><Textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label>{t("priority")}</Label>
+              <Select value={form.priority} onValueChange={(v: any) => setForm({ ...form, priority: v })}>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">{t("priority_low")}</SelectItem>
+                  <SelectItem value="medium">{t("priority_medium")}</SelectItem>
+                  <SelectItem value="high">{t("priority_high")}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Status</Label>
+              <Select value={form.status} onValueChange={(v: any) => setForm({ ...form, status: v })}>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {EDITABLE_STATUSES.map((s) => (
+                    <SelectItem key={s} value={s}>{t(STATUS_META[s].labelKey)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div><Label>Start date</Label><Input type="date" className="mt-1" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} /></div>
+            <div><Label>{t("deadline")}</Label><Input type="date" className="mt-1" value={form.deadline} onChange={(e) => setForm({ ...form, deadline: e.target.value })} /></div>
+          </div>
+          <div>
+            <Label>Reassign to employee</Label>
+            <Select value={form.assigned_to || "__none"} onValueChange={(v) => setForm({ ...form, assigned_to: v === "__none" ? "" : v })}>
+              <SelectTrigger className="mt-1"><SelectValue placeholder="—" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none">Unassigned</SelectItem>
+                {employees.map((e) => <SelectItem key={e.id} value={e.id}>{e.full_name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label>{t("project")}</Label>
+              <Select value={form.project || "__none"} onValueChange={(v) => setForm({ ...form, project: v === "__none" ? "" : v })}>
+                <SelectTrigger className="mt-1"><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none">—</SelectItem>
+                  {projects.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div><Label>{t("village_location")}</Label><Input className="mt-1" value={form.location_label} onChange={(e) => setForm({ ...form, location_label: e.target.value })} /></div>
+          </div>
+          <div><Label>Admin notes</Label><Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Internal notes (visible to admins)" /></div>
+          <div>
+            <Label>Attachments ({attachments.length})</Label>
+            <div className="mt-1 space-y-1">
+              {attachments.map((p) => (
+                <div key={p} className="flex items-center justify-between gap-2 text-xs bg-muted/40 rounded px-2 py-1">
+                  <span className="truncate">{p.split("/").pop()}</span>
+                  <Button type="button" size="icon" variant="ghost" className="h-6 w-6" onClick={() => removeAttachment(p)}><X className="size-3" /></Button>
+                </div>
+              ))}
+              <label className="inline-flex items-center gap-2 text-xs cursor-pointer border rounded px-2 py-1.5 hover:bg-accent">
+                <input type="file" multiple className="hidden" onChange={onUpload} disabled={uploading} />
+                {uploading ? <Loader2 className="size-3.5 animate-spin" /> : <Plus className="size-3.5" />}
+                Add files
+              </label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>Cancel</Button>
+            <Button type="submit" disabled={busy}>{busy ? <Loader2 className="size-4 animate-spin" /> : "Save changes"}</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

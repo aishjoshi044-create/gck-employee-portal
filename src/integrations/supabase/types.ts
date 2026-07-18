@@ -453,51 +453,66 @@ export type Database = {
       tasks: {
         Row: {
           assigned_to: string | null
+          attachments: string[]
           completed_at: string | null
           created_at: string
           created_by: string | null
           deadline: string | null
+          deleted_at: string | null
+          deleted_by: string | null
           description: string | null
           id: string
           location_label: string | null
           location_lat: number | null
           location_lng: number | null
+          notes: string | null
           priority: Database["public"]["Enums"]["task_priority"]
           project: string | null
+          start_date: string | null
           status: Database["public"]["Enums"]["task_status"]
           title: string
           updated_at: string
         }
         Insert: {
           assigned_to?: string | null
+          attachments?: string[]
           completed_at?: string | null
           created_at?: string
           created_by?: string | null
           deadline?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           description?: string | null
           id?: string
           location_label?: string | null
           location_lat?: number | null
           location_lng?: number | null
+          notes?: string | null
           priority?: Database["public"]["Enums"]["task_priority"]
           project?: string | null
+          start_date?: string | null
           status?: Database["public"]["Enums"]["task_status"]
           title: string
           updated_at?: string
         }
         Update: {
           assigned_to?: string | null
+          attachments?: string[]
           completed_at?: string | null
           created_at?: string
           created_by?: string | null
           deadline?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           description?: string | null
           id?: string
           location_label?: string | null
           location_lat?: number | null
           location_lng?: number | null
+          notes?: string | null
           priority?: Database["public"]["Enums"]["task_priority"]
           project?: string | null
+          start_date?: string | null
           status?: Database["public"]["Enums"]["task_status"]
           title?: string
           updated_at?: string
