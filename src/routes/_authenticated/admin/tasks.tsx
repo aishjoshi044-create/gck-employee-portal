@@ -306,7 +306,7 @@ function ActivePanel({ employees, onSelect }: { employees: any[]; onSelect: (t: 
 
       {view === "kanban"
         ? <ActiveKanban tasks={filtered} onSelect={onSelect} />
-        : <ActiveTable tasks={filtered} onSelect={onSelect} />}
+        : <ActiveTable tasks={filtered} employees={employees} onSelect={onSelect} />}
     </div>
   );
 }
