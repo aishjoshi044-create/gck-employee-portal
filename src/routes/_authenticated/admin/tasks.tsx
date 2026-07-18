@@ -738,12 +738,66 @@ function TaskDetails({ task, employees, readOnly, onClosed }: { task: any; emplo
 
   return (
     <div className="space-y-5 mt-4">
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Badge variant="outline" className={`${sm?.bg} ${sm?.color} border-0`}>{sm ? t(sm.labelKey) : task.status}</Badge>
         <Badge variant="outline" className={pri?.badge}><Flag className="size-3 mr-1" />{pri ? t(pri.labelKey) : task.priority}</Badge>
         {overdue && <Badge variant="outline" className="bg-destructive/15 text-destructive border-destructive/30"><Clock className="size-3 mr-1" />{t("overdue")}</Badge>}
         {readOnly && <Badge variant="outline" className="bg-muted text-muted-foreground border-0"><Archive className="size-3 mr-1" />{t("read_only")}</Badge>}
+        <div className="ml-auto flex items-center gap-1.5">
+          {isArchived ? (
+            <Button size="sm" variant="outline" className="h-8 gap-1.5" onClick={reopen}>
+              <RotateCcw className="size-3.5" />Reopen
+            </Button>
+          ) : (
+            <Button size="sm" variant="outline" className="h-8 gap-1.5" onClick={() => {
+              if (task.status === "awaiting_verification") setEditWarnOpen(true);
+              else setEditOpen(true);
+            }}>
+              <Pencil className="size-3.5" />Edit
+            </Button>
+          )}
+          <Button size="sm" variant="outline" className="h-8 gap-1.5 text-destructive hover:text-destructive" onClick={() => setDeleteOpen(true)}>
+            <Trash2 className="size-3.5" />Delete
+          </Button>
+        </div>
       </div>
+
+      <EditTaskDialog
+        task={task}
+        employees={employees}
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        onSaved={() => {
+          setEditOpen(false);
+          qc.invalidateQueries({ queryKey: ["admin-tasks-active"] });
+          qc.invalidateQueries({ queryKey: ["admin-tasks-archive"] });
+        }}
+      />
+      <DeleteTaskDialog
+        task={task}
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        onDeleted={() => {
+          setDeleteOpen(false);
+          qc.invalidateQueries({ queryKey: ["admin-tasks-active"] });
+          qc.invalidateQueries({ queryKey: ["admin-tasks-archive"] });
+          onClosed();
+        }}
+      />
+      <AlertDialog open={editWarnOpen} onOpenChange={setEditWarnOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Edit a task awaiting verification?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This task has been marked complete by the employee. Editing it may affect their submission. Continue?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setEditWarnOpen(false); setEditOpen(true); }}>Continue</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Verify actions */}
       {task.status === "awaiting_verification" && (
