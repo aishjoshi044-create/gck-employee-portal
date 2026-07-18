@@ -558,24 +558,29 @@ function ArchivePanel({ employees, onSelect }: { employees: any[]; onSelect: (t:
               <TableHead className="font-semibold">{t("priority")}</TableHead>
               <TableHead className="font-semibold">{t("completed_date")}</TableHead>
               <TableHead className="font-semibold hidden md:table-cell">{t("archived_date")}</TableHead>
+              <TableHead className="font-semibold w-[100px] text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {isLoading && <TableRow><TableCell colSpan={7} className="text-center py-8"><Loader2 className="size-4 animate-spin inline" /></TableCell></TableRow>}
+            {isLoading && <TableRow><TableCell colSpan={8} className="text-center py-8"><Loader2 className="size-4 animate-spin inline" /></TableCell></TableRow>}
             {!isLoading && filtered.length === 0 && (
-              <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">{t("no_tasks_match")}</TableCell></TableRow>
+              <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">{t("no_tasks_match")}</TableCell></TableRow>
             )}
             {filtered.map((tk: any) => {
               const pri = PRIORITY_META[tk.priority];
               return (
                 <TableRow key={tk.id} className="cursor-pointer h-11" onClick={() => onSelect(tk)}>
-                  <TableCell className="font-medium max-w-[280px] truncate">{tk.title}</TableCell>
+                  <TableCell className="font-medium max-w-[280px] truncate">
+                    {tk.deleted_at && <Badge variant="outline" className="mr-1.5 bg-destructive/15 text-destructive border-destructive/30 text-[10px] h-4 px-1">Deleted</Badge>}
+                    {tk.title}
+                  </TableCell>
                   <TableCell className="text-sm text-muted-foreground">{tk.profiles?.full_name ?? "—"}</TableCell>
                   <TableCell className="text-sm text-muted-foreground hidden md:table-cell">{tk.project ?? "—"}</TableCell>
                   <TableCell className="text-sm text-muted-foreground hidden lg:table-cell">{tk.location_label ?? "—"}</TableCell>
                   <TableCell><Badge variant="outline" className={`${pri?.badge} text-xs`}>{pri ? t(pri.labelKey) : tk.priority}</Badge></TableCell>
                   <TableCell className="text-sm text-muted-foreground">{tk.completed_at ? format(new Date(tk.completed_at), "d MMM yyyy") : "—"}</TableCell>
                   <TableCell className="text-sm text-muted-foreground hidden md:table-cell">{tk.completed_at ? format(new Date(tk.completed_at), "d MMM yyyy") : "—"}</TableCell>
+                  <TableCell className="text-right"><TaskRowActions task={tk} employees={employees} /></TableCell>
                 </TableRow>
               );
             })}
