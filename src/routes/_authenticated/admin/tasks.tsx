@@ -367,7 +367,7 @@ function TaskCard({ task, onClick }: { task: any; onClick: () => void }) {
   );
 }
 
-function ActiveTable({ tasks, onSelect }: { tasks: any[]; onSelect: (t: any) => void }) {
+function ActiveTable({ tasks, employees, onSelect }: { tasks: any[]; employees: any[]; onSelect: (t: any) => void }) {
   const { t } = useI18n();
   return (
     <Card className="overflow-hidden">
