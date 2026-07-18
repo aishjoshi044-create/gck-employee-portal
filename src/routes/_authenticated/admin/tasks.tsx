@@ -638,7 +638,7 @@ const UPDATE_TYPE_META: Record<string, { labelKey: "update_type_progress" | "upd
   completion: { labelKey: "update_type_completion", cls: "bg-success/15 text-success border-success/30" },
 };
 
-function TaskDetails({ task, readOnly, onClosed }: { task: any; readOnly: boolean; onClosed: () => void }) {
+function TaskDetails({ task, employees, readOnly, onClosed }: { task: any; employees: any[]; readOnly: boolean; onClosed: () => void }) {
   const qc = useQueryClient();
   const { t } = useI18n();
   const { user } = useAuth();
@@ -646,6 +646,24 @@ function TaskDetails({ task, readOnly, onClosed }: { task: any; readOnly: boolea
   const pri = PRIORITY_META[task.priority];
   const overdue = isOverdue(task);
   const [decisionBusy, setDecisionBusy] = useState<"approve" | "reject" | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [editWarnOpen, setEditWarnOpen] = useState(false);
+  const isArchived = isArchivedStatus(task.status);
+
+  const reopen = async () => {
+    const { error } = await supabase.from("tasks")
+      .update({ status: "in_progress" as any, completed_at: null })
+      .eq("id", task.id);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("Task reopened");
+      qc.invalidateQueries({ queryKey: ["admin-tasks-active"] });
+      qc.invalidateQueries({ queryKey: ["admin-tasks-archive"] });
+      onClosed();
+    }
+  };
+
 
   const approve = async () => {
     setDecisionBusy("approve");
