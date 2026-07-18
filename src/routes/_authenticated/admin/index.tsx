@@ -9,6 +9,7 @@ import {
   CheckCircle2, Clock, XCircle, Circle,
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
+import { useAdminIds } from "@/hooks/useAdminIds";
 
 export const Route = createFileRoute("/_authenticated/admin/")({
   component: AdminDashboard,
