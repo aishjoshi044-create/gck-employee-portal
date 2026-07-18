@@ -17,6 +17,7 @@ import { format } from "date-fns";
 import { CheckCircle2, Clock, XCircle, FileText, Loader2, Search, AlertCircle, Download, FileSpreadsheet } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { downloadPdf, downloadExcel } from "@/lib/exports";
+import { useAdminIds } from "@/hooks/useAdminIds";
 
 export const Route = createFileRoute("/_authenticated/admin/daily-reports")({
   component: AdminDailyReportsPage,
