@@ -31,8 +31,11 @@ function AdminDashboard() {
   const endOfToday = new Date(); endOfToday.setHours(23, 59, 59, 999);
   const liveCutoff = new Date(Date.now() - 5 * 60 * 1000).toISOString(); // 5 min
 
+  const { notInList, adminIdsReady } = useAdminIds();
+
   const { data, isLoading } = useQuery({
-    queryKey: ["admin-dashboard-v2", today],
+    queryKey: ["admin-dashboard-v2", today, notInList],
+    enabled: adminIdsReady,
     queryFn: async () => {
       const [
         profilesRes,
