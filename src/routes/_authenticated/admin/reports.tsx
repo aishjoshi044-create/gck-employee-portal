@@ -15,6 +15,7 @@ import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOf
 import { FileDown, FileSpreadsheet, Play, Loader2 } from "lucide-react";
 import { downloadPdf, downloadExcel } from "@/lib/exports";
 import { toast } from "sonner";
+import { useAdminIds } from "@/hooks/useAdminIds";
 
 export const Route = createFileRoute("/_authenticated/admin/reports")({
   component: ReportsPage,
