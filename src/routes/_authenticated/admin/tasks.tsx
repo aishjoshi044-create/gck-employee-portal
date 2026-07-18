@@ -381,11 +381,12 @@ function ActiveTable({ tasks, employees, onSelect }: { tasks: any[]; employees: 
             <TableHead className="font-semibold">{t("priority")}</TableHead>
             <TableHead className="font-semibold">Status</TableHead>
             <TableHead className="font-semibold">{t("due")}</TableHead>
+            <TableHead className="font-semibold w-[100px] text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {tasks.length === 0 && (
-            <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">{t("no_tasks_match")}</TableCell></TableRow>
+            <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">{t("no_tasks_match")}</TableCell></TableRow>
           )}
           {tasks.map((tk) => {
             const overdue = isOverdue(tk);
@@ -405,6 +406,7 @@ function ActiveTable({ tasks, employees, onSelect }: { tasks: any[]; employees: 
                 <TableCell className={`text-sm ${overdue ? "text-destructive font-medium" : "text-muted-foreground"}`}>
                   {tk.deadline ? format(new Date(tk.deadline), "d MMM yyyy") : "—"}
                 </TableCell>
+                <TableCell className="text-right"><TaskRowActions task={tk} employees={employees} /></TableCell>
               </TableRow>
             );
           })}
