@@ -85,17 +85,21 @@ function EmployeesPage() {
 
   const create = useServerFn(createEmployee);
 
+  const { notInList, adminIdsReady } = useAdminIds();
+
   const { data: employees } = useQuery({
-    queryKey: ["employees", "list"],
+    queryKey: ["employees", "list", notInList],
+    enabled: adminIdsReady,
     queryFn: async () => {
       const { data: profs } = await supabase
         .from("profiles")
         .select(FIELDS)
-        .not("id", "in", `(select user_id from user_roles where role = 'admin')`)
+        .not("id", "in", notInList)
         .order("created_at", { ascending: false });
       return (profs ?? []) as Employee[];
     },
   });
+
 
 
   const filtered = (employees ?? []).filter((e) => {
