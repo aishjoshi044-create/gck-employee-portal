@@ -3,50 +3,86 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 
 /**
- * Live location tracker for employees (WhatsApp-style).
- * Watches device GPS and upserts to employee_locations every ~20s
- * while the app is open. Admins are excluded.
+ * Live location tracker for employees.
+ * Rules:
+ *  - Sample GPS in the background
+ *  - Persist (live upsert + history insert) only when the employee has moved
+ *    more than 200m OR at least 5 minutes have passed since the last save
+ *  - Reverse-geocode (Nominatim) to a human-readable address before storing
+ *  - Admins are excluded
  */
 export function LocationTracker() {
   const { user, role } = useAuth();
-  const lastSent = useRef<number>(0);
-  const lastPos = useRef<{ lat: number; lng: number } | null>(null);
+  const lastSaved = useRef<{ lat: number; lng: number; t: number } | null>(null);
 
   useEffect(() => {
     if (!user || role === "admin") return;
     if (typeof navigator === "undefined" || !navigator.geolocation) return;
 
-    const push = async (lat: number, lng: number) => {
-      lastSent.current = Date.now();
-      lastPos.current = { lat, lng };
+    const distMeters = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
+      const R = 6371000;
+      const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+      const dLng = ((b.lng - a.lng) * Math.PI) / 180;
+      const s =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos((a.lat * Math.PI) / 180) *
+          Math.cos((b.lat * Math.PI) / 180) *
+          Math.sin(dLng / 2) ** 2;
+      return 2 * R * Math.asin(Math.sqrt(s));
+    };
+
+    const reverseGeocode = async (lat: number, lng: number): Promise<string | null> => {
       try {
-        await supabase.from("employee_locations").upsert({
-          user_id: user.id,
-          lat,
-          lng,
-          updated_at: new Date().toISOString(),
-        });
+        const r = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&zoom=16&addressdetails=0`,
+          { headers: { Accept: "application/json" } },
+        );
+        if (!r.ok) return null;
+        const j = (await r.json()) as { display_name?: string };
+        return j.display_name ?? null;
       } catch {
-        /* swallow — try again on next tick */
+        return null;
+      }
+    };
+
+    const save = async (lat: number, lng: number, accuracy: number | null) => {
+      const address = await reverseGeocode(lat, lng);
+      const now = new Date().toISOString();
+      try {
+        await Promise.all([
+          supabase.from("employee_locations").upsert({
+            user_id: user.id,
+            lat,
+            lng,
+            accuracy,
+            address,
+            updated_at: now,
+          }),
+          supabase.from("employee_location_history").insert({
+            user_id: user.id,
+            lat,
+            lng,
+            accuracy,
+            address,
+          }),
+        ]);
+        lastSaved.current = { lat, lng, t: Date.now() };
+      } catch {
+        /* retry next tick */
       }
     };
 
     const onPos = (pos: GeolocationPosition) => {
-      const { latitude, longitude } = pos.coords;
+      const { latitude, longitude, accuracy } = pos.coords;
       const now = Date.now();
-      const moved =
-        !lastPos.current ||
-        Math.abs(lastPos.current.lat - latitude) > 0.00005 ||
-        Math.abs(lastPos.current.lng - longitude) > 0.00005;
-      // Push at most every 20s, or sooner if location moved noticeably.
-      if (now - lastSent.current > 20000 || moved) push(latitude, longitude);
+      const last = lastSaved.current;
+      const moved = !last || distMeters(last, { lat: latitude, lng: longitude }) > 200;
+      const elapsed = !last || now - last.t > 5 * 60 * 1000;
+      if (moved || elapsed) save(latitude, longitude, accuracy ?? null);
     };
 
-    const onErr = () => {
-      /* permission denied or no signal — ignore quietly */
-    };
+    const onErr = () => {};
 
-    // Initial one-shot fix for immediate appearance on map.
     navigator.geolocation.getCurrentPosition(onPos, onErr, {
       enableHighAccuracy: true,
       maximumAge: 10000,
@@ -59,10 +95,14 @@ export function LocationTracker() {
       timeout: 20000,
     });
 
-    // Heartbeat — re-upsert every 60s even without movement so admins see "online".
+    // 5-minute heartbeat — re-checks whether we should save.
     const heartbeat = setInterval(() => {
-      if (lastPos.current) push(lastPos.current.lat, lastPos.current.lng);
-    }, 60000);
+      navigator.geolocation.getCurrentPosition(onPos, onErr, {
+        enableHighAccuracy: false,
+        maximumAge: 60000,
+        timeout: 15000,
+      });
+    }, 5 * 60 * 1000);
 
     return () => {
       navigator.geolocation.clearWatch(watchId);

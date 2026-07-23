@@ -182,20 +182,56 @@ export type Database = {
         }
         Relationships: []
       }
+      employee_location_history: {
+        Row: {
+          accuracy: number | null
+          address: string | null
+          id: string
+          lat: number
+          lng: number
+          recorded_at: string
+          user_id: string
+        }
+        Insert: {
+          accuracy?: number | null
+          address?: string | null
+          id?: string
+          lat: number
+          lng: number
+          recorded_at?: string
+          user_id: string
+        }
+        Update: {
+          accuracy?: number | null
+          address?: string | null
+          id?: string
+          lat?: number
+          lng?: number
+          recorded_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       employee_locations: {
         Row: {
+          accuracy: number | null
+          address: string | null
           lat: number
           lng: number
           updated_at: string
           user_id: string
         }
         Insert: {
+          accuracy?: number | null
+          address?: string | null
           lat: number
           lng: number
           updated_at?: string
           user_id: string
         }
         Update: {
+          accuracy?: number | null
+          address?: string | null
           lat?: number
           lng?: number
           updated_at?: string
@@ -545,6 +581,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cleanup_old_location_history: { Args: never; Returns: undefined }
       get_admin_ids: { Args: never; Returns: string[] }
     }
     Enums: {
