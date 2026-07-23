@@ -1,5 +1,4 @@
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { ClientOnly } from "@tanstack/react-router";
 import { lazy, Suspense } from "react";
 import { MapPin, Navigation } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
