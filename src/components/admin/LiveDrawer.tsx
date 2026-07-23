@@ -35,13 +35,9 @@ export function LiveDrawer({ open, onClose, userId, name, project, lat, lng, upd
           </div>
         </SheetHeader>
         <div className="flex-1 min-h-[300px] relative">
-          <ClientOnly fallback={<div className="p-6 text-sm text-muted-foreground">Loading map…</div>}>
-            {() => (
-              <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">Loading map…</div>}>
-                <FocusedMap userId={userId} name={name} lat={lat} lng={lng} online={online} updatedAt={updatedAt} />
-              </Suspense>
-            )}
-          </ClientOnly>
+          <Suspense fallback={<div className="p-6 text-sm text-muted-foreground">Loading map…</div>}>
+            <FocusedMap userId={userId} name={name} lat={lat} lng={lng} online={online} updatedAt={updatedAt} />
+          </Suspense>
         </div>
         <div className="p-4 border-t border-border space-y-2 text-sm">
           <div className="flex items-start gap-2">
