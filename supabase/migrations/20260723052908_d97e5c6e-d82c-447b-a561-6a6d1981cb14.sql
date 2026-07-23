@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.cleanup_old_location_history() FROM PUBLIC, anon, authenticated;
