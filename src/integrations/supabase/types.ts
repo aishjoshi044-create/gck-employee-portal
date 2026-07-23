@@ -581,6 +581,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cleanup_deleted_tasks: { Args: never; Returns: undefined }
       cleanup_old_location_history: { Args: never; Returns: undefined }
       get_admin_ids: { Args: never; Returns: string[] }
     }
