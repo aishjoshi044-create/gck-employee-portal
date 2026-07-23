@@ -253,14 +253,16 @@ function OverviewCard({ icon, label, value, tone, to }: { icon: React.ReactNode;
   );
 }
 
-function StatusBadge({ status }: { status: "not_started" | "in_progress" | "completed" | "failed" }) {
+function StatusBadge({ status }: { status: string }) {
   const { t } = useI18n();
-  const map = {
-    not_started: { bg: "bg-muted text-foreground", k: "task_status_not_started" as const },
-    in_progress: { bg: "bg-warning/20 text-warning-foreground", k: "task_status_in_progress" as const },
-    completed: { bg: "bg-success/20 text-success", k: "task_status_completed" as const },
-    failed: { bg: "bg-destructive/20 text-destructive", k: "task_status_failed" as const },
-  } as const;
-  const s = map[status];
+  const map: Record<string, { bg: string; k: "task_status_not_started" | "task_status_in_progress" | "task_status_completed" | "task_status_failed" | "status_awaiting_verification" | "status_archived" }> = {
+    not_started: { bg: "bg-muted text-foreground", k: "task_status_not_started" },
+    in_progress: { bg: "bg-warning/20 text-warning-foreground", k: "task_status_in_progress" },
+    completed: { bg: "bg-success/20 text-success", k: "task_status_completed" },
+    failed: { bg: "bg-destructive/20 text-destructive", k: "task_status_failed" },
+    awaiting_verification: { bg: "bg-info/20 text-info", k: "status_awaiting_verification" },
+    archived: { bg: "bg-muted text-muted-foreground", k: "status_archived" },
+  };
+  const s = map[status] ?? { bg: "bg-muted text-foreground", k: "task_status_not_started" as const };
   return <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold shrink-0 ${s.bg}`}>{t(s.k)}</span>;
 }
