@@ -202,12 +202,7 @@ function LocationsPage() {
               return (
                 <tr key={r.user_id} className="border-t border-border hover:bg-muted/30" style={{ height: 52 }}>
                   <td className="px-3 py-2">
-                    <div className="flex items-center gap-2">
-                      <div className="h-8 w-8 rounded-full bg-primary/15 text-primary text-xs font-semibold grid place-items-center overflow-hidden">
-                        {r.photo_url ? <img src={r.photo_url} alt="" className="h-full w-full object-cover" /> : (r.full_name?.[0] ?? "?").toUpperCase()}
-                      </div>
-                      <span className="font-medium truncate max-w-[200px]">{r.full_name}</span>
-                    </div>
+                    <span className="font-medium truncate max-w-[200px]">{r.full_name}</span>
                   </td>
                   <td className="px-3 py-2 text-muted-foreground truncate max-w-[160px]">{r.project ?? "—"}</td>
                   <td className="px-3 py-2">
@@ -251,14 +246,9 @@ function LocationsPage() {
           return (
             <div key={r.user_id} className="rounded-lg border border-border p-3 space-y-2">
               <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className="h-8 w-8 rounded-full bg-primary/15 text-primary text-xs font-semibold grid place-items-center overflow-hidden shrink-0">
-                    {r.photo_url ? <img src={r.photo_url} alt="" className="h-full w-full object-cover" /> : (r.full_name?.[0] ?? "?").toUpperCase()}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="font-medium truncate">{r.full_name}</div>
-                    <div className="text-xs text-muted-foreground truncate">{r.project ?? "—"}</div>
-                  </div>
+                <div className="min-w-0">
+                  <div className="font-medium truncate">{r.full_name}</div>
+                  <div className="text-xs text-muted-foreground truncate">{r.project ?? "—"}</div>
                 </div>
                 <Badge variant="outline" className={meta.className}>
                   <span className={`mr-1.5 h-1.5 w-1.5 rounded-full ${meta.dot}`} />
