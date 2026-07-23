@@ -246,14 +246,9 @@ function LocationsPage() {
           return (
             <div key={r.user_id} className="rounded-lg border border-border p-3 space-y-2">
               <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className="h-8 w-8 rounded-full bg-primary/15 text-primary text-xs font-semibold grid place-items-center overflow-hidden shrink-0">
-                    {r.photo_url ? <img src={r.photo_url} alt="" className="h-full w-full object-cover" /> : (r.full_name?.[0] ?? "?").toUpperCase()}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="font-medium truncate">{r.full_name}</div>
-                    <div className="text-xs text-muted-foreground truncate">{r.project ?? "—"}</div>
-                  </div>
+                <div className="min-w-0">
+                  <div className="font-medium truncate">{r.full_name}</div>
+                  <div className="text-xs text-muted-foreground truncate">{r.project ?? "—"}</div>
                 </div>
                 <Badge variant="outline" className={meta.className}>
                   <span className={`mr-1.5 h-1.5 w-1.5 rounded-full ${meta.dot}`} />
