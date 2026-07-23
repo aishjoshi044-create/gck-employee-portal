@@ -202,12 +202,7 @@ function LocationsPage() {
               return (
                 <tr key={r.user_id} className="border-t border-border hover:bg-muted/30" style={{ height: 52 }}>
                   <td className="px-3 py-2">
-                    <div className="flex items-center gap-2">
-                      <div className="h-8 w-8 rounded-full bg-primary/15 text-primary text-xs font-semibold grid place-items-center overflow-hidden">
-                        {r.photo_url ? <img src={r.photo_url} alt="" className="h-full w-full object-cover" /> : (r.full_name?.[0] ?? "?").toUpperCase()}
-                      </div>
-                      <span className="font-medium truncate max-w-[200px]">{r.full_name}</span>
-                    </div>
+                    <span className="font-medium truncate max-w-[200px]">{r.full_name}</span>
                   </td>
                   <td className="px-3 py-2 text-muted-foreground truncate max-w-[160px]">{r.project ?? "—"}</td>
                   <td className="px-3 py-2">
