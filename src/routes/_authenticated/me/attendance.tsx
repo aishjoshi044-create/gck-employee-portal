@@ -410,19 +410,52 @@ function CaptureFlow({
     setBusy(true);
     try {
       const today = format(new Date(), "yyyy-MM-dd");
+
+      // ---- Check-in: location validation FIRST; attendance is only marked after it succeeds ----
+      let fix: Fix | null = null;
+      if (kind === "checkin") {
+        setLocStep(L("Verifying your location…", "आपका स्थान सत्यापित हो रहा है…"));
+        try {
+          fix = await getFreshFix();
+        } catch (e) {
+          const msg = e instanceof LocationError
+            ? e.message
+            : L("Location is required to mark attendance", "हाज़िरी दर्ज करने के लिए स्थान आवश्यक है");
+          setLocError(msg);
+          toast.error(L("Location is required to mark attendance", "हाज़िरी दर्ज करने के लिए स्थान आवश्यक है"), { description: msg });
+          setBusy(false);
+          setLocStep(null);
+          return;
+        }
+        setCoords({ lat: fix.lat, lng: fix.lng });
+        setLocError(null);
+      }
+
+      setLocStep(kind === "checkin" ? L("Marking attendance…", "हाज़िरी दर्ज हो रही है…") : null);
       const optimized = await compressImage(photoBlob, "attendance");
       const path = `${user.id}/${today}-${kind}-${Date.now()}.${optimized.ext}`;
       const { error: upErr } = await supabase.storage.from("selfies").upload(path, optimized.blob, { contentType: optimized.contentType });
       if (upErr) throw upErr;
 
-      if (kind === "checkin") {
-        const { error } = await supabase.from("attendance").insert({
-          user_id: user.id, date: today, status: "present",
-          check_in_at: new Date().toISOString(),
-          selfie_url: path,
-          lat: coords?.lat ?? null, lng: coords?.lng ?? null,
+      if (kind === "checkin" && fix) {
+        // Server re-validates the fix (freshness, accuracy, coordinates), prevents
+        // duplicates and decides On Time vs Late from server time.
+        const res = await markCheckIn({
+          data: {
+            lat: fix.lat,
+            lng: fix.lng,
+            accuracy: fix.accuracy,
+            captured_at: fix.captured_at,
+            selfie_url: path,
+          },
         });
-        if (error) throw error;
+        // Start background location tracking now that check-in succeeded.
+        window.dispatchEvent(new Event(CHECKED_IN_EVENT));
+        toast.success(
+          res.late
+            ? L("Checked in — Late", "चेक-इन हुआ — देर से")
+            : L("Checked in — On Time", "चेक-इन हुआ — समय पर"),
+        );
       } else if (existing) {
         const { error } = await supabase.from("attendance").update({
           check_out_at: new Date().toISOString(),
@@ -431,19 +464,22 @@ function CaptureFlow({
           check_out_lng: coords?.lng ?? null,
         }).eq("id", existing.id);
         if (error) throw error;
+        if (coords) {
+          await supabase.from("employee_locations").upsert({ user_id: user.id, lat: coords.lat, lng: coords.lng, updated_at: new Date().toISOString() });
+        }
+        toast.success(L("Checked out", "चेक-आउट हुआ"));
       }
-      if (coords) {
-        await supabase.from("employee_locations").upsert({ user_id: user.id, lat: coords.lat, lng: coords.lng, updated_at: new Date().toISOString() });
-      }
-      toast.success(kind === "checkin" ? L("Checked in", "चेक-इन हुआ") : L("Checked out", "चेक-आउट हुआ"));
       onDone();
     } catch (e: any) {
-      if (String(e?.message ?? "").includes("duplicate")) toast.error(L("Already marked today", "आज पहले ही दर्ज है"));
-      else toast.error(e?.message ?? "Error");
+      const msg = String(e?.message ?? "");
+      if (msg.includes("already checked in") || msg.includes("duplicate")) toast.error(L("Already marked today", "आज पहले ही दर्ज है"));
+      else toast.error(msg || "Error");
     } finally {
       setBusy(false);
+      setLocStep(null);
     }
   };
+
 
   return (
     <div className="space-y-3">
