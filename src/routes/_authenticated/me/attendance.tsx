@@ -512,6 +512,20 @@ function CaptureFlow({
           <MapPin className="size-3" /> {coords.lat.toFixed(4)}, {coords.lng.toFixed(4)}
         </p>
       )}
+      {locStep && (
+        <p className="text-xs text-center text-muted-foreground flex items-center justify-center gap-1.5">
+          <Loader2 className="size-3 animate-spin" /> {locStep}
+        </p>
+      )}
+      {locError && (
+        <div className="text-xs flex items-start gap-2 p-2 rounded-md bg-destructive/10 text-destructive border border-destructive/40">
+          <AlertTriangle className="size-4 shrink-0 mt-0.5" />
+          <div>
+            <div className="font-bold">{L("Location is required to mark attendance", "हाज़िरी दर्ज करने के लिए स्थान आवश्यक है")}</div>
+            <div className="opacity-80">{locError}</div>
+          </div>
+        </div>
+      )}
       {!previewUrl ? (
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => { stopCamera(); onCancel(); }} className="flex-1">{L("Cancel", "रद्द")}</Button>
@@ -524,10 +538,13 @@ function CaptureFlow({
           <Button variant="outline" onClick={retake} className="flex-1 gap-2"><RotateCcw className="size-4" /> {L("Retake", "फिर से")}</Button>
           <Button onClick={submit} disabled={busy} className="flex-1 bg-success text-success-foreground hover:bg-success/90 gap-2">
             {busy ? <Loader2 className="size-5 animate-spin" /> : <CheckCircle2 className="size-5" />}
-            {kind === "checkin" ? L("Confirm Check-in", "चेक-इन पुष्टि करें") : L("Confirm Check-out", "चेक-आउट पुष्टि करें")}
+            {locError
+              ? L("Retry", "फिर कोशिश करें")
+              : kind === "checkin" ? L("Confirm Check-in", "चेक-इन पुष्टि करें") : L("Confirm Check-out", "चेक-आउट पुष्टि करें")}
           </Button>
         </div>
       )}
+
     </div>
   );
 }
