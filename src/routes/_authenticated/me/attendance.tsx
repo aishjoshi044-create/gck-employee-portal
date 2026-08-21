@@ -17,6 +17,9 @@ import { toast } from "sonner";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, differenceInSeconds, addMonths, isAfter } from "date-fns";
 import { getFaceDescriptor, loadFaceModels, similarityPct } from "@/lib/face";
 import { compressImage } from "@/lib/image-compress";
+import { useServerFn } from "@tanstack/react-start";
+import { checkInAttendance } from "@/lib/attendance.functions";
+import { getFreshFix, LocationError, CHECKED_IN_EVENT, type Fix } from "@/lib/geo";
 
 export const Route = createFileRoute("/_authenticated/me/attendance")({
   component: AttendancePage,
