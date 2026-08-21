@@ -1,10 +1,12 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { CHECKED_IN_EVENT } from "@/lib/geo";
 
 /**
  * Live location tracker for employees.
  * Rules:
+ *  - Only runs once the employee has checked in today (and not checked out)
  *  - Sample GPS in the background
  *  - Persist (live upsert + history insert) only when the employee has moved
  *    more than 200m OR at least 5 minutes have passed since the last save
@@ -14,10 +16,35 @@ import { useAuth } from "@/lib/auth";
 export function LocationTracker() {
   const { user, role } = useAuth();
   const lastSaved = useRef<{ lat: number; lng: number; t: number } | null>(null);
+  const [active, setActive] = useState(false);
+
+  const checkShift = useCallback(async () => {
+    if (!user || role === "admin") return;
+    const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+    const { data } = await supabase
+      .from("attendance")
+      .select("check_in_at, check_out_at")
+      .eq("user_id", user.id)
+      .eq("date", today)
+      .maybeSingle();
+    setActive(!!data?.check_in_at && !data?.check_out_at);
+  }, [user, role, active]);
 
   useEffect(() => {
-    if (!user || role === "admin") return;
+    checkShift();
+    const onCheckedIn = () => setActive(true);
+    window.addEventListener(CHECKED_IN_EVENT, onCheckedIn);
+    const poll = setInterval(checkShift, 5 * 60 * 1000);
+    return () => {
+      window.removeEventListener(CHECKED_IN_EVENT, onCheckedIn);
+      clearInterval(poll);
+    };
+  }, [checkShift]);
+
+  useEffect(() => {
+    if (!user || role === "admin" || !active) return;
     if (typeof navigator === "undefined" || !navigator.geolocation) return;
+
 
     const distMeters = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
       const R = 6371000;
@@ -108,7 +135,7 @@ export function LocationTracker() {
       navigator.geolocation.clearWatch(watchId);
       clearInterval(heartbeat);
     };
-  }, [user, role]);
+  }, [user, role, active]);
 
   return null;
 }
