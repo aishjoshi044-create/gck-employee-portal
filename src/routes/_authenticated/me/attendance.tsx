@@ -202,8 +202,10 @@ function StatusPill({ row, L }: { row: AttRow; L: (en: string, hi: string) => st
   if (row.status === "leave") return <Badge variant="outline" className="border-info/40 text-info bg-info/10">{L("Leave", "अवकाश")}</Badge>;
   if (row.status === "absent") return <Badge variant="outline" className="border-destructive/40 text-destructive bg-destructive/10">{L("Absent", "अनुपस्थित")}</Badge>;
   if (!row.check_out_at && row.check_in_at) return <Badge variant="outline" className="border-warning/40 text-warning bg-warning/10">{L("Checkout Pending", "चेकआउट बाकी")}</Badge>;
+  if (row.status === "late") return <Badge variant="outline" className="border-warning/40 text-warning bg-warning/10">{L("Late", "देर से")}</Badge>;
   return <Badge variant="outline" className="border-success/40 text-success bg-success/10">{L("Present", "उपस्थित")}</Badge>;
 }
+
 
 function BeforeCheckIn({ L, onStart }: { L: (en: string, hi: string) => string; onStart: () => void }) {
   return (
