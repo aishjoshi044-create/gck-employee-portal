@@ -317,6 +317,9 @@ function CaptureFlow({
   const [matchPct, setMatchPct] = useState<number | null>(null);
   const [modelsReady, setModelsReady] = useState(false);
   const [storedDescriptor, setStoredDescriptor] = useState<number[] | null>(null);
+  const [locStep, setLocStep] = useState<string | null>(null);
+  const [locError, setLocError] = useState<string | null>(null);
+  const markCheckIn = useServerFn(checkInAttendance);
 
   useEffect(() => {
     loadFaceModels().then(() => setModelsReady(true)).catch(() => toast.error("Could not load face model"));
