@@ -28,7 +28,7 @@ export function LocationTracker() {
       .eq("date", today)
       .maybeSingle();
     setActive(!!data?.check_in_at && !data?.check_out_at);
-  }, [user, role]);
+  }, [user, role, active]);
 
   useEffect(() => {
     checkShift();
@@ -135,7 +135,7 @@ export function LocationTracker() {
       navigator.geolocation.clearWatch(watchId);
       clearInterval(heartbeat);
     };
-  }, [user, role]);
+  }, [user, role, active]);
 
   return null;
 }
