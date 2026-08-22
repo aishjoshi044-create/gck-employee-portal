@@ -19,7 +19,7 @@ function AuthenticatedLayout() {
   useEffect(() => {
     if (loading) return;
     if (!user) router.navigate({ to: "/", replace: true });
-    else if (profile && !profile.pin_changed) router.navigate({ to: "/auth", replace: true });
+    else if (profile && !profile.pin_changed) router.navigate({ to: "/auth", search: {}, replace: true });
   }, [loading, user, profile, router]);
 
   if (loading || !user) {
