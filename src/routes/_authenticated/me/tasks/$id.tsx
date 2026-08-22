@@ -191,7 +191,7 @@ function UpdateCard({ u }: { u: any }) {
       {audioUrl && <audio controls src={audioUrl} className="w-full" />}
       {photoUrls.length > 0 && (
         <div className="grid grid-cols-3 gap-1.5">
-          {photoUrls.map((src, i) => <img key={i} src={src} className="aspect-square object-cover rounded-lg" />)}
+          {photoUrls.map((src, i) => <img key={i} src={src} alt="" loading="lazy" decoding="async" className="aspect-square object-cover rounded-lg" />)}
         </div>
       )}
       {u.admin_comment && (

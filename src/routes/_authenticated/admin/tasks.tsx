@@ -922,7 +922,7 @@ function UpdateTimelineItem({ u }: { u: any }) {
           <div className="grid grid-cols-5 gap-1">
             {photoUrls.map((src, i) => (
               <a key={i} href={src} target="_blank" rel="noreferrer">
-                <img src={src} className="aspect-square object-cover rounded" />
+                <img src={src} alt="" loading="lazy" decoding="async" className="aspect-square object-cover rounded" />
               </a>
             ))}
           </div>
