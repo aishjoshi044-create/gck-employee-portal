@@ -1,21 +1,38 @@
 // Client-side image optimization: resize, re-encode (WebP when supported,
 // else JPEG), strip EXIF (canvas re-encode drops metadata), and iteratively
-// reduce quality to hit a per-context byte budget.
+// reduce quality/dimensions to hit a per-context byte budget.
+//
+// The original file is never uploaded — only the re-encoded output.
 //
 // Usage:
 //   const { blob, ext, contentType } = await compressImage(file, "attendance");
-//   const path = `${user.id}/${Date.now()}.${ext}`;
-//   await supabase.storage.from(bucket).upload(path, blob, { contentType });
+//   const name = await contentHashName(blob, ext);  // dedupes identical images
+//   await supabase.storage.from(bucket).upload(`${user.id}/${name}`, blob, {
+//     contentType, upsert: true,
+//   });
 
 export type CompressPreset = "attendance" | "profile" | "report" | "task";
 
-type PresetSpec = { maxDim: number; targetMaxKB: number; minQuality: number; startQuality: number };
+type PresetSpec = {
+  maxDim: number;
+  /** Byte budget (KB) we try to reach. */
+  targetMaxKB: number;
+  /** Never go below this quality — usability beats byte count. */
+  minQuality: number;
+  startQuality: number;
+  /** Smallest dimension we will downscale to while chasing the budget. */
+  minDim: number;
+};
 
 const PRESETS: Record<CompressPreset, PresetSpec> = {
-  attendance: { maxDim: 720, targetMaxKB: 40, minQuality: 0.4, startQuality: 0.75 },
-  profile:    { maxDim: 720, targetMaxKB: 80, minQuality: 0.5, startQuality: 0.82 },
-  report:     { maxDim: 1280, targetMaxKB: 150, minQuality: 0.5, startQuality: 0.82 },
-  task:       { maxDim: 1280, targetMaxKB: 150, minQuality: 0.5, startQuality: 0.82 },
+  // Faces must stay recognisable: 10–20 KB target.
+  attendance: { maxDim: 640, targetMaxKB: 20, minQuality: 0.42, startQuality: 0.72, minDim: 400 },
+  // Activity photos: 10–20 KB target.
+  task: { maxDim: 800, targetMaxKB: 20, minQuality: 0.42, startQuality: 0.72, minDim: 512 },
+  // Registered selfie / profile face: 20–30 KB target.
+  profile: { maxDim: 720, targetMaxKB: 30, minQuality: 0.5, startQuality: 0.78, minDim: 480 },
+  // Documents & field evidence need legible detail: 20–30 KB target.
+  report: { maxDim: 1080, targetMaxKB: 30, minQuality: 0.48, startQuality: 0.78, minDim: 720 },
 };
 
 let _webpSupport: boolean | null = null;
@@ -56,6 +73,25 @@ function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality: number):
   return new Promise((resolve) => canvas.toBlob((b) => resolve(b), type, quality));
 }
 
+/**
+ * Stable content-addressed filename. Identical images (same bytes) produce the
+ * same name, so re-uploading with `upsert: true` overwrites instead of storing
+ * a duplicate copy.
+ */
+export async function contentHashName(blob: Blob, ext: string): Promise<string> {
+  try {
+    const buf = await blob.arrayBuffer();
+    const digest = await crypto.subtle.digest("SHA-256", buf);
+    const hex = Array.from(new Uint8Array(digest))
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("")
+      .slice(0, 32);
+    return `${hex}.${ext}`;
+  } catch {
+    return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${ext}`;
+  }
+}
+
 export async function compressImage(
   input: Blob,
   preset: CompressPreset,
@@ -74,19 +110,25 @@ export async function compressImage(
   }
 
   try {
-    // Compute target dimensions preserving aspect ratio.
-    const scale = Math.min(1, spec.maxDim / Math.max(bmp.width, bmp.height));
-    let targetW = Math.max(1, Math.round(bmp.width * scale));
-    let targetH = Math.max(1, Math.round(bmp.height * scale));
-
     const webp = canEncodeWebp();
     const type = webp ? "image/webp" : "image/jpeg";
     const ext: "webp" | "jpg" = webp ? "webp" : "jpg";
 
-    // Try increasing compression, then progressive downscale if still too big.
-    for (let downscale = 1; downscale >= 0.5; downscale -= 0.25) {
-      const w = Math.max(1, Math.round(targetW * downscale));
-      const h = Math.max(1, Math.round(targetH * downscale));
+    // Longest-edge ladder: start at the preset cap and step down, never below
+    // minDim (quality floor for faces/documents).
+    const longest = Math.max(bmp.width, bmp.height) || spec.maxDim;
+    const start = Math.min(spec.maxDim, longest);
+    const dims: number[] = [];
+    for (let d = start; d >= spec.minDim; d = Math.round(d * 0.8)) dims.push(d);
+    if (dims[dims.length - 1] !== spec.minDim && start > spec.minDim) dims.push(spec.minDim);
+    if (!dims.length) dims.push(start);
+
+    let smallest: Blob | null = null;
+
+    for (const dim of dims) {
+      const scale = dim / longest;
+      const w = Math.max(1, Math.round(bmp.width * scale));
+      const h = Math.max(1, Math.round(bmp.height * scale));
       const canvas = document.createElement("canvas");
       canvas.width = w;
       canvas.height = h;
@@ -95,31 +137,17 @@ export async function compressImage(
       ctx.imageSmoothingQuality = "high";
       bmp.draw(ctx, w, h);
 
-      let lastAcceptable: Blob | null = null;
-      for (let q = spec.startQuality; q >= spec.minQuality - 0.001; q -= 0.1) {
+      for (let q = spec.startQuality; q >= spec.minQuality - 0.001; q -= 0.08) {
         const blob = await canvasToBlob(canvas, type, Number(q.toFixed(2)));
         if (!blob) continue;
-        lastAcceptable = blob;
-        if (blob.size <= targetBytes) {
-          return { blob, ext, contentType: type };
-        }
+        if (!smallest || blob.size < smallest.size) smallest = blob;
+        if (blob.size <= targetBytes) return { blob, ext, contentType: type };
       }
-      if (downscale === 0.5 && lastAcceptable) {
-        return { blob: lastAcceptable, ext, contentType: type };
-      }
-      targetW = w; targetH = h;
     }
 
-    // Fallback: encode once at min quality.
-    const canvas = document.createElement("canvas");
-    canvas.width = targetW; canvas.height = targetH;
-    const ctx = canvas.getContext("2d");
-    if (ctx) {
-      ctx.imageSmoothingQuality = "high";
-      bmp.draw(ctx, targetW, targetH);
-      const blob = await canvasToBlob(canvas, type, spec.minQuality);
-      if (blob) return { blob, ext, contentType: type };
-    }
+    // Target unreachable without unacceptable quality loss — ship the smallest
+    // practical encode we produced (still far smaller than the original).
+    if (smallest) return { blob: smallest, ext, contentType: type };
     return { blob: input, ext: "jpg", contentType: input.type };
   } finally {
     bmp.close();
