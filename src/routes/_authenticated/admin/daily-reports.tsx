@@ -354,7 +354,7 @@ function AdminReportDetail({ report, profileName, onClose, onDecide }: { report:
               <div className="grid grid-cols-3 gap-2">
                 {report.photo_urls.map((u, i) => (
                   <a key={i} href={u} target="_blank" rel="noreferrer" className="aspect-square rounded-md overflow-hidden border">
-                    <img src={u} alt="" className="w-full h-full object-cover" />
+                    <img src={u} alt="" loading="lazy" decoding="async" className="w-full h-full object-cover" />
                   </a>
                 ))}
               </div>

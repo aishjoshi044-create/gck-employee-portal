@@ -10,7 +10,7 @@ import { ArrowLeft, Mic, Square, Play, Camera, Send, Loader2, MapPin } from "luc
 import { format } from "date-fns";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { compressImage } from "@/lib/image-compress";
+import { compressImage, contentHashName } from "@/lib/image-compress";
 
 export const Route = createFileRoute("/_authenticated/me/tasks/$id")({
   component: TaskDetail,
@@ -191,7 +191,7 @@ function UpdateCard({ u }: { u: any }) {
       {audioUrl && <audio controls src={audioUrl} className="w-full" />}
       {photoUrls.length > 0 && (
         <div className="grid grid-cols-3 gap-1.5">
-          {photoUrls.map((src, i) => <img key={i} src={src} className="aspect-square object-cover rounded-lg" />)}
+          {photoUrls.map((src, i) => <img key={i} src={src} alt="" loading="lazy" decoding="async" className="aspect-square object-cover rounded-lg" />)}
         </div>
       )}
       {u.admin_comment && (
@@ -260,8 +260,8 @@ function UpdateComposer({ taskId, onSent }: { taskId: string; onSent: () => void
         const optimized = f.type.startsWith("image/")
           ? await compressImage(f, "task")
           : { blob: f, ext: (f.name.split(".").pop() ?? "bin"), contentType: f.type };
-        const pp = `${user.id}/${taskId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${optimized.ext}`;
-        const { error } = await supabase.storage.from("task-media").upload(pp, optimized.blob, { contentType: optimized.contentType });
+        const pp = `${user.id}/${taskId}/${await contentHashName(optimized.blob, optimized.ext)}`;
+        const { error } = await supabase.storage.from("task-media").upload(pp, optimized.blob, { contentType: optimized.contentType, upsert: true });
         if (error) throw error;
         photoPaths.push(pp);
       }

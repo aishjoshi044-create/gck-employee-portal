@@ -91,7 +91,7 @@ function UpdateView({ u, onSaved }: { u: any; onSaved: () => void }) {
       {audio && <audio controls src={audio} className="w-full" />}
       {photos.length > 0 && (
         <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5">
-          {photos.map((src, i) => <a key={i} href={src} target="_blank" rel="noreferrer"><img src={src} className="aspect-square object-cover rounded-lg" /></a>)}
+          {photos.map((src, i) => <a key={i} href={src} target="_blank" rel="noreferrer"><img src={src} alt="" loading="lazy" decoding="async" className="aspect-square object-cover rounded-lg" /></a>)}
         </div>
       )}
       <div className="flex gap-2 pt-2">
