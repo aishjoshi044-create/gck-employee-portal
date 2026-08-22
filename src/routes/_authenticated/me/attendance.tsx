@@ -16,7 +16,7 @@ import {
 import { toast } from "sonner";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, differenceInSeconds, addMonths, isAfter } from "date-fns";
 import { getFaceDescriptor, loadFaceModels, similarityPct } from "@/lib/face";
-import { compressImage } from "@/lib/image-compress";
+import { compressImage, contentHashName } from "@/lib/image-compress";
 import { useServerFn } from "@tanstack/react-start";
 import { checkInAttendance } from "@/lib/attendance.functions";
 import { getFreshFix, LocationError, CHECKED_IN_EVENT, type Fix } from "@/lib/geo";
@@ -441,8 +441,8 @@ function CaptureFlow({
 
       setLocStep(kind === "checkin" ? L("Marking attendance…", "हाज़िरी दर्ज हो रही है…") : null);
       const optimized = await compressImage(photoBlob, "attendance");
-      const path = `${user.id}/${today}-${kind}-${Date.now()}.${optimized.ext}`;
-      const { error: upErr } = await supabase.storage.from("selfies").upload(path, optimized.blob, { contentType: optimized.contentType });
+      const path = `${user.id}/${today}-${kind}-${await contentHashName(optimized.blob, optimized.ext)}`;
+      const { error: upErr } = await supabase.storage.from("selfies").upload(path, optimized.blob, { contentType: optimized.contentType, upsert: true });
       if (upErr) throw upErr;
 
       if (kind === "checkin" && fix) {

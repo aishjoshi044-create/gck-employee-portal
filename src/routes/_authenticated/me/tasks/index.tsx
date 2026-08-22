@@ -16,7 +16,7 @@ import {
   X, AlertCircle, CheckCircle2, FileText,
 } from "lucide-react";
 import { toast } from "sonner";
-import { compressImage } from "@/lib/image-compress";
+import { compressImage, contentHashName } from "@/lib/image-compress";
 import { validateVideos, VIDEO_LIMITS } from "@/lib/video-validate";
 
 export const Route = createFileRoute("/_authenticated/me/tasks/")({
@@ -447,8 +447,8 @@ function UpdateComposer({ taskId, onSent, L }: { taskId: string; onSent: () => v
         const optimized = f.type.startsWith("image/")
           ? await compressImage(f, "task")
           : { blob: f, ext: (f.name.split(".").pop() ?? "bin"), contentType: f.type };
-        const pp = `${user.id}/${taskId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${optimized.ext}`;
-        const { error } = await supabase.storage.from("task-media").upload(pp, optimized.blob, { contentType: optimized.contentType });
+        const pp = `${user.id}/${taskId}/${await contentHashName(optimized.blob, optimized.ext)}`;
+        const { error } = await supabase.storage.from("task-media").upload(pp, optimized.blob, { contentType: optimized.contentType, upsert: true });
         if (error) throw error;
         photoPaths.push(pp);
       }

@@ -49,7 +49,7 @@ import {
   X,
 } from "lucide-react";
 import logo from "@/assets/gck-logo.jpeg.asset.json";
-import { compressImage } from "@/lib/image-compress";
+import { compressImage, contentHashName } from "@/lib/image-compress";
 import { FaceCapture } from "@/components/FaceCapture";
 import { useAdminIds } from "@/hooks/useAdminIds";
 
@@ -300,7 +300,7 @@ function EmployeeDrawer({
     setBusy(true);
     try {
       const optimized = await compressImage(blob, "profile");
-      const path = `${employee.id}/face-${Date.now()}.${optimized.ext}`;
+      const path = `${employee.id}/${await contentHashName(optimized.blob, optimized.ext)}`;
       const up = await supabase.storage.from("avatars").upload(path, optimized.blob, {
         contentType: optimized.contentType,
         upsert: true,
@@ -503,7 +503,7 @@ function NewEmployeeForm({
       const r = await create({ data: { ...form, face_descriptor: faceDescriptor } });
       if (faceBlob && r.user_id) {
         const optimized = await compressImage(faceBlob, "profile");
-        const path = `${r.user_id}/face-${Date.now()}.${optimized.ext}`;
+        const path = `${r.user_id}/${await contentHashName(optimized.blob, optimized.ext)}`;
         const up = await supabase.storage.from("avatars").upload(path, optimized.blob, {
           contentType: optimized.contentType, upsert: true,
         });
