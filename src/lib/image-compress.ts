@@ -29,8 +29,9 @@ const PRESETS: Record<CompressPreset, PresetSpec> = {
   attendance: { maxDim: 640, targetMaxKB: 20, minQuality: 0.42, startQuality: 0.72, minDim: 400 },
   // Activity photos: 10–20 KB target.
   task: { maxDim: 800, targetMaxKB: 20, minQuality: 0.42, startQuality: 0.72, minDim: 512 },
-  // Registered selfie / profile face: 20–30 KB target.
-  profile: { maxDim: 720, targetMaxKB: 30, minQuality: 0.5, startQuality: 0.78, minDim: 480 },
+  // Avatar / registered face photo: 20 KB max, face must stay recognisable.
+  profile: { maxDim: 640, targetMaxKB: 20, minQuality: 0.45, startQuality: 0.75, minDim: 400 },
+
   // Documents & field evidence need legible detail: 20–30 KB target.
   report: { maxDim: 1080, targetMaxKB: 30, minQuality: 0.48, startQuality: 0.78, minDim: 720 },
 };
