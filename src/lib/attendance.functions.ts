@@ -114,3 +114,68 @@ export const checkInAttendance = createServerFn({ method: "POST" })
 
     return { ok: true as const, status, late, checked_in_at: now.toISOString(), date };
   });
+
+/**
+ * Marks check-out for the signed-in employee.
+ * Mirrors check-in: a fresh, plausible GPS fix is mandatory, the server
+ * re-validates coordinates/accuracy/freshness and stamps the official
+ * check-out time from server time.
+ */
+export const checkOutAttendance = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => locationInput.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+
+    if (data.lat === 0 && data.lng === 0) throw new Error("Location is required to check out");
+    if (data.accuracy != null && data.accuracy > MAX_ACCURACY_M) {
+      throw new Error("Location accuracy is too low to check out. Please retry outdoors.");
+    }
+    const fixedAt = new Date(data.captured_at);
+    if (Number.isNaN(fixedAt.getTime())) throw new Error("Location is required to check out");
+
+    const now = new Date();
+    const age = now.getTime() - fixedAt.getTime();
+    if (age > MAX_FIX_AGE_MS || age < -MAX_FIX_AGE_MS) {
+      throw new Error("Location is outdated. Please retry to check out.");
+    }
+
+    const { date } = localParts(now);
+    const { data: existing, error: exErr } = await supabase
+      .from("attendance")
+      .select("id, check_in_at, check_out_at")
+      .eq("user_id", userId)
+      .eq("date", date)
+      .maybeSingle();
+    if (exErr) throw new Error(exErr.message);
+    if (!existing?.check_in_at) throw new Error("You have not checked in today");
+    if (existing.check_out_at) throw new Error("You have already checked out today");
+
+    const { error } = await supabase
+      .from("attendance")
+      .update({
+        check_out_at: now.toISOString(),
+        check_out_selfie_url: data.selfie_url,
+        check_out_lat: data.lat,
+        check_out_lng: data.lng,
+        check_out_accuracy: data.accuracy ?? null,
+      })
+      .eq("id", existing.id);
+    if (error) throw new Error(error.message);
+
+    await supabase.from("employee_locations").upsert({
+      user_id: userId,
+      lat: data.lat,
+      lng: data.lng,
+      accuracy: data.accuracy ?? null,
+      updated_at: now.toISOString(),
+    });
+    await supabase.from("employee_location_history").insert({
+      user_id: userId,
+      lat: data.lat,
+      lng: data.lng,
+      accuracy: data.accuracy ?? null,
+    });
+
+    return { ok: true as const, checked_out_at: now.toISOString(), date };
+  });

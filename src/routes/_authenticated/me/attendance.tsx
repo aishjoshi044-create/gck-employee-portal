@@ -18,7 +18,7 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, differe
 import { getFaceDescriptor, loadFaceModels, similarityPct } from "@/lib/face";
 import { compressImage, contentHashName } from "@/lib/image-compress";
 import { useServerFn } from "@tanstack/react-start";
-import { checkInAttendance } from "@/lib/attendance.functions";
+import { checkInAttendance, checkOutAttendance } from "@/lib/attendance.functions";
 import { getFreshFix, LocationError, CHECKED_IN_EVENT, type Fix } from "@/lib/geo";
 
 export const Route = createFileRoute("/_authenticated/me/attendance")({
@@ -300,7 +300,7 @@ function AfterCheckOut({ row, L, onView }: { row: AttRow; L: (en: string, hi: st
 /* ---------- Capture flow (used for both check-in and check-out) ---------- */
 
 function CaptureFlow({
-  user, L, kind, existing, onCancel, onDone,
+  user, L, kind, onCancel, onDone,
 }: {
   user: { id: string };
   L: (en: string, hi: string) => string;
@@ -322,6 +322,7 @@ function CaptureFlow({
   const [locStep, setLocStep] = useState<string | null>(null);
   const [locError, setLocError] = useState<string | null>(null);
   const markCheckIn = useServerFn(checkInAttendance);
+  const markCheckOut = useServerFn(checkOutAttendance);
 
   useEffect(() => {
     loadFaceModels().then(() => setModelsReady(true)).catch(() => toast.error("Could not load face model"));
@@ -420,26 +421,26 @@ function CaptureFlow({
       const today = format(new Date(), "yyyy-MM-dd");
 
       // ---- Check-in: location validation FIRST; attendance is only marked after it succeeds ----
+      // ---- Location validation FIRST for both check-in and check-out ----
+      const locFail = kind === "checkin"
+        ? L("Location is required to mark attendance", "हाज़िरी दर्ज करने के लिए स्थान आवश्यक है")
+        : L("Location is required to check out. Please enable Location and try again.", "चेक-आउट के लिए स्थान आवश्यक है। कृपया लोकेशन चालू करके पुनः प्रयास करें।");
       let fix: Fix | null = null;
-      if (kind === "checkin") {
-        setLocStep(L("Verifying your location…", "आपका स्थान सत्यापित हो रहा है…"));
-        try {
-          fix = await getFreshFix();
-        } catch (e) {
-          const msg = e instanceof LocationError
-            ? e.message
-            : L("Location is required to mark attendance", "हाज़िरी दर्ज करने के लिए स्थान आवश्यक है");
-          setLocError(msg);
-          toast.error(L("Location is required to mark attendance", "हाज़िरी दर्ज करने के लिए स्थान आवश्यक है"), { description: msg });
-          setBusy(false);
-          setLocStep(null);
-          return;
-        }
-        setCoords({ lat: fix.lat, lng: fix.lng });
-        setLocError(null);
+      setLocStep(L("Verifying your location…", "आपका स्थान सत्यापित हो रहा है…"));
+      try {
+        fix = await getFreshFix();
+      } catch (e) {
+        const msg = e instanceof LocationError ? e.message : locFail;
+        setLocError(msg);
+        toast.error(locFail, { description: msg });
+        setBusy(false);
+        setLocStep(null);
+        return;
       }
+      setCoords({ lat: fix.lat, lng: fix.lng });
+      setLocError(null);
 
-      setLocStep(kind === "checkin" ? L("Marking attendance…", "हाज़िरी दर्ज हो रही है…") : null);
+      setLocStep(kind === "checkin" ? L("Marking attendance…", "हाज़िरी दर्ज हो रही है…") : L("Checking out…", "चेक-आउट हो रहा है…"));
       const optimized = await compressImage(photoBlob, "attendance");
       const path = `${user.id}/${today}-${kind}-${await contentHashName(optimized.blob, optimized.ext)}`;
       const { error: upErr } = await supabase.storage.from("selfies").upload(path, optimized.blob, { contentType: optimized.contentType, upsert: true });
@@ -464,17 +465,17 @@ function CaptureFlow({
             ? L("Checked in — Late", "चेक-इन हुआ — देर से")
             : L("Checked in — On Time", "चेक-इन हुआ — समय पर"),
         );
-      } else if (existing) {
-        const { error } = await supabase.from("attendance").update({
-          check_out_at: new Date().toISOString(),
-          check_out_selfie_url: path,
-          check_out_lat: coords?.lat ?? null,
-          check_out_lng: coords?.lng ?? null,
-        }).eq("id", existing.id);
-        if (error) throw error;
-        if (coords) {
-          await supabase.from("employee_locations").upsert({ user_id: user.id, lat: coords.lat, lng: coords.lng, updated_at: new Date().toISOString() });
-        }
+      } else if (fix) {
+        // Server re-validates the fix and stamps the official check-out time.
+        await markCheckOut({
+          data: {
+            lat: fix.lat,
+            lng: fix.lng,
+            accuracy: fix.accuracy,
+            captured_at: fix.captured_at,
+            selfie_url: path,
+          },
+        });
         toast.success(L("Checked out", "चेक-आउट हुआ"));
       }
       onDone();
@@ -523,7 +524,9 @@ function CaptureFlow({
         <div className="text-xs flex items-start gap-2 p-2 rounded-md bg-destructive/10 text-destructive border border-destructive/40">
           <AlertTriangle className="size-4 shrink-0 mt-0.5" />
           <div>
-            <div className="font-bold">{L("Location is required to mark attendance", "हाज़िरी दर्ज करने के लिए स्थान आवश्यक है")}</div>
+            <div className="font-bold">{kind === "checkin"
+              ? L("Location is required to mark attendance", "हाज़िरी दर्ज करने के लिए स्थान आवश्यक है")
+              : L("Location is required to check out. Please enable Location and try again.", "चेक-आउट के लिए स्थान आवश्यक है। कृपया लोकेशन चालू करके पुनः प्रयास करें।")}</div>
             <div className="opacity-80">{locError}</div>
           </div>
         </div>
