@@ -300,7 +300,7 @@ function AfterCheckOut({ row, L, onView }: { row: AttRow; L: (en: string, hi: st
 /* ---------- Capture flow (used for both check-in and check-out) ---------- */
 
 function CaptureFlow({
-  user, L, kind, existing, onCancel, onDone,
+  user, L, kind, onCancel, onDone,
 }: {
   user: { id: string };
   L: (en: string, hi: string) => string;
