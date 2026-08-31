@@ -9,7 +9,8 @@ import { CHECKED_IN_EVENT } from "@/lib/geo";
  *  - Only runs once the employee has checked in today (and not checked out)
  *  - Sample GPS in the background
  *  - Persist (live upsert + history insert) only when the employee has moved
- *    more than 200m OR at least 5 minutes have passed since the last save
+ *    more than 100m OR at least 5 minutes have passed since the last save
+ *    (a DB trigger enforces the same rule server-side as a dedupe guard)
  *  - Reverse-geocode (Nominatim) to a human-readable address before storing
  *  - Admins are excluded
  */
