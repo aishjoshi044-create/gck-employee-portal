@@ -103,7 +103,7 @@ export function LocationTracker() {
       const { latitude, longitude, accuracy } = pos.coords;
       const now = Date.now();
       const last = lastSaved.current;
-      const moved = !last || distMeters(last, { lat: latitude, lng: longitude }) > 200;
+      const moved = !last || distMeters(last, { lat: latitude, lng: longitude }) > 100;
       const elapsed = !last || now - last.t > 5 * 60 * 1000;
       if (moved || elapsed) save(latitude, longitude, accuracy ?? null);
     };
