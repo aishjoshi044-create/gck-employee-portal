@@ -586,6 +586,10 @@ export type Database = {
     Functions: {
       cleanup_deleted_tasks: { Args: never; Returns: undefined }
       cleanup_old_location_history: { Args: never; Returns: undefined }
+      geo_distance_m: {
+        Args: { lat1: number; lat2: number; lng1: number; lng2: number }
+        Returns: number
+      }
       get_admin_ids: { Args: never; Returns: string[] }
     }
     Enums: {
