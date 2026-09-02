@@ -741,14 +741,6 @@ function RangeSheet({
               <label className="text-xs text-muted-foreground">{L("To", "तक")}</label>
               <Input type="date" value={to} min={from} max={todayStr} onChange={(e) => setTo(e.target.value)} />
             </div>
-            <div className="flex items-end gap-1">
-              <Button variant="outline" size="sm" className="gap-1"
-                onClick={() => downloadExcel(`attendance-${from}_${to}.xlsx`, [{ name: `${from}_${to}`, header: HEAD, rows: body() }])}
-              ><FileSpreadsheet className="size-4" /> Excel</Button>
-              <Button variant="outline" size="sm" className="gap-1"
-                onClick={() => downloadPdf({ title: `${L("Attendance", "हाज़िरी")} ${from} → ${to}`, filename: `attendance-${from}_${to}.pdf`, head: HEAD, body: body() })}
-              ><FileDown className="size-4" /> PDF</Button>
-            </div>
           </div>
           <div className="flex gap-2 flex-wrap">
             {[
