@@ -308,3 +308,127 @@ export async function downloadEmployeePerfPdf(opts: EmpPerfPdfOptions) {
 
   doc.save(opts.filename);
 }
+
+// ===== Traditional monthly attendance register (A4 landscape) =====
+export type RegisterMark = "P" | "A" | "L" | "H" | "";
+
+export interface RegisterEmployee {
+  name: string;
+  empId: string;
+  project: string;
+  /** Index 0 = day 1 of the month. */
+  marks: RegisterMark[];
+}
+
+export interface RegisterPdfOptions {
+  filename: string;
+  /** e.g. "September 2026" */
+  monthLabel: string;
+  projectLabel: string;
+  daysInMonth: number;
+  /** 1-based day numbers that are Sundays/holidays. */
+  holidays: number[];
+  employees: RegisterEmployee[];
+}
+
+export async function downloadAttendanceRegisterPdf(opts: RegisterPdfOptions) {
+  const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const pageH = doc.internal.pageSize.getHeight();
+  const margin = 20;
+
+  // ---- Header ----
+  const logoData = await loadLogoDataUrl();
+  if (logoData) { try { doc.addImage(logoData, "JPEG", margin, 14, 34, 34); } catch { /* */ } }
+  doc.setTextColor(30, 30, 30);
+  doc.setFont("helvetica", "bold"); doc.setFontSize(14);
+  doc.text("Gram Chetna Kendra", margin + 42, 28);
+  doc.setFont("helvetica", "normal"); doc.setFontSize(10);
+  doc.text("Monthly Attendance Register", margin + 42, 43);
+  doc.setFont("helvetica", "bold"); doc.setFontSize(11);
+  doc.text(`Month: ${opts.monthLabel}`, pageW / 2, 28, { align: "center" });
+  doc.setFont("helvetica", "normal"); doc.setFontSize(10);
+  doc.text(`Project: ${opts.projectLabel}`, pageW / 2, 43, { align: "center" });
+  doc.setFontSize(8); doc.setTextColor(90, 90, 90);
+  doc.text(`Generated: ${format(new Date(), "d MMM yyyy, h:mm a")}`, pageW - margin, 24, { align: "right" });
+  doc.text(`Employees: ${opts.employees.length}`, pageW - margin, 38, { align: "right" });
+  doc.setDrawColor(150);
+  doc.line(margin, 54, pageW - margin, 54);
+
+  const days = Array.from({ length: opts.daysInMonth }, (_, i) => i + 1);
+  const holidaySet = new Set(opts.holidays);
+
+  const head = [
+    ["#", "Employee Name", "Emp ID", ...days.map((d) => String(d)), "P", "A", "L"],
+  ];
+  const body = opts.employees.map((e, i) => {
+    let p = 0, a = 0, l = 0;
+    e.marks.forEach((m) => { if (m === "P") p++; else if (m === "A") a++; else if (m === "L") l++; });
+    return [
+      String(i + 1),
+      e.name,
+      e.empId,
+      ...days.map((d) => e.marks[d - 1] ?? ""),
+      String(p), String(a), String(l),
+    ];
+  });
+
+  const nameW = 116, idW = 62, numW = 20, totW = 22;
+  const dayW = (pageW - margin * 2 - nameW - idW - numW - totW * 3) / opts.daysInMonth;
+  const columnStyles: Record<number, any> = {
+    0: { cellWidth: numW, halign: "center", fontStyle: "bold" },
+    1: { cellWidth: nameW, halign: "left" },
+    2: { cellWidth: idW, halign: "left" },
+  };
+  days.forEach((d, idx) => {
+    columnStyles[3 + idx] = {
+      cellWidth: dayW,
+      halign: "center",
+      fillColor: holidaySet.has(d) ? [235, 235, 235] : undefined,
+    };
+  });
+  [0, 1, 2].forEach((k) => {
+    columnStyles[3 + opts.daysInMonth + k] = { cellWidth: totW, halign: "center", fontStyle: "bold" };
+  });
+
+  autoTable(doc, {
+    startY: 62,
+    head,
+    body,
+    theme: "grid",
+    styles: {
+      fontSize: 6.5, cellPadding: 1.6, lineColor: [110, 110, 110], lineWidth: 0.5,
+      textColor: [30, 30, 30], overflow: "hidden", valign: "middle",
+    },
+    headStyles: {
+      fillColor: [235, 231, 224], textColor: [30, 30, 30], fontStyle: "bold",
+      fontSize: 6.5, halign: "center", lineColor: [90, 90, 90], lineWidth: 0.6,
+    },
+    bodyStyles: { minCellHeight: 13 },
+    columnStyles,
+    margin: { left: margin, right: margin, bottom: 44 },
+    tableWidth: pageW - margin * 2,
+    didParseCell: (data) => {
+      if (data.section !== "body") return;
+      const raw = String(data.cell.raw ?? "");
+      const idx = data.column.index;
+      if (idx >= 3 && idx < 3 + opts.daysInMonth) {
+        if (raw === "A") data.cell.styles.textColor = [190, 30, 30];
+        else if (raw === "L") data.cell.styles.textColor = [30, 80, 180];
+        else if (raw === "H") data.cell.styles.textColor = [110, 110, 110];
+        else if (raw === "P") data.cell.styles.textColor = [20, 110, 60];
+        data.cell.styles.fontStyle = "bold";
+      }
+    },
+    didDrawPage: () => {
+      // Legend + footer on each page
+      doc.setFontSize(7.5); doc.setFont("helvetica", "normal"); doc.setTextColor(60, 60, 60);
+      doc.text("Legend:  P = Present   |   A = Absent   |   L = Leave   |   H = Holiday (Sunday / declared holiday)", margin, pageH - 24);
+      doc.setTextColor(120, 120, 120); doc.setFontSize(7);
+      doc.text("Gram Chetna Kendra · Confidential", margin, pageH - 12);
+      doc.text(`Page ${doc.getNumberOfPages()}`, pageW - margin, pageH - 12, { align: "right" });
+    },
+  } as UserOptions);
+
+  doc.save(opts.filename);
+}
