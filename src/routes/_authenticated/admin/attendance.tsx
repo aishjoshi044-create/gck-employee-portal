@@ -13,11 +13,11 @@ import { useEffect, useMemo, useState } from "react";
 import { format, addDays, addMonths, startOfMonth, endOfMonth, isAfter, parseISO } from "date-fns";
 import { toast } from "sonner";
 import {
-  FileDown, FileSpreadsheet, Search, Users, UserCheck, UserX, Clock,
+  Search, Users, UserCheck, UserX, Clock,
   MapPin, ScanFace, Eye, ExternalLink, Flag, ChevronLeft, ChevronRight,
   CalendarRange,
 } from "lucide-react";
-import { downloadPdf, downloadExcel, downloadAttendanceRegisterPdf } from "@/lib/exports";
+import { downloadAttendanceRegisterPdf } from "@/lib/exports";
 import { useAdminIds } from "@/hooks/useAdminIds";
 
 export const Route = createFileRoute("/_authenticated/admin/attendance")({
@@ -180,25 +180,6 @@ function AdminAttendance() {
     return t;
   }, [rows]);
 
-  const HEAD = [
-    L("Name", "नाम"), L("Project", "परियोजना"), L("Check-in", "चेक-इन"),
-    L("Check-out", "चेक-आउट"), L("Hours", "घंटे"), L("Status", "स्थिति"),
-    L("GPS", "GPS"), L("Face", "चेहरा"),
-  ];
-  const buildExport = () => filtered.map((r) => {
-    const s = statusOf(r);
-    const a = r.attendance;
-    return [
-      r.full_name,
-      r.project ?? "—",
-      a?.check_in_at ? format(new Date(a.check_in_at), "h:mm a") : "—",
-      a?.check_out_at ? format(new Date(a.check_out_at), "h:mm a") : "—",
-      workingHours(a).label,
-      statusLabel(s, L),
-      a?.lat && a?.lng ? `${a.lat.toFixed(4)}, ${a.lng.toFixed(4)}` : "—",
-      a?.selfie_url ? L("Yes", "हाँ") : L("No", "नहीं"),
-    ];
-  });
 
   const open = openId ? rows.find((r) => r.id === openId) ?? null : null;
   const visible = filtered.slice(0, visibleCount);
@@ -281,16 +262,8 @@ function AdminAttendance() {
           <p className="text-sm text-muted-foreground">{format(new Date(date), "EEEE, d MMM yyyy")}</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="gap-2"
-            onClick={() => downloadPdf({
-              title: `${L("Attendance", "हाज़िरी")} — ${format(new Date(date), "d MMM yyyy")}`,
-              filename: `attendance-${date}.pdf`, head: HEAD, body: buildExport(),
-            })}
-          ><FileDown className="size-4" /> PDF</Button>
-          <Button variant="outline" size="sm" className="gap-2"
-            onClick={() => downloadExcel(`attendance-${date}.xlsx`, [{ name: date, header: HEAD, rows: buildExport() }])}
-          ><FileSpreadsheet className="size-4" /> Excel</Button>
           <Button size="sm" className="gap-2" disabled={registerBusy} onClick={downloadRegister}>
+
             <CalendarRange className="size-4" />
             {registerBusy ? L("Preparing…", "तैयार हो रहा…") : L("Monthly Register PDF", "मासिक रजिस्टर PDF")}
           </Button>
@@ -713,17 +686,6 @@ function RangeSheet({
     return (data ?? []).filter((r: any) => `${r.full_name} ${r.username}`.toLowerCase().includes(needle));
   }, [data, q]);
 
-  const HEAD = [
-    L("Employee", "कर्मचारी"), L("Project", "परियोजना"),
-    L("Present", "उपस्थित"), L("Late", "देर से"),
-    L("Absent", "अनुपस्थित"), L("Leave", "अवकाश"),
-    L("Pending", "बाकी"), L("Hours", "घंटे"),
-  ];
-  const body = () => filtered.map((r: any) => [
-    r.full_name, r.project ?? "—",
-    r.stats.present, r.stats.late, r.stats.absent, r.stats.leave, r.stats.pending,
-    r.stats.hours.toFixed(1),
-  ]);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -740,14 +702,6 @@ function RangeSheet({
             <div>
               <label className="text-xs text-muted-foreground">{L("To", "तक")}</label>
               <Input type="date" value={to} min={from} max={todayStr} onChange={(e) => setTo(e.target.value)} />
-            </div>
-            <div className="flex items-end gap-1">
-              <Button variant="outline" size="sm" className="gap-1"
-                onClick={() => downloadExcel(`attendance-${from}_${to}.xlsx`, [{ name: `${from}_${to}`, header: HEAD, rows: body() }])}
-              ><FileSpreadsheet className="size-4" /> Excel</Button>
-              <Button variant="outline" size="sm" className="gap-1"
-                onClick={() => downloadPdf({ title: `${L("Attendance", "हाज़िरी")} ${from} → ${to}`, filename: `attendance-${from}_${to}.pdf`, head: HEAD, body: body() })}
-              ><FileDown className="size-4" /> PDF</Button>
             </div>
           </div>
           <div className="flex gap-2 flex-wrap">
