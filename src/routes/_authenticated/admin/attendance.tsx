@@ -13,11 +13,11 @@ import { useEffect, useMemo, useState } from "react";
 import { format, addDays, addMonths, startOfMonth, endOfMonth, isAfter, parseISO } from "date-fns";
 import { toast } from "sonner";
 import {
-  FileDown, FileSpreadsheet, Search, Users, UserCheck, UserX, Clock,
+  Search, Users, UserCheck, UserX, Clock,
   MapPin, ScanFace, Eye, ExternalLink, Flag, ChevronLeft, ChevronRight,
   CalendarRange,
 } from "lucide-react";
-import { downloadPdf, downloadExcel, downloadAttendanceRegisterPdf } from "@/lib/exports";
+import { downloadAttendanceRegisterPdf } from "@/lib/exports";
 import { useAdminIds } from "@/hooks/useAdminIds";
 
 export const Route = createFileRoute("/_authenticated/admin/attendance")({
@@ -180,25 +180,6 @@ function AdminAttendance() {
     return t;
   }, [rows]);
 
-  const HEAD = [
-    L("Name", "नाम"), L("Project", "परियोजना"), L("Check-in", "चेक-इन"),
-    L("Check-out", "चेक-आउट"), L("Hours", "घंटे"), L("Status", "स्थिति"),
-    L("GPS", "GPS"), L("Face", "चेहरा"),
-  ];
-  const buildExport = () => filtered.map((r) => {
-    const s = statusOf(r);
-    const a = r.attendance;
-    return [
-      r.full_name,
-      r.project ?? "—",
-      a?.check_in_at ? format(new Date(a.check_in_at), "h:mm a") : "—",
-      a?.check_out_at ? format(new Date(a.check_out_at), "h:mm a") : "—",
-      workingHours(a).label,
-      statusLabel(s, L),
-      a?.lat && a?.lng ? `${a.lat.toFixed(4)}, ${a.lng.toFixed(4)}` : "—",
-      a?.selfie_url ? L("Yes", "हाँ") : L("No", "नहीं"),
-    ];
-  });
 
   const open = openId ? rows.find((r) => r.id === openId) ?? null : null;
   const visible = filtered.slice(0, visibleCount);
@@ -705,17 +686,6 @@ function RangeSheet({
     return (data ?? []).filter((r: any) => `${r.full_name} ${r.username}`.toLowerCase().includes(needle));
   }, [data, q]);
 
-  const HEAD = [
-    L("Employee", "कर्मचारी"), L("Project", "परियोजना"),
-    L("Present", "उपस्थित"), L("Late", "देर से"),
-    L("Absent", "अनुपस्थित"), L("Leave", "अवकाश"),
-    L("Pending", "बाकी"), L("Hours", "घंटे"),
-  ];
-  const body = () => filtered.map((r: any) => [
-    r.full_name, r.project ?? "—",
-    r.stats.present, r.stats.late, r.stats.absent, r.stats.leave, r.stats.pending,
-    r.stats.hours.toFixed(1),
-  ]);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
