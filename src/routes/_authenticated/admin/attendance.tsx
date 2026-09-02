@@ -203,6 +203,76 @@ function AdminAttendance() {
   const open = openId ? rows.find((r) => r.id === openId) ?? null : null;
   const visible = filtered.slice(0, visibleCount);
 
+  // ---- Traditional monthly register PDF ----
+  const [registerBusy, setRegisterBusy] = useState(false);
+  const downloadRegister = async () => {
+    setRegisterBusy(true);
+    try {
+      const monthStart = startOfMonth(dateObj);
+      const monthEnd = endOfMonth(dateObj);
+      const from = format(monthStart, "yyyy-MM-dd");
+      const to = format(monthEnd, "yyyy-MM-dd");
+      const daysInMonth = monthEnd.getDate();
+      const todayStr = format(new Date(), "yyyy-MM-dd");
+
+      const [{ data: profs }, { data: att }, { data: leaves }] = await Promise.all([
+        supabase.from("profiles").select("id,full_name,username,project")
+          .eq("active", true).not("id", "in", notInList).order("full_name"),
+        supabase.from("attendance").select("user_id,date,status,check_in_at").gte("date", from).lte("date", to),
+        supabase.from("leave_requests").select("user_id,start_date,end_date,status")
+          .eq("status", "approved").lte("start_date", to).gte("end_date", from),
+      ]);
+
+      const attMap = new Map<string, string>();
+      (att ?? []).forEach((a: any) => attMap.set(`${a.user_id}|${a.date}`, a.status));
+      const leaveDays = new Set<string>();
+      (leaves ?? []).forEach((lv: any) => {
+        let d = parseISO(lv.start_date);
+        const end = parseISO(lv.end_date);
+        while (d <= end) {
+          leaveDays.add(`${lv.user_id}|${format(d, "yyyy-MM-dd")}`);
+          d = addDays(d, 1);
+        }
+      });
+
+      const holidays: number[] = [];
+      for (let d = 1; d <= daysInMonth; d++) {
+        const dt = new Date(monthStart.getFullYear(), monthStart.getMonth(), d);
+        if (dt.getDay() === 0) holidays.push(d);
+      }
+      const holidaySet = new Set(holidays);
+
+      const pool = (profs ?? []).filter((p: any) => dept === "all" || (p.project ?? "") === dept);
+      const employees = pool.map((p: any) => {
+        const marks = Array.from({ length: daysInMonth }, (_, i) => {
+          const day = i + 1;
+          const ds = format(new Date(monthStart.getFullYear(), monthStart.getMonth(), day), "yyyy-MM-dd");
+          if (ds > todayStr) return "" as const;
+          const st = attMap.get(`${p.id}|${ds}`);
+          if (st === "leave" || leaveDays.has(`${p.id}|${ds}`)) return "L" as const;
+          if (st === "present" || st === "late") return "P" as const;
+          if (holidaySet.has(day)) return "H" as const;
+          return "A" as const;
+        });
+        return { name: p.full_name, empId: p.username, project: p.project ?? "—", marks };
+      });
+
+      await downloadAttendanceRegisterPdf({
+        filename: `attendance-register-${format(monthStart, "yyyy-MM")}.pdf`,
+        monthLabel: format(monthStart, "MMMM yyyy"),
+        projectLabel: dept === "all" ? L("All Projects", "सभी परियोजना") : dept,
+        daysInMonth,
+        holidays,
+        employees,
+      });
+    } catch (e: any) {
+      toast.error(e?.message ?? L("Could not generate register", "रजिस्टर नहीं बना"));
+    } finally {
+      setRegisterBusy(false);
+    }
+  };
+
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
