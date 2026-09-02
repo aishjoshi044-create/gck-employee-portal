@@ -290,6 +290,10 @@ function AdminAttendance() {
           <Button variant="outline" size="sm" className="gap-2"
             onClick={() => downloadExcel(`attendance-${date}.xlsx`, [{ name: date, header: HEAD, rows: buildExport() }])}
           ><FileSpreadsheet className="size-4" /> Excel</Button>
+          <Button size="sm" className="gap-2" disabled={registerBusy} onClick={downloadRegister}>
+            <CalendarRange className="size-4" />
+            {registerBusy ? L("Preparing…", "तैयार हो रहा…") : L("Monthly Register PDF", "मासिक रजिस्टर PDF")}
+          </Button>
         </div>
       </div>
 
