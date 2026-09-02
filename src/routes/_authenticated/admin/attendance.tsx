@@ -281,15 +281,8 @@ function AdminAttendance() {
           <p className="text-sm text-muted-foreground">{format(new Date(date), "EEEE, d MMM yyyy")}</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="gap-2"
-            onClick={() => downloadPdf({
-              title: `${L("Attendance", "हाज़िरी")} — ${format(new Date(date), "d MMM yyyy")}`,
-              filename: `attendance-${date}.pdf`, head: HEAD, body: buildExport(),
-            })}
-          ><FileDown className="size-4" /> PDF</Button>
-          <Button variant="outline" size="sm" className="gap-2"
-            onClick={() => downloadExcel(`attendance-${date}.xlsx`, [{ name: date, header: HEAD, rows: buildExport() }])}
-          ><FileSpreadsheet className="size-4" /> Excel</Button>
+          <Button size="sm" className="gap-2" disabled={registerBusy} onClick={downloadRegister}>
+
           <Button size="sm" className="gap-2" disabled={registerBusy} onClick={downloadRegister}>
             <CalendarRange className="size-4" />
             {registerBusy ? L("Preparing…", "तैयार हो रहा…") : L("Monthly Register PDF", "मासिक रजिस्टर PDF")}
