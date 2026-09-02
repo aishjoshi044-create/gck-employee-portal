@@ -283,7 +283,6 @@ function AdminAttendance() {
         <div className="flex items-center gap-2">
           <Button size="sm" className="gap-2" disabled={registerBusy} onClick={downloadRegister}>
 
-          <Button size="sm" className="gap-2" disabled={registerBusy} onClick={downloadRegister}>
             <CalendarRange className="size-4" />
             {registerBusy ? L("Preparing…", "तैयार हो रहा…") : L("Monthly Register PDF", "मासिक रजिस्टर PDF")}
           </Button>
