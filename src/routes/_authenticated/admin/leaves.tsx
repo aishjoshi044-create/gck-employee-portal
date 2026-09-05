@@ -322,10 +322,16 @@ function LeavesPage() {
   );
 }
 
-function StatCard({ icon, label, value, tone }: { icon: React.ReactNode; label: string; value: number; tone: "warning" | "success" | "destructive" | "primary" }) {
+function StatCard({ icon, label, value, tone, onClick, active }: { icon: React.ReactNode; label: string; value: number; tone: "warning" | "success" | "destructive" | "primary"; onClick?: () => void; active?: boolean }) {
   const toneCls = tone === "warning" ? "bg-warning/15 text-warning-foreground" : tone === "success" ? "bg-success/15 text-success" : tone === "destructive" ? "bg-destructive/15 text-destructive" : "bg-primary/15 text-primary";
   return (
-    <Card className="p-3 flex items-center gap-3">
+    <Card
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } } : undefined}
+      className={`p-3 flex items-center gap-3 ${onClick ? "cursor-pointer" : ""} ${active ? "ring-2 ring-primary" : ""}`}
+    >
       <div className={`size-10 rounded-lg flex items-center justify-center ${toneCls}`}>{icon}</div>
       <div className="min-w-0">
         <div className="text-2xl font-extrabold leading-none">{value}</div>
