@@ -168,7 +168,7 @@ function LeavesPage() {
         <StatCard icon={<Clock className="size-5" />} label={t("lv_pending_requests")} value={stats.pending} tone="warning" />
         <StatCard icon={<ClipboardCheck className="size-5" />} label={t("lv_approved_this_month")} value={stats.approvedM} tone="success" />
         <StatCard icon={<ClipboardX className="size-5" />} label={t("lv_rejected_this_month")} value={stats.rejectedM} tone="destructive" />
-        <StatCard icon={<Users className="size-5" />} label={t("lv_on_leave_today")} value={stats.onLeaveToday} tone="primary" />
+        <StatCard icon={<Users className="size-5" />} label={t("lv_on_leave_today")} value={stats.onLeaveToday} tone="primary" onClick={() => setStatusF("on_leave_today")} active={statusF === "on_leave_today"} />
       </div>
 
       {/* Filters */}
@@ -237,7 +237,7 @@ function LeavesPage() {
                   <TableRow key={l.id} className="cursor-pointer" onClick={() => { setOpen(l); setRemark(l.admin_note ?? ""); }}>
                     <TableCell>
                       <div className="font-semibold truncate max-w-[180px]">{l.profiles?.full_name ?? "—"}</div>
-                      <div className="text-xs text-muted-foreground truncate max-w-[180px]">{l.profiles?.project ?? l.profiles?.username ?? "—"}</div>
+                      <div className="text-xs text-muted-foreground truncate max-w-[180px]">{[l.profiles?.username, l.profiles?.project].filter(Boolean).join(" · ") || "—"}</div>
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
                       <span className="text-xs px-1.5 py-0.5 rounded bg-muted font-medium">{t(`leave_${type}` as DictKey)}</span>
