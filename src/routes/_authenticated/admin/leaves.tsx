@@ -118,8 +118,12 @@ function LeavesPage() {
 
   const filtered = useMemo(() => {
     const qq = q.trim().toLowerCase();
+    const today = new Date();
     return list.filter((l) => {
-      if (statusF !== "all" && l.status !== statusF) return false;
+      if (statusF === "on_leave_today") {
+        if (l.status !== "approved") return false;
+        if (today < parseISO(l.start_date) || today > parseISO(`${l.end_date}T23:59:59`)) return false;
+      } else if (statusF !== "all" && l.status !== statusF) return false;
       const { type } = parseLeave(l.reason);
       if (typeF !== "all" && type !== typeF) return false;
       if (qq) {
@@ -181,6 +185,7 @@ function LeavesPage() {
               <SelectItem value="pending">{t("pending")}</SelectItem>
               <SelectItem value="approved">{t("approved")}</SelectItem>
               <SelectItem value="rejected">{t("rejected")}</SelectItem>
+              <SelectItem value="on_leave_today">{t("lv_on_leave_today")}</SelectItem>
             </SelectContent>
           </Select>
           <Select value={typeF} onValueChange={setTypeF}>
