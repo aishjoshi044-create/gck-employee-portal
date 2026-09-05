@@ -118,8 +118,12 @@ function LeavesPage() {
 
   const filtered = useMemo(() => {
     const qq = q.trim().toLowerCase();
+    const today = new Date();
     return list.filter((l) => {
-      if (statusF !== "all" && l.status !== statusF) return false;
+      if (statusF === "on_leave_today") {
+        if (l.status !== "approved") return false;
+        if (today < parseISO(l.start_date) || today > parseISO(`${l.end_date}T23:59:59`)) return false;
+      } else if (statusF !== "all" && l.status !== statusF) return false;
       const { type } = parseLeave(l.reason);
       if (typeF !== "all" && type !== typeF) return false;
       if (qq) {
@@ -164,7 +168,7 @@ function LeavesPage() {
         <StatCard icon={<Clock className="size-5" />} label={t("lv_pending_requests")} value={stats.pending} tone="warning" />
         <StatCard icon={<ClipboardCheck className="size-5" />} label={t("lv_approved_this_month")} value={stats.approvedM} tone="success" />
         <StatCard icon={<ClipboardX className="size-5" />} label={t("lv_rejected_this_month")} value={stats.rejectedM} tone="destructive" />
-        <StatCard icon={<Users className="size-5" />} label={t("lv_on_leave_today")} value={stats.onLeaveToday} tone="primary" />
+        <StatCard icon={<Users className="size-5" />} label={t("lv_on_leave_today")} value={stats.onLeaveToday} tone="primary" onClick={() => setStatusF("on_leave_today")} active={statusF === "on_leave_today"} />
       </div>
 
       {/* Filters */}
@@ -181,6 +185,7 @@ function LeavesPage() {
               <SelectItem value="pending">{t("pending")}</SelectItem>
               <SelectItem value="approved">{t("approved")}</SelectItem>
               <SelectItem value="rejected">{t("rejected")}</SelectItem>
+              <SelectItem value="on_leave_today">{t("lv_on_leave_today")}</SelectItem>
             </SelectContent>
           </Select>
           <Select value={typeF} onValueChange={setTypeF}>
@@ -232,7 +237,7 @@ function LeavesPage() {
                   <TableRow key={l.id} className="cursor-pointer" onClick={() => { setOpen(l); setRemark(l.admin_note ?? ""); }}>
                     <TableCell>
                       <div className="font-semibold truncate max-w-[180px]">{l.profiles?.full_name ?? "—"}</div>
-                      <div className="text-xs text-muted-foreground truncate max-w-[180px]">{l.profiles?.project ?? l.profiles?.username ?? "—"}</div>
+                      <div className="text-xs text-muted-foreground truncate max-w-[180px]">{[l.profiles?.username, l.profiles?.project].filter(Boolean).join(" · ") || "—"}</div>
                     </TableCell>
                     <TableCell className="hidden md:table-cell">
                       <span className="text-xs px-1.5 py-0.5 rounded bg-muted font-medium">{t(`leave_${type}` as DictKey)}</span>
@@ -317,10 +322,16 @@ function LeavesPage() {
   );
 }
 
-function StatCard({ icon, label, value, tone }: { icon: React.ReactNode; label: string; value: number; tone: "warning" | "success" | "destructive" | "primary" }) {
+function StatCard({ icon, label, value, tone, onClick, active }: { icon: React.ReactNode; label: string; value: number; tone: "warning" | "success" | "destructive" | "primary"; onClick?: () => void; active?: boolean }) {
   const toneCls = tone === "warning" ? "bg-warning/15 text-warning-foreground" : tone === "success" ? "bg-success/15 text-success" : tone === "destructive" ? "bg-destructive/15 text-destructive" : "bg-primary/15 text-primary";
   return (
-    <Card className="p-3 flex items-center gap-3">
+    <Card
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } } : undefined}
+      className={`p-3 flex items-center gap-3 ${onClick ? "cursor-pointer" : ""} ${active ? "ring-2 ring-primary" : ""}`}
+    >
       <div className={`size-10 rounded-lg flex items-center justify-center ${toneCls}`}>{icon}</div>
       <div className="min-w-0">
         <div className="text-2xl font-extrabold leading-none">{value}</div>
