@@ -579,6 +579,69 @@ export type Database = {
         }
         Relationships: []
       }
+      vehicle_meter_logs: {
+        Row: {
+          created_at: string
+          end_km: number
+          id: string
+          log_date: string
+          ocr_reading: number | null
+          photo_path: string | null
+          photo_purged_at: string | null
+          project: string | null
+          review_notes: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          start_km: number
+          total_km: number | null
+          updated_at: string
+          user_id: string
+          validation_notes: string | null
+          validation_status: Database["public"]["Enums"]["meter_validation_status"]
+          vehicle: string
+        }
+        Insert: {
+          created_at?: string
+          end_km: number
+          id?: string
+          log_date: string
+          ocr_reading?: number | null
+          photo_path?: string | null
+          photo_purged_at?: string | null
+          project?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          start_km: number
+          total_km?: number | null
+          updated_at?: string
+          user_id: string
+          validation_notes?: string | null
+          validation_status?: Database["public"]["Enums"]["meter_validation_status"]
+          vehicle: string
+        }
+        Update: {
+          created_at?: string
+          end_km?: number
+          id?: string
+          log_date?: string
+          ocr_reading?: number | null
+          photo_path?: string | null
+          photo_purged_at?: string | null
+          project?: string | null
+          review_notes?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          start_km?: number
+          total_km?: number | null
+          updated_at?: string
+          user_id?: string
+          validation_notes?: string | null
+          validation_status?: Database["public"]["Enums"]["meter_validation_status"]
+          vehicle?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -605,6 +668,7 @@ export type Database = {
       daily_report_status: "pending" | "approved" | "rejected"
       document_category: "monthly_ppt" | "monthly_activity" | "budget" | "other"
       leave_status: "pending" | "approved" | "rejected"
+      meter_validation_status: "verified" | "flagged" | "reviewed"
       task_priority: "low" | "medium" | "high"
       task_status:
         | "not_started"
@@ -753,6 +817,7 @@ export const Constants = {
       daily_report_status: ["pending", "approved", "rejected"],
       document_category: ["monthly_ppt", "monthly_activity", "budget", "other"],
       leave_status: ["pending", "approved", "rejected"],
+      meter_validation_status: ["verified", "flagged", "reviewed"],
       task_priority: ["low", "medium", "high"],
       task_status: [
         "not_started",
