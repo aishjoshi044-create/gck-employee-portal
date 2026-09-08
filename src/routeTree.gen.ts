@@ -14,11 +14,13 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedMeIndexRouteImport } from './routes/_authenticated/me/index'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
+import { Route as AuthenticatedMeVehicleLogRouteImport } from './routes/_authenticated/me/vehicle-log'
 import { Route as AuthenticatedMeReportsRouteImport } from './routes/_authenticated/me/reports'
 import { Route as AuthenticatedMeProfileRouteImport } from './routes/_authenticated/me/profile'
 import { Route as AuthenticatedMeNotificationsRouteImport } from './routes/_authenticated/me/notifications'
 import { Route as AuthenticatedMeLeaveRouteImport } from './routes/_authenticated/me/leave'
 import { Route as AuthenticatedMeAttendanceRouteImport } from './routes/_authenticated/me/attendance'
+import { Route as AuthenticatedAdminVehicleLogsRouteImport } from './routes/_authenticated/admin/vehicle-logs'
 import { Route as AuthenticatedAdminUpdatesRouteImport } from './routes/_authenticated/admin/updates'
 import { Route as AuthenticatedAdminTasksRouteImport } from './routes/_authenticated/admin/tasks'
 import { Route as AuthenticatedAdminSettingsRouteImport } from './routes/_authenticated/admin/settings'
@@ -59,6 +61,12 @@ const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   path: '/admin/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedMeVehicleLogRoute =
+  AuthenticatedMeVehicleLogRouteImport.update({
+    id: '/me/vehicle-log',
+    path: '/me/vehicle-log',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedMeReportsRoute = AuthenticatedMeReportsRouteImport.update({
   id: '/me/reports',
   path: '/me/reports',
@@ -84,6 +92,12 @@ const AuthenticatedMeAttendanceRoute =
   AuthenticatedMeAttendanceRouteImport.update({
     id: '/me/attendance',
     path: '/me/attendance',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAdminVehicleLogsRoute =
+  AuthenticatedAdminVehicleLogsRouteImport.update({
+    id: '/admin/vehicle-logs',
+    path: '/admin/vehicle-logs',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAdminUpdatesRoute =
@@ -189,11 +203,13 @@ export interface FileRoutesByFullPath {
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/tasks': typeof AuthenticatedAdminTasksRoute
   '/admin/updates': typeof AuthenticatedAdminUpdatesRoute
+  '/admin/vehicle-logs': typeof AuthenticatedAdminVehicleLogsRoute
   '/me/attendance': typeof AuthenticatedMeAttendanceRoute
   '/me/leave': typeof AuthenticatedMeLeaveRoute
   '/me/notifications': typeof AuthenticatedMeNotificationsRoute
   '/me/profile': typeof AuthenticatedMeProfileRoute
   '/me/reports': typeof AuthenticatedMeReportsRoute
+  '/me/vehicle-log': typeof AuthenticatedMeVehicleLogRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/me/': typeof AuthenticatedMeIndexRoute
   '/me/tasks/$id': typeof AuthenticatedMeTasksIdRoute
@@ -215,11 +231,13 @@ export interface FileRoutesByTo {
   '/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/admin/tasks': typeof AuthenticatedAdminTasksRoute
   '/admin/updates': typeof AuthenticatedAdminUpdatesRoute
+  '/admin/vehicle-logs': typeof AuthenticatedAdminVehicleLogsRoute
   '/me/attendance': typeof AuthenticatedMeAttendanceRoute
   '/me/leave': typeof AuthenticatedMeLeaveRoute
   '/me/notifications': typeof AuthenticatedMeNotificationsRoute
   '/me/profile': typeof AuthenticatedMeProfileRoute
   '/me/reports': typeof AuthenticatedMeReportsRoute
+  '/me/vehicle-log': typeof AuthenticatedMeVehicleLogRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/me': typeof AuthenticatedMeIndexRoute
   '/me/tasks/$id': typeof AuthenticatedMeTasksIdRoute
@@ -243,11 +261,13 @@ export interface FileRoutesById {
   '/_authenticated/admin/settings': typeof AuthenticatedAdminSettingsRoute
   '/_authenticated/admin/tasks': typeof AuthenticatedAdminTasksRoute
   '/_authenticated/admin/updates': typeof AuthenticatedAdminUpdatesRoute
+  '/_authenticated/admin/vehicle-logs': typeof AuthenticatedAdminVehicleLogsRoute
   '/_authenticated/me/attendance': typeof AuthenticatedMeAttendanceRoute
   '/_authenticated/me/leave': typeof AuthenticatedMeLeaveRoute
   '/_authenticated/me/notifications': typeof AuthenticatedMeNotificationsRoute
   '/_authenticated/me/profile': typeof AuthenticatedMeProfileRoute
   '/_authenticated/me/reports': typeof AuthenticatedMeReportsRoute
+  '/_authenticated/me/vehicle-log': typeof AuthenticatedMeVehicleLogRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/me/': typeof AuthenticatedMeIndexRoute
   '/_authenticated/me/tasks/$id': typeof AuthenticatedMeTasksIdRoute
@@ -271,11 +291,13 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/tasks'
     | '/admin/updates'
+    | '/admin/vehicle-logs'
     | '/me/attendance'
     | '/me/leave'
     | '/me/notifications'
     | '/me/profile'
     | '/me/reports'
+    | '/me/vehicle-log'
     | '/admin/'
     | '/me/'
     | '/me/tasks/$id'
@@ -297,11 +319,13 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/tasks'
     | '/admin/updates'
+    | '/admin/vehicle-logs'
     | '/me/attendance'
     | '/me/leave'
     | '/me/notifications'
     | '/me/profile'
     | '/me/reports'
+    | '/me/vehicle-log'
     | '/admin'
     | '/me'
     | '/me/tasks/$id'
@@ -324,11 +348,13 @@ export interface FileRouteTypes {
     | '/_authenticated/admin/settings'
     | '/_authenticated/admin/tasks'
     | '/_authenticated/admin/updates'
+    | '/_authenticated/admin/vehicle-logs'
     | '/_authenticated/me/attendance'
     | '/_authenticated/me/leave'
     | '/_authenticated/me/notifications'
     | '/_authenticated/me/profile'
     | '/_authenticated/me/reports'
+    | '/_authenticated/me/vehicle-log'
     | '/_authenticated/admin/'
     | '/_authenticated/me/'
     | '/_authenticated/me/tasks/$id'
@@ -382,6 +408,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/me/vehicle-log': {
+      id: '/_authenticated/me/vehicle-log'
+      path: '/me/vehicle-log'
+      fullPath: '/me/vehicle-log'
+      preLoaderRoute: typeof AuthenticatedMeVehicleLogRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/me/reports': {
       id: '/_authenticated/me/reports'
       path: '/me/reports'
@@ -415,6 +448,13 @@ declare module '@tanstack/react-router' {
       path: '/me/attendance'
       fullPath: '/me/attendance'
       preLoaderRoute: typeof AuthenticatedMeAttendanceRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/admin/vehicle-logs': {
+      id: '/_authenticated/admin/vehicle-logs'
+      path: '/admin/vehicle-logs'
+      fullPath: '/admin/vehicle-logs'
+      preLoaderRoute: typeof AuthenticatedAdminVehicleLogsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/updates': {
@@ -537,11 +577,13 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminSettingsRoute: typeof AuthenticatedAdminSettingsRoute
   AuthenticatedAdminTasksRoute: typeof AuthenticatedAdminTasksRoute
   AuthenticatedAdminUpdatesRoute: typeof AuthenticatedAdminUpdatesRoute
+  AuthenticatedAdminVehicleLogsRoute: typeof AuthenticatedAdminVehicleLogsRoute
   AuthenticatedMeAttendanceRoute: typeof AuthenticatedMeAttendanceRoute
   AuthenticatedMeLeaveRoute: typeof AuthenticatedMeLeaveRoute
   AuthenticatedMeNotificationsRoute: typeof AuthenticatedMeNotificationsRoute
   AuthenticatedMeProfileRoute: typeof AuthenticatedMeProfileRoute
   AuthenticatedMeReportsRoute: typeof AuthenticatedMeReportsRoute
+  AuthenticatedMeVehicleLogRoute: typeof AuthenticatedMeVehicleLogRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
   AuthenticatedMeIndexRoute: typeof AuthenticatedMeIndexRoute
   AuthenticatedMeTasksIdRoute: typeof AuthenticatedMeTasksIdRoute
@@ -560,11 +602,13 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminSettingsRoute: AuthenticatedAdminSettingsRoute,
   AuthenticatedAdminTasksRoute: AuthenticatedAdminTasksRoute,
   AuthenticatedAdminUpdatesRoute: AuthenticatedAdminUpdatesRoute,
+  AuthenticatedAdminVehicleLogsRoute: AuthenticatedAdminVehicleLogsRoute,
   AuthenticatedMeAttendanceRoute: AuthenticatedMeAttendanceRoute,
   AuthenticatedMeLeaveRoute: AuthenticatedMeLeaveRoute,
   AuthenticatedMeNotificationsRoute: AuthenticatedMeNotificationsRoute,
   AuthenticatedMeProfileRoute: AuthenticatedMeProfileRoute,
   AuthenticatedMeReportsRoute: AuthenticatedMeReportsRoute,
+  AuthenticatedMeVehicleLogRoute: AuthenticatedMeVehicleLogRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
   AuthenticatedMeIndexRoute: AuthenticatedMeIndexRoute,
   AuthenticatedMeTasksIdRoute: AuthenticatedMeTasksIdRoute,
