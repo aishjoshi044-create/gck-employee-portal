@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedMeIndexRouteImport } from './routes/_authenticated/me/index'
 import { Route as AuthenticatedAdminIndexRouteImport } from './routes/_authenticated/admin/index'
+import { Route as AuthenticatedMeVehicleLogRouteImport } from './routes/_authenticated/me/vehicle-log'
 import { Route as AuthenticatedMeReportsRouteImport } from './routes/_authenticated/me/reports'
 import { Route as AuthenticatedMeProfileRouteImport } from './routes/_authenticated/me/profile'
 import { Route as AuthenticatedMeNotificationsRouteImport } from './routes/_authenticated/me/notifications'
@@ -59,6 +60,12 @@ const AuthenticatedAdminIndexRoute = AuthenticatedAdminIndexRouteImport.update({
   path: '/admin/',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedMeVehicleLogRoute =
+  AuthenticatedMeVehicleLogRouteImport.update({
+    id: '/me/vehicle-log',
+    path: '/me/vehicle-log',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedMeReportsRoute = AuthenticatedMeReportsRouteImport.update({
   id: '/me/reports',
   path: '/me/reports',
@@ -194,6 +201,7 @@ export interface FileRoutesByFullPath {
   '/me/notifications': typeof AuthenticatedMeNotificationsRoute
   '/me/profile': typeof AuthenticatedMeProfileRoute
   '/me/reports': typeof AuthenticatedMeReportsRoute
+  '/me/vehicle-log': typeof AuthenticatedMeVehicleLogRoute
   '/admin/': typeof AuthenticatedAdminIndexRoute
   '/me/': typeof AuthenticatedMeIndexRoute
   '/me/tasks/$id': typeof AuthenticatedMeTasksIdRoute
@@ -220,6 +228,7 @@ export interface FileRoutesByTo {
   '/me/notifications': typeof AuthenticatedMeNotificationsRoute
   '/me/profile': typeof AuthenticatedMeProfileRoute
   '/me/reports': typeof AuthenticatedMeReportsRoute
+  '/me/vehicle-log': typeof AuthenticatedMeVehicleLogRoute
   '/admin': typeof AuthenticatedAdminIndexRoute
   '/me': typeof AuthenticatedMeIndexRoute
   '/me/tasks/$id': typeof AuthenticatedMeTasksIdRoute
@@ -248,6 +257,7 @@ export interface FileRoutesById {
   '/_authenticated/me/notifications': typeof AuthenticatedMeNotificationsRoute
   '/_authenticated/me/profile': typeof AuthenticatedMeProfileRoute
   '/_authenticated/me/reports': typeof AuthenticatedMeReportsRoute
+  '/_authenticated/me/vehicle-log': typeof AuthenticatedMeVehicleLogRoute
   '/_authenticated/admin/': typeof AuthenticatedAdminIndexRoute
   '/_authenticated/me/': typeof AuthenticatedMeIndexRoute
   '/_authenticated/me/tasks/$id': typeof AuthenticatedMeTasksIdRoute
@@ -276,6 +286,7 @@ export interface FileRouteTypes {
     | '/me/notifications'
     | '/me/profile'
     | '/me/reports'
+    | '/me/vehicle-log'
     | '/admin/'
     | '/me/'
     | '/me/tasks/$id'
@@ -302,6 +313,7 @@ export interface FileRouteTypes {
     | '/me/notifications'
     | '/me/profile'
     | '/me/reports'
+    | '/me/vehicle-log'
     | '/admin'
     | '/me'
     | '/me/tasks/$id'
@@ -329,6 +341,7 @@ export interface FileRouteTypes {
     | '/_authenticated/me/notifications'
     | '/_authenticated/me/profile'
     | '/_authenticated/me/reports'
+    | '/_authenticated/me/vehicle-log'
     | '/_authenticated/admin/'
     | '/_authenticated/me/'
     | '/_authenticated/me/tasks/$id'
@@ -380,6 +393,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin/'
       preLoaderRoute: typeof AuthenticatedAdminIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/me/vehicle-log': {
+      id: '/_authenticated/me/vehicle-log'
+      path: '/me/vehicle-log'
+      fullPath: '/me/vehicle-log'
+      preLoaderRoute: typeof AuthenticatedMeVehicleLogRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/me/reports': {
@@ -542,6 +562,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedMeNotificationsRoute: typeof AuthenticatedMeNotificationsRoute
   AuthenticatedMeProfileRoute: typeof AuthenticatedMeProfileRoute
   AuthenticatedMeReportsRoute: typeof AuthenticatedMeReportsRoute
+  AuthenticatedMeVehicleLogRoute: typeof AuthenticatedMeVehicleLogRoute
   AuthenticatedAdminIndexRoute: typeof AuthenticatedAdminIndexRoute
   AuthenticatedMeIndexRoute: typeof AuthenticatedMeIndexRoute
   AuthenticatedMeTasksIdRoute: typeof AuthenticatedMeTasksIdRoute
@@ -565,6 +586,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedMeNotificationsRoute: AuthenticatedMeNotificationsRoute,
   AuthenticatedMeProfileRoute: AuthenticatedMeProfileRoute,
   AuthenticatedMeReportsRoute: AuthenticatedMeReportsRoute,
+  AuthenticatedMeVehicleLogRoute: AuthenticatedMeVehicleLogRoute,
   AuthenticatedAdminIndexRoute: AuthenticatedAdminIndexRoute,
   AuthenticatedMeIndexRoute: AuthenticatedMeIndexRoute,
   AuthenticatedMeTasksIdRoute: AuthenticatedMeTasksIdRoute,
