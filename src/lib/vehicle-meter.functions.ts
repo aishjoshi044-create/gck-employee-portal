@@ -123,6 +123,9 @@ export const submitVehicleMeterLog = createServerFn({ method: "POST" })
       .limit(1)
       .maybeSingle();
 
+    const { data: prof } = await supabase
+      .from("profiles").select("project").eq("id", userId).maybeSingle();
+
     const notes: string[] = [];
     if (prev && data.start_km < prev.end_km) {
       notes.push(
@@ -156,7 +159,7 @@ export const submitVehicleMeterLog = createServerFn({ method: "POST" })
         log_date,
         start_km: data.start_km,
         end_km: data.end_km,
-        project: context.claims?.["project"] ?? null,
+        project: prof?.project ?? null,
         photo_path: data.photo_path,
         validation_status: flagged ? "flagged" : "verified",
         ocr_reading: ocr.reading,
@@ -196,11 +199,9 @@ export const reviewVehicleMeterLog = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
-    const { data: isAdmin, error: roleErr } = await supabase.rpc("has_role", {
-      _user_id: userId,
-      _role: "admin",
-    });
-    if (roleErr || !isAdmin) throw new Error("Only admins can review meter logs");
+    const { data: adminRow } = await supabase
+      .from("user_roles").select("id").eq("user_id", userId).eq("role", "admin").maybeSingle();
+    if (!adminRow) throw new Error("Only admins can review meter logs");
 
     const { error } = await supabase
       .from("vehicle_meter_logs")
