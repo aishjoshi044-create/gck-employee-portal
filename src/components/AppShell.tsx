@@ -7,7 +7,7 @@ import { useTheme } from "@/lib/theme";
 import { LangToggle } from "@/components/LangToggle";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetHeader } from "@/components/ui/sheet";
-import { LogOut, Moon, Sun, Home, ClipboardList, CalendarCheck, User, CalendarDays, Megaphone, Users, FileText, MapPin, Inbox, Menu, NotebookPen, Settings, Bell } from "lucide-react";
+import { LogOut, Moon, Sun, Home, ClipboardList, CalendarCheck, User, CalendarDays, Megaphone, Users, FileText, MapPin, Inbox, Menu, NotebookPen, Settings, Bell, Gauge } from "lucide-react";
 import logo from "@/assets/gck-logo.jpeg.asset.json";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 
@@ -18,6 +18,7 @@ const employeeNav: NavItem[] = [
   { to: "/me/attendance", labelKey: "attendance", icon: CalendarCheck },
   { to: "/me/tasks", labelKey: "my_tasks", icon: ClipboardList },
   { to: "/me/reports", labelKey: "daily_reports", icon: NotebookPen },
+  { to: "/me/vehicle-log", labelKey: "vehicle_log", icon: Gauge },
   { to: "/me/leave", labelKey: "leave_request", icon: CalendarDays },
   { to: "/me/notifications", labelKey: "notifications", icon: Bell },
   { to: "/me/profile", labelKey: "my_profile", icon: User },
@@ -30,6 +31,7 @@ const adminNav: NavItem[] = [
   { to: "/admin/tasks", labelKey: "tasks", icon: ClipboardList },
   { to: "/admin/daily-reports", labelKey: "daily_reports", icon: NotebookPen },
   
+  { to: "/admin/vehicle-logs", labelKey: "vehicle_logs", icon: Gauge },
   { to: "/admin/leaves", labelKey: "leaves", icon: CalendarDays },
   { to: "/admin/locations", labelKey: "locations", icon: MapPin },
   { to: "/admin/announcements", labelKey: "announcements", icon: Megaphone },
