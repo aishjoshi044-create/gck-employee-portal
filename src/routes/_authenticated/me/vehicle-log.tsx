@@ -21,7 +21,7 @@ export const Route = createFileRoute("/_authenticated/me/vehicle-log")({
   head: () => ({
     meta: [
       { title: "Vehicle Meter Log | Gram Chetna Kendra Staff Portal" },
-      { name: "description", content: "Submit your daily vehicle odometer readings with a meter photo for verification." },
+      { name: "description", content: "Submit your daily vehicle odometer readings with start and end meter photos for verification." },
       { property: "og:title", content: "Vehicle Meter Log | Gram Chetna Kendra" },
       { property: "og:description", content: "Daily vehicle KM readings with odometer photo verification." },
       { property: "og:type", content: "website" },
@@ -58,6 +58,8 @@ function blobToDataUrl(blob: Blob): Promise<string> {
   });
 }
 
+type Shot = { blob: Blob; url: string; ext: string; contentType: string };
+
 function EmployeeVehicleLogPage() {
   const { t } = useI18n();
   const { user } = useAuth();
@@ -67,9 +69,11 @@ function EmployeeVehicleLogPage() {
   const [vehicle, setVehicle] = useState("");
   const [startKm, setStartKm] = useState("");
   const [endKm, setEndKm] = useState("");
-  const [photo, setPhoto] = useState<{ blob: Blob; url: string; ext: string; contentType: string } | null>(null);
+  const [startPhoto, setStartPhoto] = useState<Shot | null>(null);
+  const [endPhoto, setEndPhoto] = useState<Shot | null>(null);
   const [busy, setBusy] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
+  const startFileRef = useRef<HTMLInputElement>(null);
+  const endFileRef = useRef<HTMLInputElement>(null);
 
   const today = format(new Date(), "yyyy-MM-dd");
 
@@ -94,22 +98,36 @@ function EmployeeVehicleLogPage() {
     },
   });
 
-  const pickPhoto = async (file: File | undefined) => {
+  const pickPhoto = async (
+    file: File | undefined,
+    current: Shot | null,
+    set: (s: Shot | null) => void,
+  ) => {
     if (!file) return;
     try {
-      const { blob, ext, contentType } = await compressImage(file, "task");
-      if (photo) URL.revokeObjectURL(photo.url);
-      setPhoto({ blob, ext, contentType, url: URL.createObjectURL(blob) });
+      const { blob, ext, contentType } = await compressImage(file, "meter");
+      if (blob.size > 20 * 1024) {
+        toast.error(t("vm_photo_too_big"));
+        return;
+      }
+      if (current) URL.revokeObjectURL(current.url);
+      set({ blob, ext, contentType, url: URL.createObjectURL(blob) });
     } catch {
       toast.error(t("vm_photo_failed"));
     }
   };
 
+  const clearPhotos = () => {
+    if (startPhoto) URL.revokeObjectURL(startPhoto.url);
+    if (endPhoto) URL.revokeObjectURL(endPhoto.url);
+    setStartPhoto(null); setEndPhoto(null);
+    if (startFileRef.current) startFileRef.current.value = "";
+    if (endFileRef.current) endFileRef.current.value = "";
+  };
+
   const reset = () => {
     setVehicle(""); setStartKm(""); setEndKm("");
-    if (photo) URL.revokeObjectURL(photo.url);
-    setPhoto(null);
-    if (fileRef.current) fileRef.current.value = "";
+    clearPhotos();
   };
 
   const handleSubmit = async () => {
@@ -117,30 +135,43 @@ function EmployeeVehicleLogPage() {
     if (!vehicle.trim()) return toast.error(t("vm_need_vehicle"));
     if (!Number.isFinite(s) || !Number.isFinite(e)) return toast.error(t("vm_need_km"));
     if (e < s) return toast.error(t("vm_end_less"));
-    if (!photo) return toast.error(t("vm_need_photo"));
+    if (!startPhoto || !endPhoto) return toast.error(t("vm_need_both_photos"));
 
     setBusy(true);
-    let uploadedPath: string | null = null;
+    const uploaded: string[] = [];
     try {
-      const name = await contentHashName(photo.blob, photo.ext);
-      const path = `${user!.id}/${name}`;
-      const { error: upErr } = await supabase.storage
-        .from("meter-photos")
-        .upload(path, photo.blob, { contentType: photo.contentType, upsert: true });
-      if (upErr) throw new Error(upErr.message);
-      uploadedPath = path;
+      const upload = async (shot: Shot) => {
+        const name = await contentHashName(shot.blob, shot.ext);
+        const path = `${user!.id}/${name}`;
+        const { error: upErr } = await supabase.storage
+          .from("meter-photos")
+          .upload(path, shot.blob, { contentType: shot.contentType, upsert: true });
+        if (upErr) throw new Error(upErr.message);
+        uploaded.push(path);
+        return path;
+      };
 
-      const dataUrl = await blobToDataUrl(photo.blob);
+      const startPath = await upload(startPhoto);
+      const endPath = await upload(endPhoto);
+
+      const [startDataUrl, endDataUrl] = await Promise.all([
+        blobToDataUrl(startPhoto.blob),
+        blobToDataUrl(endPhoto.blob),
+      ]);
+
       const res = await submit({
-        data: { vehicle: vehicle.trim(), start_km: s, end_km: e, photo_path: path, photo_data_url: dataUrl },
+        data: {
+          vehicle: vehicle.trim(), start_km: s, end_km: e,
+          start_photo_path: startPath, end_photo_path: endPath,
+          start_photo_data_url: startDataUrl, end_photo_data_url: endDataUrl,
+        },
       });
 
       if (!res.ok) {
-        await supabase.storage.from("meter-photos").remove([path]);
-        if (photo) URL.revokeObjectURL(photo.url);
-        setPhoto(null);
-        if (fileRef.current) fileRef.current.value = "";
-        toast.error(`${t("vm_retake_photo")} — ${res.reason}`);
+        await supabase.storage.from("meter-photos").remove(uploaded);
+        clearPhotos();
+        const which = res.which === "start" ? t("vm_start_photo") : t("vm_end_photo");
+        toast.error(`${which}: ${t("vm_retake_photo")} — ${res.reason}`);
         return;
       }
 
@@ -152,12 +183,48 @@ function EmployeeVehicleLogPage() {
       reset();
       qc.invalidateQueries({ queryKey: ["my-meter-logs"] });
     } catch (err: any) {
-      if (uploadedPath) await supabase.storage.from("meter-photos").remove([uploadedPath]);
+      if (uploaded.length) await supabase.storage.from("meter-photos").remove(uploaded);
       toast.error(err?.message ?? t("error"));
     } finally {
       setBusy(false);
     }
   };
+
+  const photoField = (
+    label: string,
+    shot: Shot | null,
+    set: (s: Shot | null) => void,
+    ref: React.RefObject<HTMLInputElement | null>,
+  ) => (
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      <input
+        ref={ref}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={(ev) => pickPhoto(ev.target.files?.[0], shot, set)}
+      />
+      {shot ? (
+        <div className="relative w-fit">
+          <img src={shot.url} alt={label} className="h-32 rounded-lg border object-cover" loading="lazy" decoding="async" />
+          <button
+            type="button"
+            onClick={() => { URL.revokeObjectURL(shot.url); set(null); if (ref.current) ref.current.value = ""; }}
+            className="absolute -right-2 -top-2 rounded-full bg-destructive p-1 text-destructive-foreground"
+            aria-label={t("cancel")}
+          >
+            <X className="size-3.5" />
+          </button>
+        </div>
+      ) : (
+        <Button type="button" variant="outline" onClick={() => ref.current?.click()}>
+          <Camera className="mr-2 size-4" /> {t("vm_capture_meter")}
+        </Button>
+      )}
+    </div>
+  );
 
   return (
     <div className="space-y-5">
@@ -191,34 +258,12 @@ function EmployeeVehicleLogPage() {
           <span className="font-bold">{totalKm == null ? "—" : `${totalKm} km`}</span>
         </div>
 
-        <div className="space-y-2">
-          <Label>{t("vm_meter_photo")}</Label>
+        <div className="space-y-3">
           <p className="text-xs text-muted-foreground">{t("vm_photo_hint")}</p>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            className="hidden"
-            onChange={(ev) => pickPhoto(ev.target.files?.[0])}
-          />
-          {photo ? (
-            <div className="relative w-fit">
-              <img src={photo.url} alt={t("vm_meter_photo")} className="h-32 rounded-lg border object-cover" loading="lazy" decoding="async" />
-              <button
-                type="button"
-                onClick={() => { URL.revokeObjectURL(photo.url); setPhoto(null); if (fileRef.current) fileRef.current.value = ""; }}
-                className="absolute -right-2 -top-2 rounded-full bg-destructive p-1 text-destructive-foreground"
-                aria-label={t("cancel")}
-              >
-                <X className="size-3.5" />
-              </button>
-            </div>
-          ) : (
-            <Button type="button" variant="outline" onClick={() => fileRef.current?.click()}>
-              <Camera className="mr-2 size-4" /> {t("vm_capture_meter")}
-            </Button>
-          )}
+          <div className="grid gap-4 sm:grid-cols-2">
+            {photoField(t("vm_start_photo"), startPhoto, setStartPhoto, startFileRef)}
+            {photoField(t("vm_end_photo"), endPhoto, setEndPhoto, endFileRef)}
+          </div>
         </div>
 
         <Button onClick={handleSubmit} disabled={busy} className="w-full sm:w-auto">
