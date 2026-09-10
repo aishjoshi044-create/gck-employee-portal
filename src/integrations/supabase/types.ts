@@ -581,8 +581,15 @@ export type Database = {
       }
       vehicle_meter_logs: {
         Row: {
+          audit_flagged: boolean
+          audit_flagged_at: string | null
+          audit_flagged_by: string | null
+          audit_history: Json
+          audit_reason: string | null
           created_at: string
           end_km: number
+          end_ocr_reading: number | null
+          end_photo_path: string | null
           id: string
           log_date: string
           ocr_reading: number | null
@@ -593,6 +600,8 @@ export type Database = {
           reviewed_at: string | null
           reviewed_by: string | null
           start_km: number
+          start_ocr_reading: number | null
+          start_photo_path: string | null
           total_km: number | null
           updated_at: string
           user_id: string
@@ -601,8 +610,15 @@ export type Database = {
           vehicle: string
         }
         Insert: {
+          audit_flagged?: boolean
+          audit_flagged_at?: string | null
+          audit_flagged_by?: string | null
+          audit_history?: Json
+          audit_reason?: string | null
           created_at?: string
           end_km: number
+          end_ocr_reading?: number | null
+          end_photo_path?: string | null
           id?: string
           log_date: string
           ocr_reading?: number | null
@@ -613,6 +629,8 @@ export type Database = {
           reviewed_at?: string | null
           reviewed_by?: string | null
           start_km: number
+          start_ocr_reading?: number | null
+          start_photo_path?: string | null
           total_km?: number | null
           updated_at?: string
           user_id: string
@@ -621,8 +639,15 @@ export type Database = {
           vehicle: string
         }
         Update: {
+          audit_flagged?: boolean
+          audit_flagged_at?: string | null
+          audit_flagged_by?: string | null
+          audit_history?: Json
+          audit_reason?: string | null
           created_at?: string
           end_km?: number
+          end_ocr_reading?: number | null
+          end_photo_path?: string | null
           id?: string
           log_date?: string
           ocr_reading?: number | null
@@ -633,6 +658,8 @@ export type Database = {
           reviewed_at?: string | null
           reviewed_by?: string | null
           start_km?: number
+          start_ocr_reading?: number | null
+          start_photo_path?: string | null
           total_km?: number | null
           updated_at?: string
           user_id?: string
