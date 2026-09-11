@@ -13,12 +13,12 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { downloadExcel } from "@/lib/exports";
-import { reviewVehicleMeterLog } from "@/lib/vehicle-meter.functions";
+import { downloadExcel, downloadPdf } from "@/lib/exports";
+import { reviewVehicleMeterLog, auditVehicleMeterLog } from "@/lib/vehicle-meter.functions";
 import { STATUS_STYLES } from "@/routes/_authenticated/me/vehicle-log";
 import { toast } from "sonner";
 import { format, startOfMonth, endOfMonth } from "date-fns";
-import { Gauge, FileSpreadsheet, Loader2, Search } from "lucide-react";
+import { Gauge, FileSpreadsheet, FileText, Loader2, Search, Flag } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/vehicle-logs")({
   component: AdminVehicleLogsPage,
@@ -49,6 +49,13 @@ interface Row {
   validation_notes: string | null;
   review_notes: string | null;
   ocr_reading: number | null;
+  start_ocr_reading: number | null;
+  end_ocr_reading: number | null;
+  start_photo_path: string | null;
+  end_photo_path: string | null;
+  audit_flagged: boolean;
+  audit_reason: string | null;
+  audit_history: { action: string; reason: string | null; by: string; at: string }[] | null;
   created_at: string;
 }
 
@@ -57,6 +64,7 @@ function AdminVehicleLogsPage() {
   const qc = useQueryClient();
   const { adminIds } = useAdminIds();
   const review = useServerFn(reviewVehicleMeterLog);
+  const audit = useServerFn(auditVehicleMeterLog);
 
   const now = new Date();
   const [from, setFrom] = useState(format(startOfMonth(now), "yyyy-MM-dd"));
@@ -67,6 +75,7 @@ function AdminVehicleLogsPage() {
   const [status, setStatus] = useState<"all" | Status>("all");
   const [open, setOpen] = useState<Row | null>(null);
   const [note, setNote] = useState("");
+  const [auditReason, setAuditReason] = useState("");
   const [busy, setBusy] = useState(false);
 
   const { data: profiles = [] } = useQuery({
@@ -88,7 +97,7 @@ function AdminVehicleLogsPage() {
     queryFn: async () => {
       let q = supabase
         .from("vehicle_meter_logs")
-        .select("id,user_id,vehicle,log_date,start_km,end_km,total_km,project,validation_status,validation_notes,review_notes,ocr_reading,created_at")
+        .select("id,user_id,vehicle,log_date,start_km,end_km,total_km,project,validation_status,validation_notes,review_notes,ocr_reading,start_ocr_reading,end_ocr_reading,start_photo_path,end_photo_path,audit_flagged,audit_reason,audit_history,created_at")
         .gte("log_date", from)
         .lte("log_date", to)
         .order("log_date", { ascending: false })
@@ -119,24 +128,57 @@ function AdminVehicleLogsPage() {
   const totalKm = filtered.reduce((s, r) => s + (r.total_km ?? 0), 0);
   const flaggedCount = filtered.filter((r) => r.validation_status === "flagged").length;
 
+  // Exports carry only: Date, Employee, Vehicle, Start KM, End KM, Total KM, Validation Status.
+  const EXPORT_HEAD = ["Date", "Employee", "Vehicle", "Start KM", "End KM", "Total KM", "Validation Status"];
+  const exportRows = () =>
+    filtered.map((r) => [
+      format(new Date(r.log_date), "dd-MM-yyyy"),
+      nameOf(r.user_id).name,
+      r.vehicle,
+      r.start_km,
+      r.end_km,
+      r.total_km,
+      r.validation_status,
+    ] as (string | number)[]);
+
   const exportExcel = () => {
     if (!filtered.length) return toast.error(t("vm_nothing_export"));
     downloadExcel(`vehicle-meter-log-${from}_to_${to}.xlsx`, [
-      {
-        name: "Meter Log",
-        header: ["Date", "Employee", "Employee ID", "Vehicle", "Project", "Start KM", "End KM", "Total KM", "Validation Status"],
-        rows: filtered.map((r) => {
-          const { name, empId } = nameOf(r.user_id);
-          return [
-            format(new Date(r.log_date), "dd-MM-yyyy"),
-            name, empId, r.vehicle, r.project ?? "—",
-            r.start_km, r.end_km, r.total_km,
-            r.validation_status,
-          ];
-        }),
-      },
+      { name: "Meter Log", header: EXPORT_HEAD, rows: exportRows() },
     ]);
   };
+
+  const exportPdf = async () => {
+    if (!filtered.length) return toast.error(t("vm_nothing_export"));
+    await downloadPdf({
+      title: "Vehicle Meter Log",
+      subtitle: `${format(new Date(from), "d MMM yyyy")} — ${format(new Date(to), "d MMM yyyy")}`,
+      filename: `vehicle-meter-log-${from}_to_${to}.pdf`,
+      orientation: "landscape",
+      head: EXPORT_HEAD,
+      body: exportRows(),
+    });
+  };
+
+  // Meter photos are kept for 3 days only, then removed by the daily clean-up job.
+  const { data: photoUrls } = useQuery({
+    queryKey: ["meter-photo-urls", open?.id],
+    enabled: !!open && !!(open.start_photo_path || open.end_photo_path),
+    queryFn: async () => {
+      const out: { start?: string; end?: string } = {};
+      if (open?.start_photo_path) {
+        const { data } = await supabase.storage.from("meter-photos").createSignedUrl(open.start_photo_path, 300);
+        if (data?.signedUrl) out.start = data.signedUrl;
+      }
+      if (open?.end_photo_path) {
+        const { data } = await supabase.storage.from("meter-photos").createSignedUrl(open.end_photo_path, 300);
+        if (data?.signedUrl) out.end = data.signedUrl;
+      }
+      return out;
+    },
+  });
+
+  const closeSheet = () => { setOpen(null); setNote(""); setAuditReason(""); };
 
   const saveReview = async (resolve: boolean) => {
     if (!open) return;
@@ -144,7 +186,23 @@ function AdminVehicleLogsPage() {
     try {
       await review({ data: { id: open.id, review_notes: note, resolve } });
       toast.success(t("vm_review_saved"));
-      setOpen(null); setNote("");
+      closeSheet();
+      qc.invalidateQueries({ queryKey: ["admin-meter-logs"] });
+    } catch (e: any) {
+      toast.error(e?.message ?? t("error"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const saveAudit = async (flag: boolean) => {
+    if (!open) return;
+    if (flag && !auditReason.trim()) return toast.error(t("vm_audit_need_reason"));
+    setBusy(true);
+    try {
+      await audit({ data: { id: open.id, flag, reason: auditReason.trim() } });
+      toast.success(t("vm_audit_saved"));
+      closeSheet();
       qc.invalidateQueries({ queryKey: ["admin-meter-logs"] });
     } catch (e: any) {
       toast.error(e?.message ?? t("error"));
@@ -160,9 +218,14 @@ function AdminVehicleLogsPage() {
           <Gauge className="size-6 text-primary" />
           <h1 className="text-xl font-bold sm:text-2xl">{t("vehicle_logs")}</h1>
         </div>
-        <Button variant="outline" onClick={exportExcel}>
-          <FileSpreadsheet className="mr-2 size-4" /> {t("vm_export_excel")}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={exportExcel}>
+            <FileSpreadsheet className="mr-2 size-4" /> {t("vm_export_excel")}
+          </Button>
+          <Button variant="outline" onClick={exportPdf}>
+            <FileText className="mr-2 size-4" /> {t("vm_export_pdf")}
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-4">
@@ -302,9 +365,9 @@ function AdminVehicleLogsPage() {
         </>
       )}
 
-      <Sheet open={!!open} onOpenChange={(o) => { if (!o) { setOpen(null); setNote(""); } }}>
+      <Sheet open={!!open} onOpenChange={(o) => { if (!o) closeSheet(); }}>
         <SheetContent className="w-full overflow-y-auto sm:max-w-md">
-          <SheetHeader><SheetTitle>{t("vm_review")}</SheetTitle></SheetHeader>
+          <SheetHeader><SheetTitle>{t("vm_details")}</SheetTitle></SheetHeader>
           {open && (
             <div className="mt-4 space-y-4 text-sm">
               <div className="space-y-1">
@@ -316,9 +379,41 @@ function AdminVehicleLogsPage() {
                 <div className="rounded-lg border p-2"><p className="text-xs text-muted-foreground">{t("vm_end_km")}</p><p className="font-bold">{open.end_km}</p></div>
                 <div className="rounded-lg border p-2"><p className="text-xs text-muted-foreground">{t("vm_total_km")}</p><p className="font-bold">{open.total_km}</p></div>
               </div>
-              {open.ocr_reading != null && (
-                <p className="text-muted-foreground">{t("vm_photo_reading")}: <span className="font-semibold text-foreground">{open.ocr_reading}</span></p>
-              )}
+              <div className="space-y-1 text-muted-foreground">
+                {open.start_ocr_reading != null && (
+                  <p>{t("vm_start_reading")}: <span className="font-semibold text-foreground">{open.start_ocr_reading}</span></p>
+                )}
+                {open.end_ocr_reading != null && (
+                  <p>{t("vm_end_reading")}: <span className="font-semibold text-foreground">{open.end_ocr_reading}</span></p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label>{t("vm_photos")}</Label>
+                {open.start_photo_path || open.end_photo_path ? (
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground">{t("vm_start_photo")}</p>
+                      {photoUrls?.start ? (
+                        <a href={photoUrls.start} target="_blank" rel="noreferrer">
+                          <img src={photoUrls.start} alt={t("vm_start_photo")} className="h-32 w-full rounded-lg border object-cover" loading="lazy" decoding="async" />
+                        </a>
+                      ) : <div className="h-32 rounded-lg border bg-muted/40" />}
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground">{t("vm_end_photo")}</p>
+                      {photoUrls?.end ? (
+                        <a href={photoUrls.end} target="_blank" rel="noreferrer">
+                          <img src={photoUrls.end} alt={t("vm_end_photo")} className="h-32 w-full rounded-lg border object-cover" loading="lazy" decoding="async" />
+                        </a>
+                      ) : <div className="h-32 rounded-lg border bg-muted/40" />}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">{t("vm_photos_expired")}</p>
+                )}
+              </div>
+
               {open.validation_notes && (
                 <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-amber-800 dark:text-amber-200">
                   {open.validation_notes}
@@ -335,6 +430,44 @@ function AdminVehicleLogsPage() {
                 <Button variant="outline" onClick={() => saveReview(false)} disabled={busy} className="flex-1">
                   {t("vm_keep_flagged")}
                 </Button>
+              </div>
+
+              <div className="space-y-2 rounded-lg border p-3">
+                <div className="flex items-center justify-between">
+                  <Label>{t("vm_audit")}</Label>
+                  {open.audit_flagged && (
+                    <Badge variant="outline" className="border-rose-500/30 bg-rose-500/15 text-rose-700 dark:text-rose-300">
+                      <Flag className="mr-1 size-3" />{t("vm_audit_flagged")}
+                    </Badge>
+                  )}
+                </div>
+                {open.audit_reason && <p className="text-xs text-muted-foreground">{open.audit_reason}</p>}
+                <Textarea
+                  value={auditReason}
+                  onChange={(e) => setAuditReason(e.target.value)}
+                  rows={2}
+                  placeholder={t("vm_audit_reason")}
+                />
+                {open.audit_flagged ? (
+                  <Button variant="outline" onClick={() => saveAudit(false)} disabled={busy} className="w-full">
+                    {t("vm_clear_audit")}
+                  </Button>
+                ) : (
+                  <Button variant="destructive" onClick={() => saveAudit(true)} disabled={busy} className="w-full">
+                    <Flag className="mr-2 size-4" />{t("vm_flag_audit")}
+                  </Button>
+                )}
+                {!!open.audit_history?.length && (
+                  <div className="space-y-1 pt-1">
+                    <p className="text-xs font-semibold text-muted-foreground">{t("vm_audit_history")}</p>
+                    {open.audit_history.map((h, i) => (
+                      <p key={i} className="text-xs text-muted-foreground">
+                        {format(new Date(h.at), "d MMM yyyy, h:mm a")} · {h.action === "flagged_for_audit" ? t("vm_flag_audit") : t("vm_clear_audit")}
+                        {h.reason ? ` — ${h.reason}` : ""}
+                      </p>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}

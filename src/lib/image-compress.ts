@@ -11,7 +11,7 @@
 //     contentType, upsert: true,
 //   });
 
-export type CompressPreset = "attendance" | "profile" | "report" | "task";
+export type CompressPreset = "attendance" | "profile" | "report" | "task" | "meter";
 
 type PresetSpec = {
   maxDim: number;
@@ -29,6 +29,8 @@ const PRESETS: Record<CompressPreset, PresetSpec> = {
   attendance: { maxDim: 640, targetMaxKB: 20, minQuality: 0.42, startQuality: 0.72, minDim: 400 },
   // Activity photos: 10–20 KB target.
   task: { maxDim: 800, targetMaxKB: 20, minQuality: 0.42, startQuality: 0.72, minDim: 512 },
+  // Odometer close-up: digits must stay legible but must fit under 20 KB.
+  meter: { maxDim: 900, targetMaxKB: 19, minQuality: 0.3, startQuality: 0.75, minDim: 320 },
   // Avatar / registered face photo: 20 KB max, face must stay recognisable.
   profile: { maxDim: 640, targetMaxKB: 20, minQuality: 0.45, startQuality: 0.75, minDim: 400 },
 
