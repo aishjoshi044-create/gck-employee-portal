@@ -365,9 +365,9 @@ function AdminVehicleLogsPage() {
         </>
       )}
 
-      <Sheet open={!!open} onOpenChange={(o) => { if (!o) { setOpen(null); setNote(""); } }}>
+      <Sheet open={!!open} onOpenChange={(o) => { if (!o) closeSheet(); }}>
         <SheetContent className="w-full overflow-y-auto sm:max-w-md">
-          <SheetHeader><SheetTitle>{t("vm_review")}</SheetTitle></SheetHeader>
+          <SheetHeader><SheetTitle>{t("vm_details")}</SheetTitle></SheetHeader>
           {open && (
             <div className="mt-4 space-y-4 text-sm">
               <div className="space-y-1">
@@ -379,9 +379,41 @@ function AdminVehicleLogsPage() {
                 <div className="rounded-lg border p-2"><p className="text-xs text-muted-foreground">{t("vm_end_km")}</p><p className="font-bold">{open.end_km}</p></div>
                 <div className="rounded-lg border p-2"><p className="text-xs text-muted-foreground">{t("vm_total_km")}</p><p className="font-bold">{open.total_km}</p></div>
               </div>
-              {open.ocr_reading != null && (
-                <p className="text-muted-foreground">{t("vm_photo_reading")}: <span className="font-semibold text-foreground">{open.ocr_reading}</span></p>
-              )}
+              <div className="space-y-1 text-muted-foreground">
+                {open.start_ocr_reading != null && (
+                  <p>{t("vm_start_reading")}: <span className="font-semibold text-foreground">{open.start_ocr_reading}</span></p>
+                )}
+                {open.end_ocr_reading != null && (
+                  <p>{t("vm_end_reading")}: <span className="font-semibold text-foreground">{open.end_ocr_reading}</span></p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label>{t("vm_photos")}</Label>
+                {open.start_photo_path || open.end_photo_path ? (
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground">{t("vm_start_photo")}</p>
+                      {photoUrls?.start ? (
+                        <a href={photoUrls.start} target="_blank" rel="noreferrer">
+                          <img src={photoUrls.start} alt={t("vm_start_photo")} className="h-32 w-full rounded-lg border object-cover" loading="lazy" decoding="async" />
+                        </a>
+                      ) : <div className="h-32 rounded-lg border bg-muted/40" />}
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs text-muted-foreground">{t("vm_end_photo")}</p>
+                      {photoUrls?.end ? (
+                        <a href={photoUrls.end} target="_blank" rel="noreferrer">
+                          <img src={photoUrls.end} alt={t("vm_end_photo")} className="h-32 w-full rounded-lg border object-cover" loading="lazy" decoding="async" />
+                        </a>
+                      ) : <div className="h-32 rounded-lg border bg-muted/40" />}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">{t("vm_photos_expired")}</p>
+                )}
+              </div>
+
               {open.validation_notes && (
                 <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-amber-800 dark:text-amber-200">
                   {open.validation_notes}
@@ -398,6 +430,44 @@ function AdminVehicleLogsPage() {
                 <Button variant="outline" onClick={() => saveReview(false)} disabled={busy} className="flex-1">
                   {t("vm_keep_flagged")}
                 </Button>
+              </div>
+
+              <div className="space-y-2 rounded-lg border p-3">
+                <div className="flex items-center justify-between">
+                  <Label>{t("vm_audit")}</Label>
+                  {open.audit_flagged && (
+                    <Badge variant="outline" className="border-rose-500/30 bg-rose-500/15 text-rose-700 dark:text-rose-300">
+                      <Flag className="mr-1 size-3" />{t("vm_audit_flagged")}
+                    </Badge>
+                  )}
+                </div>
+                {open.audit_reason && <p className="text-xs text-muted-foreground">{open.audit_reason}</p>}
+                <Textarea
+                  value={auditReason}
+                  onChange={(e) => setAuditReason(e.target.value)}
+                  rows={2}
+                  placeholder={t("vm_audit_reason")}
+                />
+                {open.audit_flagged ? (
+                  <Button variant="outline" onClick={() => saveAudit(false)} disabled={busy} className="w-full">
+                    {t("vm_clear_audit")}
+                  </Button>
+                ) : (
+                  <Button variant="destructive" onClick={() => saveAudit(true)} disabled={busy} className="w-full">
+                    <Flag className="mr-2 size-4" />{t("vm_flag_audit")}
+                  </Button>
+                )}
+                {!!open.audit_history?.length && (
+                  <div className="space-y-1 pt-1">
+                    <p className="text-xs font-semibold text-muted-foreground">{t("vm_audit_history")}</p>
+                    {open.audit_history.map((h, i) => (
+                      <p key={i} className="text-xs text-muted-foreground">
+                        {format(new Date(h.at), "d MMM yyyy, h:mm a")} · {h.action === "flagged_for_audit" ? t("vm_flag_audit") : t("vm_clear_audit")}
+                        {h.reason ? ` — ${h.reason}` : ""}
+                      </p>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}
