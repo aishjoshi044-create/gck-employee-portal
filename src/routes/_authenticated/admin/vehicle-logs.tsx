@@ -218,9 +218,14 @@ function AdminVehicleLogsPage() {
           <Gauge className="size-6 text-primary" />
           <h1 className="text-xl font-bold sm:text-2xl">{t("vehicle_logs")}</h1>
         </div>
-        <Button variant="outline" onClick={exportExcel}>
-          <FileSpreadsheet className="mr-2 size-4" /> {t("vm_export_excel")}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={exportExcel}>
+            <FileSpreadsheet className="mr-2 size-4" /> {t("vm_export_excel")}
+          </Button>
+          <Button variant="outline" onClick={exportPdf}>
+            <FileText className="mr-2 size-4" /> {t("vm_export_pdf")}
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-4">
