@@ -128,24 +128,57 @@ function AdminVehicleLogsPage() {
   const totalKm = filtered.reduce((s, r) => s + (r.total_km ?? 0), 0);
   const flaggedCount = filtered.filter((r) => r.validation_status === "flagged").length;
 
+  // Exports carry only: Date, Employee, Vehicle, Start KM, End KM, Total KM, Validation Status.
+  const EXPORT_HEAD = ["Date", "Employee", "Vehicle", "Start KM", "End KM", "Total KM", "Validation Status"];
+  const exportRows = () =>
+    filtered.map((r) => [
+      format(new Date(r.log_date), "dd-MM-yyyy"),
+      nameOf(r.user_id).name,
+      r.vehicle,
+      r.start_km,
+      r.end_km,
+      r.total_km,
+      r.validation_status,
+    ] as (string | number)[]);
+
   const exportExcel = () => {
     if (!filtered.length) return toast.error(t("vm_nothing_export"));
     downloadExcel(`vehicle-meter-log-${from}_to_${to}.xlsx`, [
-      {
-        name: "Meter Log",
-        header: ["Date", "Employee", "Employee ID", "Vehicle", "Project", "Start KM", "End KM", "Total KM", "Validation Status"],
-        rows: filtered.map((r) => {
-          const { name, empId } = nameOf(r.user_id);
-          return [
-            format(new Date(r.log_date), "dd-MM-yyyy"),
-            name, empId, r.vehicle, r.project ?? "—",
-            r.start_km, r.end_km, r.total_km,
-            r.validation_status,
-          ];
-        }),
-      },
+      { name: "Meter Log", header: EXPORT_HEAD, rows: exportRows() },
     ]);
   };
+
+  const exportPdf = async () => {
+    if (!filtered.length) return toast.error(t("vm_nothing_export"));
+    await downloadPdf({
+      title: "Vehicle Meter Log",
+      subtitle: `${format(new Date(from), "d MMM yyyy")} — ${format(new Date(to), "d MMM yyyy")}`,
+      filename: `vehicle-meter-log-${from}_to_${to}.pdf`,
+      orientation: "landscape",
+      head: EXPORT_HEAD,
+      body: exportRows(),
+    });
+  };
+
+  // Meter photos are kept for 3 days only, then removed by the daily clean-up job.
+  const { data: photoUrls } = useQuery({
+    queryKey: ["meter-photo-urls", open?.id],
+    enabled: !!open && !!(open.start_photo_path || open.end_photo_path),
+    queryFn: async () => {
+      const out: { start?: string; end?: string } = {};
+      if (open?.start_photo_path) {
+        const { data } = await supabase.storage.from("meter-photos").createSignedUrl(open.start_photo_path, 300);
+        if (data?.signedUrl) out.start = data.signedUrl;
+      }
+      if (open?.end_photo_path) {
+        const { data } = await supabase.storage.from("meter-photos").createSignedUrl(open.end_photo_path, 300);
+        if (data?.signedUrl) out.end = data.signedUrl;
+      }
+      return out;
+    },
+  });
+
+  const closeSheet = () => { setOpen(null); setNote(""); setAuditReason(""); };
 
   const saveReview = async (resolve: boolean) => {
     if (!open) return;
@@ -153,7 +186,23 @@ function AdminVehicleLogsPage() {
     try {
       await review({ data: { id: open.id, review_notes: note, resolve } });
       toast.success(t("vm_review_saved"));
-      setOpen(null); setNote("");
+      closeSheet();
+      qc.invalidateQueries({ queryKey: ["admin-meter-logs"] });
+    } catch (e: any) {
+      toast.error(e?.message ?? t("error"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const saveAudit = async (flag: boolean) => {
+    if (!open) return;
+    if (flag && !auditReason.trim()) return toast.error(t("vm_audit_need_reason"));
+    setBusy(true);
+    try {
+      await audit({ data: { id: open.id, flag, reason: auditReason.trim() } });
+      toast.success(t("vm_audit_saved"));
+      closeSheet();
       qc.invalidateQueries({ queryKey: ["admin-meter-logs"] });
     } catch (e: any) {
       toast.error(e?.message ?? t("error"));
