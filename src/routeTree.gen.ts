@@ -33,7 +33,6 @@ import { Route as AuthenticatedAdminDailyReportsRouteImport } from './routes/_au
 import { Route as AuthenticatedAdminAttendanceRouteImport } from './routes/_authenticated/admin/attendance'
 import { Route as AuthenticatedAdminAnnouncementsRouteImport } from './routes/_authenticated/admin/announcements'
 import { Route as AuthenticatedMeTasksIndexRouteImport } from './routes/_authenticated/me/tasks/index'
-import { Route as ApiPublicHooksCleanupNotificationsRouteImport } from './routes/api/public/hooks/cleanup-notifications'
 import { Route as ApiPublicHooksCleanupMeterPhotosRouteImport } from './routes/api/public/hooks/cleanup-meter-photos'
 import { Route as ApiPublicHooksCleanupAttendancePhotosRouteImport } from './routes/api/public/hooks/cleanup-attendance-photos'
 import { Route as AuthenticatedMeTasksIdRouteImport } from './routes/_authenticated/me/tasks/$id'
@@ -172,12 +171,6 @@ const AuthenticatedMeTasksIndexRoute =
     path: '/me/tasks/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const ApiPublicHooksCleanupNotificationsRoute =
-  ApiPublicHooksCleanupNotificationsRouteImport.update({
-    id: '/api/public/hooks/cleanup-notifications',
-    path: '/api/public/hooks/cleanup-notifications',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const ApiPublicHooksCleanupMeterPhotosRoute =
   ApiPublicHooksCleanupMeterPhotosRouteImport.update({
     id: '/api/public/hooks/cleanup-meter-photos',
@@ -222,7 +215,6 @@ export interface FileRoutesByFullPath {
   '/me/tasks/$id': typeof AuthenticatedMeTasksIdRoute
   '/api/public/hooks/cleanup-attendance-photos': typeof ApiPublicHooksCleanupAttendancePhotosRoute
   '/api/public/hooks/cleanup-meter-photos': typeof ApiPublicHooksCleanupMeterPhotosRoute
-  '/api/public/hooks/cleanup-notifications': typeof ApiPublicHooksCleanupNotificationsRoute
   '/me/tasks/': typeof AuthenticatedMeTasksIndexRoute
 }
 export interface FileRoutesByTo {
@@ -251,7 +243,6 @@ export interface FileRoutesByTo {
   '/me/tasks/$id': typeof AuthenticatedMeTasksIdRoute
   '/api/public/hooks/cleanup-attendance-photos': typeof ApiPublicHooksCleanupAttendancePhotosRoute
   '/api/public/hooks/cleanup-meter-photos': typeof ApiPublicHooksCleanupMeterPhotosRoute
-  '/api/public/hooks/cleanup-notifications': typeof ApiPublicHooksCleanupNotificationsRoute
   '/me/tasks': typeof AuthenticatedMeTasksIndexRoute
 }
 export interface FileRoutesById {
@@ -282,7 +273,6 @@ export interface FileRoutesById {
   '/_authenticated/me/tasks/$id': typeof AuthenticatedMeTasksIdRoute
   '/api/public/hooks/cleanup-attendance-photos': typeof ApiPublicHooksCleanupAttendancePhotosRoute
   '/api/public/hooks/cleanup-meter-photos': typeof ApiPublicHooksCleanupMeterPhotosRoute
-  '/api/public/hooks/cleanup-notifications': typeof ApiPublicHooksCleanupNotificationsRoute
   '/_authenticated/me/tasks/': typeof AuthenticatedMeTasksIndexRoute
 }
 export interface FileRouteTypes {
@@ -313,7 +303,6 @@ export interface FileRouteTypes {
     | '/me/tasks/$id'
     | '/api/public/hooks/cleanup-attendance-photos'
     | '/api/public/hooks/cleanup-meter-photos'
-    | '/api/public/hooks/cleanup-notifications'
     | '/me/tasks/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -342,7 +331,6 @@ export interface FileRouteTypes {
     | '/me/tasks/$id'
     | '/api/public/hooks/cleanup-attendance-photos'
     | '/api/public/hooks/cleanup-meter-photos'
-    | '/api/public/hooks/cleanup-notifications'
     | '/me/tasks'
   id:
     | '__root__'
@@ -372,7 +360,6 @@ export interface FileRouteTypes {
     | '/_authenticated/me/tasks/$id'
     | '/api/public/hooks/cleanup-attendance-photos'
     | '/api/public/hooks/cleanup-meter-photos'
-    | '/api/public/hooks/cleanup-notifications'
     | '/_authenticated/me/tasks/'
   fileRoutesById: FileRoutesById
 }
@@ -382,7 +369,6 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   ApiPublicHooksCleanupAttendancePhotosRoute: typeof ApiPublicHooksCleanupAttendancePhotosRoute
   ApiPublicHooksCleanupMeterPhotosRoute: typeof ApiPublicHooksCleanupMeterPhotosRoute
-  ApiPublicHooksCleanupNotificationsRoute: typeof ApiPublicHooksCleanupNotificationsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -555,13 +541,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMeTasksIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/api/public/hooks/cleanup-notifications': {
-      id: '/api/public/hooks/cleanup-notifications'
-      path: '/api/public/hooks/cleanup-notifications'
-      fullPath: '/api/public/hooks/cleanup-notifications'
-      preLoaderRoute: typeof ApiPublicHooksCleanupNotificationsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/public/hooks/cleanup-meter-photos': {
       id: '/api/public/hooks/cleanup-meter-photos'
       path: '/api/public/hooks/cleanup-meter-photos'
@@ -646,8 +625,6 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksCleanupAttendancePhotosRoute:
     ApiPublicHooksCleanupAttendancePhotosRoute,
   ApiPublicHooksCleanupMeterPhotosRoute: ApiPublicHooksCleanupMeterPhotosRoute,
-  ApiPublicHooksCleanupNotificationsRoute:
-    ApiPublicHooksCleanupNotificationsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
