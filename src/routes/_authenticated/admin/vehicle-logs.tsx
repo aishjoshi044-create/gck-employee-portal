@@ -13,12 +13,12 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { downloadExcel } from "@/lib/exports";
-import { reviewVehicleMeterLog } from "@/lib/vehicle-meter.functions";
+import { downloadExcel, downloadPdf } from "@/lib/exports";
+import { reviewVehicleMeterLog, auditVehicleMeterLog } from "@/lib/vehicle-meter.functions";
 import { STATUS_STYLES } from "@/routes/_authenticated/me/vehicle-log";
 import { toast } from "sonner";
 import { format, startOfMonth, endOfMonth } from "date-fns";
-import { Gauge, FileSpreadsheet, Loader2, Search } from "lucide-react";
+import { Gauge, FileSpreadsheet, FileText, Loader2, Search, Flag } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/admin/vehicle-logs")({
   component: AdminVehicleLogsPage,
@@ -49,6 +49,13 @@ interface Row {
   validation_notes: string | null;
   review_notes: string | null;
   ocr_reading: number | null;
+  start_ocr_reading: number | null;
+  end_ocr_reading: number | null;
+  start_photo_path: string | null;
+  end_photo_path: string | null;
+  audit_flagged: boolean;
+  audit_reason: string | null;
+  audit_history: { action: string; reason: string | null; by: string; at: string }[] | null;
   created_at: string;
 }
 
