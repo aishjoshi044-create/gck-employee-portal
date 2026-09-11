@@ -64,6 +64,7 @@ function AdminVehicleLogsPage() {
   const qc = useQueryClient();
   const { adminIds } = useAdminIds();
   const review = useServerFn(reviewVehicleMeterLog);
+  const audit = useServerFn(auditVehicleMeterLog);
 
   const now = new Date();
   const [from, setFrom] = useState(format(startOfMonth(now), "yyyy-MM-dd"));
@@ -74,6 +75,7 @@ function AdminVehicleLogsPage() {
   const [status, setStatus] = useState<"all" | Status>("all");
   const [open, setOpen] = useState<Row | null>(null);
   const [note, setNote] = useState("");
+  const [auditReason, setAuditReason] = useState("");
   const [busy, setBusy] = useState(false);
 
   const { data: profiles = [] } = useQuery({
@@ -95,7 +97,7 @@ function AdminVehicleLogsPage() {
     queryFn: async () => {
       let q = supabase
         .from("vehicle_meter_logs")
-        .select("id,user_id,vehicle,log_date,start_km,end_km,total_km,project,validation_status,validation_notes,review_notes,ocr_reading,created_at")
+        .select("id,user_id,vehicle,log_date,start_km,end_km,total_km,project,validation_status,validation_notes,review_notes,ocr_reading,start_ocr_reading,end_ocr_reading,start_photo_path,end_photo_path,audit_flagged,audit_reason,audit_history,created_at")
         .gte("log_date", from)
         .lte("log_date", to)
         .order("log_date", { ascending: false })
